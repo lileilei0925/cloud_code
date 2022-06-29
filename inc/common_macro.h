@@ -13,6 +13,7 @@
 #define MAX_PTRS_PORT_NUM     2
 #define MAX_UCI_PART2_NUM     100
 #define MAX_PART1_PAPR_NUM    4
+#define UN_USED_ROOT_PER_FDM  1
 
 #define UL_PDU_TYPE_PRACH     0
 #define UL_PDU_TYPE_PUSCH     1

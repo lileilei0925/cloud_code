@@ -36,7 +36,7 @@ typedef struct {
 typedef struct {
     uint8_t        ueNum;
     uint8_t        pduIndexPerUe[MAX_UE_NUM_PER_GROUP];
-}UeGroupInfo;
+}FapiUeGroupInfo;
 
 typedef struct {
     uint32_t       handle;
@@ -48,15 +48,15 @@ typedef struct {
 }PrachNewInV3;
 
 typedef struct {
-    uint16_t       phyCellID;
-    uint8_t        prachTdOcasNum;
+    uint16_t       physCellID;
+    uint8_t        numPrachOcas;
     uint8_t        prachFormat;
     uint8_t        fdRaIndex;      
     uint8_t        prachStartSymb;
-    uint16_t       ncsValue;
+    uint16_t       numCs;
     Beamforming    beamForming;   /* The beamforming PDU is included in the PRACH */
     PrachNewInV3   prachNewInV3;  /* PRACH Maintenance Parameters added in FAPIv3 */
-}PrachPduInfo;
+}FapiPrachPduInfo;
 
 
 /* P7 Pusch slot messages are transmitted, or received, every slot */
@@ -167,7 +167,7 @@ typedef struct {
     Beamforming    beamForming;      /* The beamforming PDU is included in the PRACH */
     PuschNewInV3   puschNewInV3;     /* PUSCH Maintenance Parameters added in FAPIv3 */
     UciInfoAddInV3 uciInfoAddInV3;   /* Optional puschUci added in FAPIv3 */
-}PuschPduInfo;
+}FapiPuschPduInfo;
 
 
 /* P7 Pucch slot messages are transmitted, or received, every slot */
@@ -213,7 +213,7 @@ typedef struct {
     Beamforming    beamForming;    /* The beamforming PDU is included in the PRACH */
     PucchNewInV3   pucchNewInV3;
     UciInfoAddInV3 uciInfoAddInV3;
-}PucchPduInfo;
+}FapiPucchPduInfo;
 
 
 /* P7 Srs slot messages are transmitted, or received, every slot */
@@ -242,7 +242,7 @@ typedef struct {
     uint16_t       nTsrs;
     uint16_t       nToffset;
     Beamforming    beamForming;   /* The beamforming PDU is included in the PRACH */
-}SrsPduInfo;
+}FapiSrsPduInfo;
 
 
 typedef struct {
@@ -251,23 +251,23 @@ typedef struct {
     uint16_t       pduSize;
     union
     {
-      PrachPduInfo   prachPduInfo;
-      PuschPduInfo   puschPduInfo; 
-      PucchPduInfo   pucchPduInfo; 
-      SrsPduInfo     srsPduInfo; 
+      FapiPrachPduInfo   PrachPduInfo;
+      FapiPuschPduInfo   puschPduInfo; 
+      FapiPucchPduInfo   pucchPduInfo; 
+      FapiSrsPduInfo     srsPduInfo; 
     };
-}UlTtiPduInfo;
+}FapiUlTtiPduInfo;
 
 typedef struct {
-    uint16_t        numSFN;
-    uint16_t        numSlot;
-    uint16_t        numPdus;
-    uint8_t         ulTypes;                          
-    uint16_t        pdusPerType[MAX_UL_PDU_TYPES];  
-    uint8_t         ueGroupNum; 
-    UlTtiPduInfo    ulTtiPduInfo[MAX_UL_PDU_NUM];     
-    UeGroupInfo     ueGroupInfo[MAX_GROUP_NUM];     
-}UlTtiRequest;
+    uint16_t         numSFN;
+    uint16_t         numSlot;
+    uint16_t         numPdus;
+    uint8_t          ulTypes;                          
+    uint16_t         pdusPerType[MAX_UL_PDU_TYPES];  
+    uint8_t          ueGroupNum; 
+    FapiUlTtiPduInfo ulTtiPduInfo[MAX_UL_PDU_NUM];     
+    FapiUeGroupInfo  ueGroupInfo[MAX_GROUP_NUM];     
+}FapiUlTtiRequest;
 
 
 /* RACH.indication Message, There can be more than one RACH.indication message per slot*/
@@ -294,4 +294,4 @@ typedef struct {
     uint16_t        numSlot;
     uint8_t         numPdus;
     PrachMeasPerPdu prachMeasPerPdu[MAX_UL_PDU_NUM];
-}PrachIndication;	
+}FapiPrachIndication;	

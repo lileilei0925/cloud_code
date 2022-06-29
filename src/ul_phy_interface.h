@@ -1,35 +1,95 @@
 #include "../inc/common_teypedef.h"
 #include "../inc/common_macro.h"
 
-
 typedef struct
 {
     uint16_t pduType;
     uint16_t pduSize;
-}PduStruct;
+} PduHeadInfo;
+
+typedef enum
+{
+    F_1_25KHz = 0,
+    F_5KHz    = 1,
+    F_15KHz   = 2 ,
+    F_30KHz   = 3,
+    F_60KHz   = 4,
+    F_120KHz  = 5,
+    F_ERROR
+} RAScSpacingEum;
+
+typedef enum
+{
+    FORMAT_0    = 0,
+    FORMAT_1    = 1,
+    FORMAT_2    = 2,
+    FORMAT_3    = 3,
+    FORMAT_A1   = 4,
+    FORMAT_A2   = 5,
+    FORMAT_A3   = 6,
+    FORMAT_B1   = 7,
+    FORMAT_B4   = 8,
+    FORMAT_C0   = 9,
+    FORMAT_C2   = 10,
+    FORMAT_A1B1 = 11,
+    FORMAT_A2B2 = 12,
+    FORMAT_A3B3 = 13,
+    FORMAT_ERROR
+} PrachFormatEnum;
 
 typedef struct 
 {
-    /* PRACH Configuration Index */
-    uint16_t prachCfgIndex;
-    /* PRACH prach-frequency-start */
-    uint16_t prachFdmStart;
-    uint16_t antNum;
-    uint8_t  preambleFormat;
+    uint8_t prachConfigIdx;
+    uint8_t preambleFmrt[2];
+    uint8_t x;
+    uint8_t y[2];
+    uint8_t slotNr[40];
+    uint8_t slotNrNum;
+    uint8_t startingSym;
+    uint8_t nrofPrachInSlot;
+    uint8_t occassionsInPrachSlot;
+    uint8_t duration;
+} PrachConfigTableStruct;
+
+/* P5 Prach config messages local structure */
+typedef struct {	
+    uint16_t prachResCfgIndex;
+    uint8_t  prachLength;
     uint8_t  prachScs;
-    uint16_t nLRA;
-    uint32_t nNu;  
-    uint16_t nN_CP_RA;
-    uint16_t nRepeat;
-    uint8_t  restrictedSetType;
-    uint16_t prachRootSeqIdx;  
-    uint16_t zeroCorrelationZoneConfig;
-    uint16_t nN_cs;
-    uint16_t nRootSeq; // the number of root seq. PRACH_PREAMBLE_SEQ_NUM is the max value.
-    uint16_t nSlotPRACH; // Number of PRACH slots in a subframe.
-    uint16_t nOccasions; // Number of PRACH occasions in a RACH slot.
-    uint16_t nFFTSize;
-    uint16_t nTA; // calculate from N_TA = TA* 16*64* Tc /2^u
-    uint16_t startingSym; // start symbol of first occasion in a RACH slot.
-    //RootSequenceTable sRootSeqTable[PRACH_PREAMBLE_SEQ_NUM]; // store the root number. PRACH_PREAMBLE_SEQ_NUM is the max value.
-}PrachRxParaStruct;
+    uint8_t  PuschScs;      
+    uint8_t  restrictedSetType;/* 0: unrestricted, 1: restricted set type A, 2: restricted set type B */
+    uint8_t  PrachFdmNum;      /* Number of RACH frequency domain occasions */
+    uint8_t  prachCfgIndex;
+    uint8_t  SsbPerRach;
+    
+    uint16_t prachRootIndex[MAX_PRACH_FDM_NUM];
+    uint8_t  rootSequenceNum[MAX_PRACH_FDM_NUM];
+    int16_t  k1[MAX_PRACH_FDM_NUM];
+    uint8_t  prachZeroCorrCfg[MAX_PRACH_FDM_NUM];
+    uint16_t unusedRootNum[MAX_PRACH_FDM_NUM];
+    uint16_t unusedRootSequence[MAX_PRACH_FDM_NUM][UN_USED_ROOT_PER_FDM];
+}PrachCfgParaInfo;
+
+/* P7 Prach slot messages local structure*/
+typedef struct 
+{
+    uint16_t phyCellID;
+    uint8_t  prachTdOcasNum;
+    uint8_t  prachFormat;
+    uint8_t  PrachFdmIndex; /* Frequency domain occasion index */     
+    uint8_t  prachStartSymb;/* Starting symbol for the first PRACH TD occasion in the current PRACH FD occasion */
+    uint16_t ncsValue;      /* Zero-correlation zone configuration number */
+
+    uint32_t handle;
+    uint8_t  prachCfgScope;/* 0: for PHY ID 0; 1: for current PHY ID */
+    uint16_t prachResCfgIndex;/* The PRACH configuration for which this PRACH PDU is signaled  */
+    uint8_t  prachFdmNum;  /* Number of frequency domain occasions,starting with PrachFdmIndex */
+    uint8_t  startPreambleIndex;
+    uint8_t  numPreambleIndices;
+
+    uint8_t  trpScheme; /* This field shall be set to 0, to identify that this table is used */
+    uint16_t prgNum;
+    uint16_t prgSize;
+    uint8_t  antPortNum;/* Number of logical antenna ports */
+    uint16_t beamIndex[MAX_PRG_NUM][MAX_BF_PORT];
+} PrachPduParaInfo;
