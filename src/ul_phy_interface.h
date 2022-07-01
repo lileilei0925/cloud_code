@@ -1,82 +1,47 @@
 #include "../inc/common_teypedef.h"
 #include "../inc/common_macro.h"
 
+/* 每个PDU的头,包含pduType，pduSize */
 typedef struct
 {
-    uint16_t pduType;
-    uint16_t pduSize;
+    uint16_t pduType; /* 0:PRACH, 1:PUSCH, 2:PUCCH, 3:SRS */
+    uint16_t pduSize; /* Size of the PDU control information (in bytes). This length value includes the 4 bytes required for the PDU type and PDU size parameters */
 } PduHeadInfo;
 
-typedef enum
+/* Slot Messages Ul_TTI.request的头,PDU信息之前的部分 */
+typedef struct
 {
-    F_1_25KHz = 0,
-    F_5KHz    = 1,
-    F_15KHz   = 2 ,
-    F_30KHz   = 3,
-    F_60KHz   = 4,
-    F_120KHz  = 5,
-    F_ERROR
-} RAScSpacingEum;
+    uint16_t sfnNum;                           /* system frame number [0: 1023] */
+    uint16_t slotNum;                          /* SLOT number [0: 159] */
+    uint16_t pduNum;                           /* Number of PDUs that are included in this message */
+    uint8_t  ulPduTypes;                       /* Maximum number of UL PDU types supported by UL_TTI.request */
+    uint16_t pduNumPerType[MAX_UL_PDU_TYPES];  /* Number of PDUs of each type that are included in this message,nUlPduTypes = 5 */
+    uint8_t  ueGroupNum;                       /* Number of UE Groups included in this message */
+} UlTtiRequestHeadInfo;
 
-typedef enum
+/* UeGroupInfo,包含ue数和每个ue对应得pduIndex */
+typedef struct
 {
-    FORMAT_0    = 0,
-    FORMAT_1    = 1,
-    FORMAT_2    = 2,
-    FORMAT_3    = 3,
-    FORMAT_A1   = 4,
-    FORMAT_A2   = 5,
-    FORMAT_A3   = 6,
-    FORMAT_B1   = 7,
-    FORMAT_B4   = 8,
-    FORMAT_C0   = 9,
-    FORMAT_C2   = 10,
-    FORMAT_A1B1 = 11,
-    FORMAT_A2B2 = 12,
-    FORMAT_A3B3 = 13,
-    FORMAT_ERROR
-} PrachFormatEnum;
+    uint8_t ueNum;           /* Number of UE in this group For SU-MIMO, one group includes one UE only. For MU-MIMO, one group includes up to 12 UEs */
+    uint8_t pduIdx[];        /* This value is an index for number of PDU identified by nPDU in this message */
+} UeGoupNumInfo;
 
+/* UlPduMappingInfo, 用来解析pdu和ueGroup之间的对应关系 */
 typedef struct 
 {
-    uint8_t prachConfigIdx;
-    uint8_t preambleFmrt[2];
-    uint8_t x;
-    uint8_t y[2];
-    uint8_t slotNr[40];
-    uint8_t slotNrNum;
-    uint8_t startingSym;
-    uint8_t nrofPrachInSlot;
-    uint8_t occassionsInPrachSlot;
-    uint8_t duration;
-} PrachConfigTableStruct;
-
-/* P5 Prach config messages local structure */
-typedef struct {	
-    uint16_t prachResCfgIndex;
-    uint8_t  prachLength;
-    uint8_t  prachScs;
-    uint8_t  PuschScs;      
-    uint8_t  restrictedSetType;/* 0: unrestricted, 1: restricted set type A, 2: restricted set type B */
-    uint8_t  PrachFdmNum;      /* Number of RACH frequency domain occasions */
-    uint8_t  prachCfgIndex;
-    uint8_t  SsbPerRach;
-    
-    uint16_t prachRootIndex[MAX_PRACH_FDM_NUM];
-    uint8_t  rootSequenceNum[MAX_PRACH_FDM_NUM];
-    int16_t  k1[MAX_PRACH_FDM_NUM];
-    uint8_t  prachZeroCorrCfg[MAX_PRACH_FDM_NUM];
-    uint16_t unusedRootNum[MAX_PRACH_FDM_NUM];
-    uint16_t unusedRootSequence[MAX_PRACH_FDM_NUM][UN_USED_ROOT_PER_FDM];
-}PrachCfgParaInfo;
+    uint8_t  groupIndex;
+    uint8_t  ueIndex;
+    uint8_t  pduIndex;
+} UlPduMappingInfo;
 
 /* P7 Prach slot messages local structure*/
 typedef struct 
 {
+    uint16_t pduIndex;
     uint16_t phyCellID;
     uint8_t  prachTdOcasNum;
     uint8_t  prachFormat;
-    uint8_t  PrachFdmIndex; /* Frequency domain occasion index */     
+    uint8_t  PrachFdmIndex; /* Frequency domain occasion index :msg1-FDM*/     
     uint8_t  prachStartSymb;/* Starting symbol for the first PRACH TD occasion in the current PRACH FD occasion */
     uint16_t ncsValue;      /* Zero-correlation zone configuration number */
 
@@ -85,11 +50,61 @@ typedef struct
     uint16_t prachResCfgIndex;/* The PRACH configuration for which this PRACH PDU is signaled  */
     uint8_t  prachFdmNum;  /* Number of frequency domain occasions,starting with PrachFdmIndex */
     uint8_t  startPreambleIndex;
-    uint8_t  numPreambleIndices;
+    uint8_t  preambleIndicesNum;
 
     uint8_t  trpScheme; /* This field shall be set to 0, to identify that this table is used */
     uint16_t prgNum;
     uint16_t prgSize;
-    uint8_t  antPortNum;/* Number of logical antenna ports */
+    uint8_t  digitalBfNum;/* Number of logical antenna ports */
     uint16_t beamIndex[MAX_PRG_NUM][MAX_BF_PORT];
-} PrachPduParaInfo;
+} L1PrachPduParaInfo;
+
+typedef struct 
+{
+    uint16_t sfnNum;        /* system frame number [0: 1023] */
+    uint16_t slotNum;       /* SLOT number [0: 159] */
+    uint16_t prachPduNum;   /* Number of PrachPdus that are parse from FAPI UlTTIRequset */
+    
+} L12PrachPduParaInfo;
+
+
+# if 0
+/* PrachLowPhyPara structure: prach LowphyPara config para */
+typedef struct
+{
+    uint16_t sfnNum;         /* system frame number [0: 1023] */
+    uint16_t slotNum;        /* slot number [0: 159]  */
+    uint16_t cellIndex;      /* */
+    uint8_t  antNum;         /* */
+    uint16_t fftSizeIndex;   /* */     
+    uint8_t  prachFeEn;      /* 是否启动PrachLowphy处理标志 */
+    uint16_t bwpStart;       /* */
+    uint16_t bwpSize;
+    uint8_t  sampleRate;
+    uint8_t  ulBwpPuschScs;
+    uint8_t  prachSubScs;
+    uint8_t  nRaRB;
+    uint8_t  kBar;
+    uint8_t  nRaStart;
+    uint8_t  indexFdRa;
+    uint16_t freqShiftValue;
+} PrachLowPhyPara;
+#endif
+
+/* P7 Pusch slot messages local structure*/
+typedef struct 
+{
+ /*data info*/
+} PuschPduParaInfo;
+
+/* P7 Pucch slot messages local structure*/
+typedef struct 
+{
+ /*data info*/
+} PucchPduParaInfo;
+
+/* P7 Srs slot messages local structure*/
+typedef struct 
+{
+ /*data info*/
+} SrsPduParaInfo;

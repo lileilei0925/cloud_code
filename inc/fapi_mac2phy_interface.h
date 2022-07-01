@@ -23,19 +23,18 @@ typedef struct {
     uint8_t         ssbPerRach;
 }PrachConfigRequest;	
 
-
 /* P7 Prach slot messages are transmitted, or received, every slot */
 typedef struct {
     uint8_t        trpScheme; 
     uint16_t       numPRGs;
     uint16_t       prgSize;
     uint8_t        digBfInterface;
-    uint16_t       beamIndex[MAX_PRG_NUM][MAX_BF_PORT];
-}Beamforming;
+    uint16_t       beamIndex[];//beamIndex[MAX_PRG_NUM][MAX_BF_PORT];
+}BeamformingInfo;
 
 typedef struct {
-    uint8_t        ueNum;
-    uint8_t        pduIndexPerUe[MAX_UE_NUM_PER_GROUP];
+    uint8_t        ueNum;/*Number of UE in this group For SU-MIMO, one group includes one UE only. For MU-MIMO, one group includes up to 12 UEs*/
+    uint8_t        pduIndexPerUe[]; //pduIndexPerUe[MAX_UE_NUM_PER_GROUP];
 }FapiUeGroupInfo;
 
 typedef struct {
@@ -48,14 +47,14 @@ typedef struct {
 }PrachNewInV3;
 
 typedef struct {
-    uint16_t       physCellID;
-    uint8_t        numPrachOcas;
-    uint8_t        prachFormat;
-    uint8_t        fdRaIndex;      
-    uint8_t        prachStartSymb;
-    uint16_t       numCs;
-    Beamforming    beamForming;   /* The beamforming PDU is included in the PRACH */
-    PrachNewInV3   prachNewInV3;  /* PRACH Maintenance Parameters added in FAPIv3 */
+    uint16_t        physCellID;
+    uint8_t         numPrachOcas;
+    uint8_t         prachFormat;
+    uint8_t         fdRaIndex;      
+    uint8_t         prachStartSymb;
+    uint16_t        numCs;
+    BeamformingInfo beamFormingInfo;   /* The beamforming PDU is included in the PRACH */
+    PrachNewInV3    prachNewInV3;      /* PRACH Maintenance Parameters added in FAPIv3 */
 }FapiPrachPduInfo;
 
 
@@ -125,48 +124,48 @@ typedef struct {
 }UciInfoAddInV3;
 
 typedef struct {
-    uint16_t       pduBitmap;
-    uint16_t       nRnti;
-    uint32_t       handle;
-    uint16_t       bwpSize;
-    uint16_t       bwpStart;
-    uint8_t        subCarrierSpacing;
-    uint8_t        cyclicPrefix;
+    uint16_t        pduBitmap;
+    uint16_t        nRnti;
+    uint32_t        handle;
+    uint16_t        bwpSize;
+    uint16_t        bwpStart;
+    uint8_t         subCarrierSpacing;
+    uint8_t         cyclicPrefix;
 
-    uint16_t       targetCodeRate;
-    uint8_t        qamModOrder;
-    uint8_t        mcsIndex;
-    uint8_t        mcsTable;
-    uint8_t        transformPrecoding;
-    uint16_t       nIdPusch;
-    uint8_t        numLayers;
+    uint16_t        targetCodeRate;
+    uint8_t         qamModOrder;
+    uint8_t         mcsIndex;
+    uint8_t         mcsTable;
+    uint8_t         transformPrecoding;
+    uint16_t        nIdPusch;
+    uint8_t         numLayers;
     
-    uint16_t       ulDmrsSymbPos;
-    uint8_t        dmrsCfgType;
-    uint16_t       dmrsScrambleId;
-    uint16_t       puschDmrsidentity;
-    uint8_t        nSCID;
-    uint8_t        numDmrsCdmGrps;
-    uint16_t       dmrsPort;
+    uint16_t        ulDmrsSymbPos;
+    uint8_t         dmrsCfgType;
+    uint16_t        dmrsScrambleId;
+    uint16_t        puschDmrsidentity;
+    uint8_t         nSCID;
+    uint8_t         numDmrsCdmGrps;
+    uint16_t        dmrsPort;
 
-    uint8_t        resourceAlloc;
-    uint8_t        rbBitmap;
-    uint16_t       rbStart;
-    uint16_t       rbSize;
-    uint8_t        vrbToPrbMapping;
-    uint8_t        intraSlotFreqhopping;
-    uint16_t       txDcLocation;
-    uint8_t        ulFreqShift7p5Khz;
-    uint8_t        startSymbIndex;
-    uint8_t        numSymbs;
+    uint8_t         resourceAlloc;
+    uint8_t         rbBitmap;
+    uint16_t        rbStart;
+    uint16_t        rbSize;
+    uint8_t         vrbToPrbMapping;
+    uint8_t         intraSlotFreqhopping;
+    uint16_t        txDcLocation;
+    uint8_t         ulFreqShift7p5Khz;
+    uint8_t         startSymbIndex;
+    uint8_t         numSymbs;
 
-    PuschDataInfo  puschDataInfo;    /* Optional puschData information */
-    PuschUciInfo   puschUciInfo;     /* Optional puschUci information */
-    PuschPtrsInfo  puschPtrsInfo;    /* Optional puschPtrs information */
-    PuschDftInfo   puschDftOfdmInfo; /* Optional dftsOfdm information */
-    Beamforming    beamForming;      /* The beamforming PDU is included in the PRACH */
-    PuschNewInV3   puschNewInV3;     /* PUSCH Maintenance Parameters added in FAPIv3 */
-    UciInfoAddInV3 uciInfoAddInV3;   /* Optional puschUci added in FAPIv3 */
+    PuschDataInfo   puschDataInfo;    /* Optional puschData information */
+    PuschUciInfo    puschUciInfo;     /* Optional puschUci information */
+    PuschPtrsInfo   puschPtrsInfo;    /* Optional puschPtrs information */
+    PuschDftInfo    puschDftOfdmInfo; /* Optional dftsOfdm information */
+    BeamformingInfo beamFormingInfo;      /* The beamforming PDU is included in the PRACH */
+    PuschNewInV3    puschNewInV3;     /* PUSCH Maintenance Parameters added in FAPIv3 */
+    UciInfoAddInV3  uciInfoAddInV3;   /* Optional puschUci added in FAPIv3 */
 }FapiPuschPduInfo;
 
 
@@ -178,83 +177,83 @@ typedef struct {
 
 typedef struct {
     /* 0: PRACH PDU; 1: PUSCH PDU; 2: PUCCH PDU; 3: SRS PDU */
-    uint16_t       nRnti;        
-    uint32_t       handle;
-    uint16_t       bwpSize;
-    uint16_t       bwpStart;
-    uint8_t        subcarrierSpacing;
-    uint8_t        cyclicPrefix;
-    uint8_t        formatType;
-    uint8_t        multiSlotTxIndicator;
-    uint8_t        pi2BpskFlag;
-    uint16_t       prbStart;
-    uint16_t       prbSize;
-    uint8_t        StartSymbolIndex;
-    uint8_t        symbolNum;
+    uint16_t        nRnti;        
+    uint32_t        handle;
+    uint16_t        bwpSize;
+    uint16_t        bwpStart;
+    uint8_t         subcarrierSpacing;
+    uint8_t         cyclicPrefix;
+    uint8_t         formatType;
+    uint8_t         multiSlotTxIndicator;
+    uint8_t         pi2BpskFlag;
+    uint16_t        prbStart;
+    uint16_t        prbSize;
+    uint8_t         StartSymbolIndex;
+    uint8_t         symbolNum;
     
-    uint8_t        intraSlotFreqHopping;
-    uint16_t       secondHopPRB;
-    uint8_t        pucchGroupHopping;
+    uint8_t         intraSlotFreqHopping;
+    uint16_t        secondHopPRB;
+    uint8_t         pucchGroupHopping;
 
-    uint8_t        obsolete8bit;    /* This flag is obsolete in FAPIv3 */
-    uint16_t       nIdPucchHopping; /* The parameter nID used for sequence hopping */
-    uint16_t       initCyclicShift;
-    uint16_t       nIdPucchScrambling;
-    uint8_t        tdOccIdx;
-    uint8_t        preDftOccIdx;
-    uint8_t        preDftOccLen;
-    uint8_t        addDmrsFlag;
-    uint16_t       dmrsScramblingId;
-    uint8_t        dmrsCyclicShift;
-    uint8_t        srFlag;
-    uint16_t       bitLenHarq;
-    uint16_t       csiPart1BitLength;
+    uint8_t         obsolete8bit;    /* This flag is obsolete in FAPIv3 */
+    uint16_t        nIdPucchHopping; /* The parameter nID used for sequence hopping */
+    uint16_t        initCyclicShift;
+    uint16_t        nIdPucchScrambling;
+    uint8_t         tdOccIdx;
+    uint8_t         preDftOccIdx;
+    uint8_t         preDftOccLen;
+    uint8_t         addDmrsFlag;
+    uint16_t        dmrsScramblingId;
+    uint8_t         dmrsCyclicShift;
+    uint8_t         srFlag;
+    uint16_t        bitLenHarq;
+    uint16_t        csiPart1BitLength;
    
-    Beamforming    beamForming;    /* The beamforming PDU is included in the PRACH */
-    PucchNewInV3   pucchNewInV3;
-    UciInfoAddInV3 uciInfoAddInV3;
+    BeamformingInfo beamFormingInfo;    /* The beamforming PDU is included in the PRACH */
+    PucchNewInV3    pucchNewInV3;
+    UciInfoAddInV3  uciInfoAddInV3;
 }FapiPucchPduInfo;
 
 
 /* P7 Srs slot messages are transmitted, or received, every slot */
 typedef struct {
-    uint16_t       nRnti;
-    uint32_t       handle;
-    uint16_t       bwpSize;
-    uint16_t       bwpStart;
-    uint8_t        subcarrierSpacing;
-    uint8_t        cyclicPrefix;
-    uint8_t        numAntPorts;
-    uint8_t        numSymbols;
-    uint8_t        numRepetitions;
-    uint8_t        startSymbol;
-    uint8_t        nCsrs;         /* SRS bandwidth config index corresponding FAPI V3  configIndex*/
-    uint16_t       sequenceId;
-    uint8_t        nBsrs;         /* SRS bandwidth index, corresponding FAPI V3  bandwidthIndex*/
-    uint8_t        combSize;      /* Transmission comb size Ktc*/
-    uint8_t        combOffset;
-    uint8_t        cyclicShift;
-    uint8_t        freqPosition;  /* Frequency domain position nRRC*/
-    uint16_t       freqShift;     /* Frequency domain shift nshift */
-    uint8_t        freqHopping;   /* Frequency hopping bhop */
-    uint8_t        groupOrSeqHopping;
-    uint8_t        resourceType;
-    uint16_t       nTsrs;
-    uint16_t       nToffset;
-    Beamforming    beamForming;   /* The beamforming PDU is included in the PRACH */
+    uint16_t        nRnti;
+    uint32_t        handle;
+    uint16_t        bwpSize;
+    uint16_t        bwpStart;
+    uint8_t         subcarrierSpacing;
+    uint8_t         cyclicPrefix;
+    uint8_t         numAntPorts;
+    uint8_t         numSymbols;
+    uint8_t         numRepetitions;
+    uint8_t         startSymbol;
+    uint8_t         nCsrs;         /* SRS bandwidth config index corresponding FAPI V3  configIndex*/
+    uint16_t        sequenceId;
+    uint8_t         nBsrs;         /* SRS bandwidth index, corresponding FAPI V3  bandwidthIndex*/
+    uint8_t         combSize;      /* Transmission comb size Ktc*/
+    uint8_t         combOffset;
+    uint8_t         cyclicShift;
+    uint8_t         freqPosition;  /* Frequency domain position nRRC*/
+    uint16_t        freqShift;     /* Frequency domain shift nshift */
+    uint8_t         freqHopping;   /* Frequency hopping bhop */
+    uint8_t         groupOrSeqHopping;
+    uint8_t         resourceType;
+    uint16_t        nTsrs;
+    uint16_t        nToffset;
+    BeamformingInfo beamForming;   /* The beamforming PDU is included in the PRACH */
 }FapiSrsPduInfo;
 
 
 typedef struct {
     /* 0: PRACH PDU; 1: PUSCH PDU; 2: PUCCH PDU; 3: SRS PDU */
-    uint16_t       pduType;        
-    uint16_t       pduSize;
+    uint16_t pduType;        
+    uint16_t pduSize;
     union
     {
-      FapiPrachPduInfo   PrachPduInfo;
-      FapiPuschPduInfo   puschPduInfo; 
-      FapiPucchPduInfo   pucchPduInfo; 
-      FapiSrsPduInfo     srsPduInfo; 
+      FapiPrachPduInfo PrachPduInfo;
+      FapiPuschPduInfo puschPduInfo; 
+      FapiPucchPduInfo pucchPduInfo; 
+      FapiSrsPduInfo   srsPduInfo; 
     };
 }FapiUlTtiPduInfo;
 

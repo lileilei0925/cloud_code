@@ -1,8 +1,8 @@
 #ifndef COMMON_MACRO_ 
 #define COMMON_MACRO_
 
-#define MAX_PRG_NUM           275
-#define MAX_BF_PORT           255
+#define MAX_PRG_NUM           137
+#define MAX_BF_PORT           4
 #define MAX_GROUP_NUM         8
 #define MAX_UE_NUM_PER_GROUP  12
 #define MAX_UL_PDU_NUM        200
@@ -14,6 +14,11 @@
 #define MAX_UCI_PART2_NUM     100
 #define MAX_PART1_PAPR_NUM    4
 #define UN_USED_ROOT_PER_FDM  1
+
+#define MAX_PRACH_PDU_NUM     50
+#define MAX_PUSCH_PDU_NUM     50
+#define MAX_PUCCH_PDU_NUM     50
+#define MAX_SRS_PDU_NUM       50
 
 #define UL_PDU_TYPE_PRACH     0
 #define UL_PDU_TYPE_PUSCH     1
