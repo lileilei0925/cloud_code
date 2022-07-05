@@ -24,13 +24,14 @@ typedef struct
 {
     uint8_t ueNum;           /* Number of UE in this group For SU-MIMO, one group includes one UE only. For MU-MIMO, one group includes up to 12 UEs */
     uint8_t pduIdx[];        /* This value is an index for number of PDU identified by nPDU in this message */
-} UeGoupNumInfo;
+} UlueGoupNumInfo;
 
 /* UlPduMappingInfo, 用来解析pdu和ueGroup之间的对应关系 */
 typedef struct 
 {
     uint8_t  groupIndex;
     uint8_t  ueIndex;
+    uint16_t ueRnti;
     uint8_t  pduIndex;
 } UlPduMappingInfo;
 
@@ -57,18 +58,16 @@ typedef struct
     uint16_t prgSize;
     uint8_t  digitalBfNum;/* Number of logical antenna ports */
     uint16_t beamIndex[MAX_PRG_NUM][MAX_BF_PORT];
-} L1PrachPduParaInfo;
+} L1PrachPduInfo;
 
 typedef struct 
 {
-    uint16_t sfnNum;        /* system frame number [0: 1023] */
-    uint16_t slotNum;       /* SLOT number [0: 159] */
-    uint16_t prachPduNum;   /* Number of PrachPdus that are parse from FAPI UlTTIRequset */
-    
-} L12PrachPduParaInfo;
+    uint16_t       sfnNum;        /* system frame number [0: 1023] */
+    uint16_t       slotNum;       /* SLOT number [0: 159] */
+    uint16_t       prachPduNum;   /* Number of PrachPdus that are parse from FAPI UlTTIRequset */
+    L1PrachPduInfo l1prachPduInfo[MAX_PRACH_PDU_NUM];   /* FDM为2时 可以有2个prach PDU*/
+} L1PrachParaInfo;
 
-
-# if 0
 /* PrachLowPhyPara structure: prach LowphyPara config para */
 typedef struct
 {
@@ -89,7 +88,6 @@ typedef struct
     uint8_t  indexFdRa;
     uint16_t freqShiftValue;
 } PrachLowPhyPara;
-#endif
 
 /* P7 Pusch slot messages local structure*/
 typedef struct 

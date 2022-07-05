@@ -15,7 +15,7 @@
 #define MAX_PART1_PAPR_NUM    4
 #define UN_USED_ROOT_PER_FDM  1
 
-#define MAX_PRACH_PDU_NUM     50
+#define MAX_PRACH_PDU_NUM     2
 #define MAX_PUSCH_PDU_NUM     50
 #define MAX_PUCCH_PDU_NUM     50
 #define MAX_SRS_PDU_NUM       50

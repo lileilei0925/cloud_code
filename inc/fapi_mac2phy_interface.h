@@ -21,7 +21,7 @@ typedef struct {
     uint8_t         prachConfigIndex;
     PrachFdOccasion prachFdOccasion[MAX_PRACH_FDM_NUM];
     uint8_t         ssbPerRach;
-}PrachConfigRequest;	
+}FapiPrachConfigRequest;	
 
 /* P7 Prach slot messages are transmitted, or received, every slot */
 typedef struct {
@@ -243,10 +243,8 @@ typedef struct {
     BeamformingInfo beamForming;   /* The beamforming PDU is included in the PRACH */
 }FapiSrsPduInfo;
 
-
 typedef struct {
-    /* 0: PRACH PDU; 1: PUSCH PDU; 2: PUCCH PDU; 3: SRS PDU */
-    uint16_t pduType;        
+    uint16_t pduType;  /* 0: PRACH PDU; 1: PUSCH PDU; 2: PUCCH PDU; 3: SRS PDU */  
     uint16_t pduSize;
     union
     {
@@ -285,12 +283,12 @@ typedef struct {
     uint8_t         avgRssi;
     uint8_t         avgSnr;
     uint8_t         numPreambles;
-    PrachMeasPerId  prachMesaPerId[MAX_PREAMBLES_NUM];
+    PrachMeasPerId  prachMesaPerId[]; //MAX_PREAMBLES_NUM
 }PrachMeasPerPdu;	
 	
 typedef struct {	
     uint16_t        numSFN;
     uint16_t        numSlot;
     uint8_t         numPdus;
-    PrachMeasPerPdu prachMeasPerPdu[MAX_UL_PDU_NUM];
+    PrachMeasPerPdu prachMeasPerPdu[];//MAX_PRACH_PDU_NUM
 }FapiPrachIndication;	
