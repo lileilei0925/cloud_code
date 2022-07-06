@@ -35,6 +35,42 @@ typedef struct
     uint8_t  pduIndex;
 } UlPduMappingInfo;
 
+/* P5 Prach configuration messages local structure*/
+typedef struct {	
+    uint16_t prachResConfigIndex;
+    uint8_t  prachSequenceLength;
+    uint8_t  prachSubCSpacing;
+    uint8_t  ulBwpPuschScs;      
+    uint8_t  restrictedSetConfig;
+    uint8_t  numPrachFdOccasions;
+    uint8_t  prachConfigIndex;
+    uint16_t prachRootSequenceIndex[MAX_PRACH_FDM_NUM];
+    uint8_t  numRootSequences[MAX_PRACH_FDM_NUM];
+    int16_t  k1[MAX_PRACH_FDM_NUM];
+    uint8_t  prachZeroCorrConf[MAX_PRACH_FDM_NUM];
+    uint16_t numUnusedRootSequences[MAX_PRACH_FDM_NUM];
+    uint16_t unusedRootSequences[MAX_PRACH_FDM_NUM][MAX_PREAMBLES_NUM];
+    uint8_t  ssbPerRach;
+}L1PrachConfigInfo;
+
+/* P5 Carrier configuration messages local structure*/
+typedef struct 
+{
+    uint16_t bandWidthDl;
+    uint32_t absoluteFreqDl;
+    uint16_t k0MiuDl[5];
+    uint16_t gridSizeDl[5];
+    uint16_t txAntNum;
+    uint16_t bandWidthUl;
+    uint32_t absoluteFreqUl;
+    uint16_t k0MiuUl[5];
+    uint16_t gridSizeUl[5];
+    uint16_t rxAntNum;
+    uint8_t  freqShift7p5;
+    uint8_t  powerProfile;
+    uint8_t  PowerOffsetRsIndex;
+} L1CarrierCfgInfo;
+
 /* P7 Prach slot messages local structure*/
 typedef struct 
 {
