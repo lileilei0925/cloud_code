@@ -1,8 +1,9 @@
+#pragma once
 #include "../inc/common_teypedef.h"
 #include "../inc/common_macro.h"
 
 
-#define    MAX_PRACH_FDM_NUM                 2
+#define    MAX_PRACH_FDM_NUM                 8
 #define    UN_USED_ROOT_PER_FDM              1
 
 #define    PRACH_ZC_LEN_139                  139
@@ -16,11 +17,17 @@
 #define    PRACH_FORMAT_A2                   5
 #define    PRACH_FORMAT_A3                   6
 #define    PRACH_FORMAT_B1                   7
+#define    PRACH_FORMAT_B2                   255 /* FAPI接口无B2 B3 */
+#define    PRACH_FORMAT_B3                   255 /* FAPI接口无B2 B3 */
 #define    PRACH_FORMAT_B4                   8
 #define    PRACH_FORMAT_C0                   9
 #define    PRACH_FORMAT_C2                   10
+
 #define    PRACH_FORMAT_NUM_139              7
 #define    PRACH_FORMAT_NUM_839              4
+#define    PRACH_FORMAT_NUM                  PRACH_FORMAT_NUM_139 + PRACH_FORMAT_NUM_839
+#define    PRACH_CONFIG_TABLE_SIZE           256
+#define    PRACH_TD_OCCASION_NUM             7
 
 
 /* 每个PDU的头,包含pduType，pduSize */
@@ -57,24 +64,6 @@ typedef struct
     uint8_t  pduIndex;
 } UlPduMappingInfo;
 
-/* P5 Carrier configuration messages local structure*/
-typedef struct 
-{
-    uint16_t bandWidthDl;
-    uint32_t absoluteFreqDl;
-    uint16_t k0MiuDl[5];
-    uint16_t gridSizeDl[5];
-    uint16_t txAntNum;
-    uint16_t bandWidthUl;
-    uint32_t absoluteFreqUl;
-    uint16_t k0MiuUl[5];
-    uint16_t gridSizeUl[5];
-    uint16_t rxAntNum;
-    uint8_t  freqShift7p5;
-    uint8_t  powerProfile;
-    uint8_t  PowerOffsetRsIndex;
-} L1CarrierCfgInfo;
-
 /* P5 Prach configuration messages local structure*/
 typedef struct {	
     uint16_t prachResConfigIndex;
@@ -92,6 +81,17 @@ typedef struct {
     uint16_t unusedRootSequences[MAX_PRACH_FDM_NUM][MAX_PREAMBLES_NUM];
     uint8_t  ssbPerRach;
 }L1PrachConfigInfo;
+
+/* P5 Cell configuration messages local structure*/
+typedef struct 
+{
+    uint16_t  bandWidthDl;
+    uint16_t  txAntNum;
+    uint16_t  bandWidthUl;
+    uint16_t  rxAntNum;
+    uint8_t   frameDuplexType;
+    uint8_t   cellIndex;
+} L1CellConfigInfo;
 
 /* P7 Prach slot messages local structure*/
 typedef struct 
@@ -124,13 +124,16 @@ typedef struct
     uint16_t       slotNum;       /* SLOT number [0: 159] */
     uint16_t       prachPduNum;   /* Number of PrachPdus that are parse from FAPI UlTTIRequset */
     L1PrachPduInfo l1prachPduInfo[MAX_PRACH_PDU_NUM];   /* FDM为2时 可以有2个prach PDU*/
-} L1PrachParaInfo;
+} L1PrachParaPduInfo;
 
-/* PrachLowPhyPara structure: prach LowphyPara config para */
+/* PrachLowPhyPara structure: prach LowphyPara HAC para */
 typedef struct
 {
+    uint16_t sfnNum;                            /* system frame number [0: 1023] */
+    uint8_t  slotNum;                           /* slot number [0: 159]  */
+    uint8_t  prachFeEn;                         /* PrachLowphy Enable Flag. 0: Disable 1: Enable */
     uint8_t  cellIdx;                           /* L1与L2之间的小区标识*/
-    uint8_t  numRxAnt;  
+    uint8_t  rxAntNum;                          
     /* FDM-x 移频参数 */
     uint8_t  freqShiftEn;                       /* Frequency shift Enable Flag. 0：Disable; 1: Enable */
     uint8_t  indexFdRa;                         /*  */
@@ -151,15 +154,38 @@ typedef struct
     uint8_t  fftSizeIndex;                      /* FFT size index. 0: 128; 1: 256; 2: 512; 3: 1024; 4: 2048; 5: 4096; 8: 192; 9:384; 10: 768; 11: 1536; 12: 3072 */  
     uint8_t  prachTdOcasNum;       
     uint8_t  prachStartSymb[7];    
-} PrachLowPhyParaPerPdu;
+} PrachLowPhyHacPara;
+
+/* PrachPreProcPara structure: Prach PreProcessing HAC para */
+typedef struct
+{
+    uint32_t handle;             /* link  to  report */
+    uint32_t IQbufferAddrIn;     /* 第一个PRACH频域IQ数据的起始地址 */
+    uint32_t AddrOffsetPerANt;   /* 每个symbol每个天线的起始地址 */
+    uint32_t symbComOutputAddr;  /* 符号合并结果输出首地址，每个prach时机的每个根序列输出一个合并后的PDP数据*/
+    uint32_t SymbComOutputOffset;/* 符号合并输出的地址偏移 */
+    uint8_t  numRepeatPerOcas;   /* 每个Occasion内重复的symb数 */
+    uint8_t  rootSeqIndex;       /* 根序列起始索引 */
+    uint8_t  numZcRootSeq;       /* 根序列个数 */
+    uint8_t  rootSeqLength;      /* 根序列长度 */
+    uint8_t  ifftSize;           /* 0：256；1：1536 */
+    uint8_t  symbComEn;          /* 符号合并使能 0:disable; 1:enable */
+    uint8_t  numSymbForComb;     /* 需要合并的符号数 */
+    uint8_t  symbComOutputEn;    /* 符号合并结果输出使能, 0：disable；1：enable*/
+} PrachParaInTdOcas;
 
 typedef struct
 {
-    uint16_t              sfnNum;                             /* system frame number [0: 1023] */
-    uint8_t               slotNum;                            /* slot number [0: 159]  */
-    uint8_t               prachFeEn;                          /* PrachLowphy Enable Flag. 0: Disable 1: Enable */
-    PrachLowPhyParaPerPdu lowPhyParaPerPdu[MAX_PRACH_PDU_NUM]; /*  */  
-} PrachLowPhyHacPara;
+    uint16_t sfnNum;             /* system frame number [0: 1023] */
+    uint8_t  slotNum;            /* slot number [0: 159]  */
+    uint8_t  cellIdx;            /* L1与L2之间的小区标识*/
+    uint8_t  rxAntNum;           /* Receive Antenna Number */
+    uint8_t  prachFormat;        /* 0：Long；1：short */
+    uint8_t  numTdOcasion;       /* 时域occasion 数量 */
+    PrachParaInTdOcas prachTdOcasPara[PRACH_TD_OCCASION_NUM];
+} PrachRPPHacPara;
+
+
 
 typedef struct 
 {
@@ -169,26 +195,6 @@ typedef struct
     uint32_t   udRaCp;
 } PrachPreambleLRA;
 
-/* 3GPP 38.211 Table - 6.3.3.1-2 */
-PrachPreambleLRA g_PreambleforLRa139[PRACH_FORMAT_NUM_139] =
-{
-    {PRACH_FORMAT_A1, 139,  2,  288 },
-    {PRACH_FORMAT_A2, 139,  4,  576 },
-    {PRACH_FORMAT_A3, 139,  6,  864 },
-    {PRACH_FORMAT_B1, 139,  2,  216 },
-    {PRACH_FORMAT_B4, 139, 12,  936 },
-    {PRACH_FORMAT_C0, 139,  1,  1240},
-    {PRACH_FORMAT_C2, 139,  4,  2048}
-};
-
-PrachPreambleLRA g_PreambleforLRa839[PRACH_FORMAT_NUM_839] =
-{
-    { PRACH_FORMAT_0, 839,  1,  3168},
-    { PRACH_FORMAT_1, 839,  2, 21024},
-    { PRACH_FORMAT_2, 839,  4,  4688},
-    { PRACH_FORMAT_3, 839,  4,  2976}
-};
-
 typedef struct 
 {
     uint32_t prachScsValue;
@@ -197,52 +203,11 @@ typedef struct
     uint8_t raKbar;
 } PrachRaRbAndKbar;
 
-/* 3GPP 38.211 Table - 6.3.3.2-1 */
-PrachRaRbAndKbar g_PreambleforFraKbar[6][4] =
+typedef struct 
 {
-    // delta-Fra = 15
-    {
-        {15000, 15000, 12, 2},      /* Delta-f for PUSCH = 15 */
-        {15000, 30000, 6,  2},      /* Delta-f for PUSCH = 30 */
-        {15000, 60000, 3,  2},      /* Delta-f for PUSCH = 60 */
-        {0,     0,     0,  0},      /* Delta-f for PUSCH = 120 */
-    },
-    // delta-Fra = 30
-    {
-        {30000, 15000, 24, 2},      /* Delta-f for PUSCH = 15 */
-        {30000, 30000, 12, 2},      /* Delta-f for PUSCH = 30 */
-        {30000, 60000, 6,  2},      /* Delta-f for PUSCH = 60 */
-        {0,     0,     0,  0},      /* Delta-f for PUSCH = 120 */
-    },
-    // delta-Fra = 60
-    {
-        {0,     0,      0,  0},      /* Delta-f for PUSCH = 15 */
-        {0,     0,      0,  0},      /* Delta-f for PUSCH = 30 */
-        {60000, 60000,  12, 2},      /* Delta-f for PUSCH = 60 */
-        {60000, 120000, 6,  2},      /* Delta-f for PUSCH = 120 */
-    },
-    // delta-Fra = 120
-    {
-        {0,      0,      0,  0},     /* Delta-f for PUSCH = 15 */
-        {0,      0,      0,  0},     /* Delta-f for PUSCH = 30 */
-        {120000, 60000,  24, 2},     /* Delta-f for PUSCH = 60 */
-        {120000, 120000, 12, 2},     /* Delta-f for PUSCH = 120 */
-    },
-    // delta-Fra = 1.25
-    {
-        {1250, 15000, 6, 7  },       /* Delta-f for PUSCH = 15 */
-        {1250, 30000, 3, 1  },       /* Delta-f for PUSCH = 30 */
-        {1250, 60000, 2, 133},       /* Delta-f for PUSCH = 60 */
-        {0,    0,     0, 0  },       /* Delta-f for PUSCH = 120 */
-    },
-    // delta-Fra = 5
-    {
-        {5000, 15000, 24, 12},       /* Delta-f for PUSCH = 15 */
-        {5000, 30000, 12, 10},       /* Delta-f for PUSCH = 30 */
-        {5000, 60000, 6,  7},        /* Delta-f for PUSCH = 60 */
-        {0,    0,     0,  0},        /* Delta-f for PUSCH = 120 */
-    },
-};
-
-uint32_t  g_DownSamplingValue839[4] ={1920000, 1920000, 1920000, 7680000};   /* 839 序列降采样后的采样率，根据Format格式查找 */
-uint32_t  g_DownSamplingValue139[4] ={3840000, 7680000, 15360000, 30720000}; /* 139 序列降采样后的采样率，根据子载波间隔查找  */
+    uint8_t     prachConfigIdx;
+    uint8_t     preambleFormat[2];
+    uint8_t     uwStartSym;
+    uint8_t     occassionsInPrachSlot;
+    uint8_t     duration;
+} PrachConfigTable;
