@@ -28,5 +28,6 @@
 #define MAX_PTRS_PORT_NUM            2
 #define MAX_UCI_PART2_NUM            100
 #define MAX_PART1_PAPR_NUM           4
+#define PTRS_PORT_NUM                2
 
 #endif

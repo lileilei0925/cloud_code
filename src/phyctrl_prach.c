@@ -384,7 +384,7 @@ uint32_t L1PrachParaParse2Dsp(PracRxParaLocal *pracRxParaLocal, PrachDetectDspPa
     for (tdOcasIdx = 0; tdOcasIdx < numTdOcasions; tdOcasIdx++)
     {
         prachDspParaOut->prachTdOcasDsp[tdOcasIdx].tdOcasFirstSym    = pracRxParaLocal->prachRxTdFdOcasInfo[tdOcasIdx].startSymb;
-        prachDspParaOut->prachTdOcasDsp[tdOcasIdx].pdpSeqSize        = pracRxParaLocal->prachRxTdFdOcasInfo[tdOcasIdx].rootSeqLength;
+        prachDspParaOut->prachTdOcasDsp[tdOcasIdx].pdpSeqSize        = pracRxParaLocal->prachRxTdFdOcasInfo[tdOcasIdx].rootSeqLength[0];
         prachDspParaOut->prachTdOcasDsp[tdOcasIdx].pdpSeqAddr        = 0x00000000;
         prachDspParaOut->prachTdOcasDsp[tdOcasIdx].pdpSeqPerZcOffSet = 0x00000000;
         numFdOcasions = pracRxParaLocal->prachRxTdFdOcasInfo[tdOcasIdx].numFdOccas;
@@ -497,14 +497,14 @@ uint32_t UlTtiRequestPrachPduparse(FapiNrMsgPrachPduInfo *fapiPrachPduInfoIn, L1
     l1PrachPduOut->startPreambleIndex = fapiPrachPduInfoIn->prachParaInV3.startPreambleIndex;
     l1PrachPduOut->preambleIndicesNum = fapiPrachPduInfoIn->prachParaInV3.numPreambleIndices;
 
-    l1PrachPduOut->trpScheme          = fapiPrachPduInfoIn->rxBeamFormingPara.trpScheme;
-    l1PrachPduOut->prgNum             = fapiPrachPduInfoIn->rxBeamFormingPara.numPRGs;
-    l1PrachPduOut->prgSize            = fapiPrachPduInfoIn->rxBeamFormingPara.prgSize;
-    l1PrachPduOut->digitalBfNum       = fapiPrachPduInfoIn->rxBeamFormingPara.digBfInterface;
+    l1PrachPduOut->trpScheme          = fapiPrachPduInfoIn->rxBeamFormingInfo.trpScheme;
+    l1PrachPduOut->prgNum             = fapiPrachPduInfoIn->rxBeamFormingInfo.numPRGs;
+    l1PrachPduOut->prgSize            = fapiPrachPduInfoIn->rxBeamFormingInfo.prgSize;
+    l1PrachPduOut->digitalBfNum       = fapiPrachPduInfoIn->rxBeamFormingInfo.digBfInterface;
 
     digitalBfNum = l1PrachPduOut->digitalBfNum;
     for (prgIndex = 0; prgIndex < l1PrachPduOut->prgNum; prgIndex++){
-        beamIndex = (uint16_t *)&fapiPrachPduInfoIn->rxBeamFormingPara.beamIndex[0] + prgIndex * digitalBfNum;
+        beamIndex = (uint16_t *)&fapiPrachPduInfoIn->rxBeamFormingInfo.beamIndex[0] + prgIndex * digitalBfNum;
         for (digitalBfIndex = 0; digitalBfIndex < digitalBfNum; digitalBfIndex++){
             l1PrachPduOut->beamIndex[prgIndex][digitalBfIndex] = *beamIndex;
             beamIndex++;
