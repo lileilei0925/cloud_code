@@ -851,13 +851,14 @@ PrachConfigTable g_PrachCfgTableFR2Tdd[PRACH_CONFIG_TABLE_SIZE] =
     { 255, { PRACH_FORMAT_A3, PRACH_FORMAT_B3 }, 2, 2, 6 },
 };
 
-
 uint32_t g_DownSamplingValue839[4] ={1920000, 1920000, 1920000, 7680000};   /* 839 序列降采样后的采样率，根据Format格式查找 */
+
 uint32_t g_DownSamplingValue139[4] ={3840000, 7680000, 15360000, 30720000}; /* 139 序列降采样后的采样率，根据子载波间隔查找  */
 
 uint16_t g_RepeatforLRA[PRACH_FORMAT_NUM] = {1, 2, 4, 4, 2, 4, 6, 2, 12, 1, 4};
 
 uint32_t            g_ulTtiMessageTempBuff[2000] = { 0 };    /* ULTTIMessage 本地buffer */
 L1PrachParaPduInfo  g_prachParaInfoOut[MAX_CELL_NUM] = { 0 };/* Prach 参数本地buffer */
-UlPduMappingInfo    g_UlPduMappingInfo[MAX_CELL_NUM][200] = { 0 };         /* 暂时假设有200个PDU */
-L1CellConfigInfo    g_CellConfigPara[MAX_CELL_NUM] = { 0 };
+UlPduMappingInfo    g_ulPduMappingInfo[MAX_CELL_NUM][200] = { 0 };         /* 暂时假设有200个PDU */
+L1CellConfigInfo    g_cellConfigPara[MAX_CELL_NUM] = { 0 };
+PrachPduHandle      g_prachPduHandle[MAX_CELL_NUM] = { 0 };

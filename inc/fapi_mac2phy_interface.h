@@ -1,8 +1,15 @@
 #include "common_teypedef.h"
 #include "common_macro.h"
 
+#define    MAX_GROUP_NUM               8
+#define    MAX_UL_PDU_NUM              200
+#define    MAX_UL_PDU_TYPES            5
+#define    MAX_PART1_PAPR_NUM          4
+#define    PTRS_PORT_NUM               2
+
 /* P7 Prach slot messages are transmitted, or received, every slot */
-typedef struct {
+typedef struct 
+{
     uint8_t  trpScheme;                /* This field shall be set to 0, to identify that this table is used */
     uint16_t numPRGs;                  /* Number of PRGs spanning this allocation */
     uint16_t prgSize;                  /* Size in RBs of a precoding resource block group */
@@ -10,7 +17,8 @@ typedef struct {
     uint16_t beamIndex[];              /* For number of PRGs and each digBFInterface. The size is numPRGs*digBfInterface */
 } RxBeamformingInfo;
 
-typedef struct {
+typedef struct 
+{
     uint32_t handle;                   /* An opaque handle returned in the RACH.indication*/
     uint8_t  prachCfgScope;            /* 0: for PHY ID 0; 1: for current PHY ID*/
     uint16_t prachResCfgIndex;         /* The PRACH configuration for which this PRACH PDU is signaled */
@@ -19,30 +27,34 @@ typedef struct {
     uint8_t  numPreambleIndices;       /* Number of preamble logical indices. Value:0-63; 255: all preambles from the PRACH configuration*/
 } PrachParaAddInV3;
 
-typedef struct {
+typedef struct 
+{
     uint8_t numUe;                      /* Number of UE in this group For SU-MIMO, one group includes one UE only. For MU-MIMO, one group includes up to 12 UEs*/
     uint8_t pduIndex[];                 /* For each UE, an index of PDUs */;
 } FapiNrUeGroupInfo;
 
-typedef struct {
-    uint16_t         physCellID;        /* corresponding to N_cell_ID Value：0-1007 */
-    uint8_t          numPrachOcas;      /* Number of time-domain PRACH occasions Value 1-7 */
-    uint8_t          prachFormat;       /* RACH format information for the PRACH occasions Value 0=0;1=1;2=2;3=3;4=A1;5=A2;6=A3;7=B1;8=B4;9=C0;10=C2;11=A1/B1;12=A2/B2;13=A3/B3*/
-    uint8_t          indexFdRa;         /* Frequency domain occasion index Value:0-7 */
-    uint8_t          prachStartSymbol;  /* Starting symbol for the first PRACH TD occasion in the current PRACH FD occasion*/
-    uint16_t         numCs;             /* Zero-correlation zone configuration number Value: 0-419*/
+typedef struct 
+{
+    uint16_t          physCellID;        /* corresponding to N_cell_ID Value：0-1007 */
+    uint8_t           numPrachOcas;      /* Number of time-domain PRACH occasions Value 1-7 */
+    uint8_t           prachFormat;       /* RACH format information for the PRACH occasions Value 0=0;1=1;2=2;3=3;4=A1;5=A2;6=A3;7=B1;8=B4;9=C0;10=C2;11=A1/B1;12=A2/B2;13=A3/B3*/
+    uint8_t           indexFdRa;         /* Frequency domain occasion index Value:0-7 */
+    uint8_t           prachStartSymbol;  /* Starting symbol for the first PRACH TD occasion in the current PRACH FD occasion*/
+    uint16_t          numCs;             /* Zero-correlation zone configuration number Value: 0-419*/
     RxBeamformingInfo rxBeamFormingInfo;/* The beamforming PDU is included in the PRACH */
-    PrachParaAddInV3 prachParaInV3;     /* PRACH Maintenance Parameters added in FAPIv3 */
+    PrachParaAddInV3  prachParaInV3;    /* PRACH Maintenance Parameters added in FAPIv3 */
 } FapiNrMsgPrachPduInfo;
 
 /* P7 Pusch slot messages are transmitted, or received, every slot */
-typedef struct {
+typedef struct 
+{
     uint16_t       ptrsPortIndex;     /* PT-RS antenna ports index */
     uint8_t        ptrsDmrsPort;      /* DMRS port corresponding to PTRS */
     uint8_t        ptrsReOffset;      /* PT-RS resource element offset value taken from */
 }PtrsPortInfo;
 
-typedef struct {
+typedef struct
+{
     uint8_t        rvIndex;            /* Redundancy version index Value : 0->3*/
     uint8_t        harqProcessId;      /* HARQ process number Value: 0 ->15*/
     uint8_t        newData;            /* Value: 0: retransmission, 1: new data, i.e. initial transmission*/
@@ -51,7 +63,8 @@ typedef struct {
     uint8_t        cbPresentAndPose[]; /* CB is present in the current retx of the PUSCH. 1=PRESENT, 0=NOT PRESENT. uint8_t[ceil(numCb/8)] */
 }PuschDataInfo;
 
-typedef struct {
+typedef struct 
+{
     uint16_t       harqAckBitLength;   /* Number of HARQ-ACK bits. Value: 0 -> 11 (Small block length). 12 ->1706 (Polar) */
     uint16_t       csiPart1BitLength;  /* Number of CSI part1 bits. Value: 0 -> 11 (Small block length). 12 ->1706 (Polar) */
     uint16_t       flagCsiPart2;       /* Number of CSI part2 bits. 0 -> No CSI part 2*/
@@ -61,7 +74,8 @@ typedef struct {
     uint8_t        betaOffsetCsi2;     /* Beta Offset for CSI-part2 bits.Value: 0->18 */
 }PuschUciInfo;
 
-typedef struct {
+typedef struct 
+{
     uint8_t        numPtrsPorts;                /* Number of UL PTRS ports Value: 1->2 */
     PtrsPortInfo   ptrsPortInfo[PTRS_PORT_NUM]; 
     uint8_t        ptrsTimeDensity;             /* PT-RS time density.Value: 0: 1, 1: 2, 2: 4 */
@@ -69,14 +83,16 @@ typedef struct {
     uint8_t        ulPtrsPower;                 /* PUSCH to PT-RS power ratio per layer per RE. Value: 0: 0dB,1: 3dB,2: 4.77dB,3: 6dB*/
 }PuschPtrsInfo;
 
-typedef struct {
+typedef struct 
+{
     uint8_t        lowPaprGrpNum;               /* Group number for Low PAPR sequence generation.For DFTS-OFDM */
     uint16_t       lowPaprSeqNum;               /* sequence number of Low PAPR sequence.  For DFTS-OFDM */
     uint8_t        ulptrsSampleDensity;         /* Number of PTRS groups. */
     uint8_t        ulptrsTimeDensity;           /* Number of samples per PTRS group.*/
 }PuschDftOfdmInfo;
 
-typedef struct {
+typedef struct 
+{
     uint8_t        puschTransType;             /* puschTransTypeValidity = 1 有效. Value 0: */
     uint16_t       deltabwp0fromActiveBwp;     /* The value of Bwp[0].Start - Bwp[i].start */
     uint16_t       initialUlBwpSize;
@@ -87,7 +103,8 @@ typedef struct {
     uint32_t       tbSizeLbrmBytes;            /* Parameter TBSLBRM from 3GPP TS 38.212 section 5.4.2.1*/
 }PuschParaAddInV3;
 
-typedef struct {
+typedef struct 
+{
     uint16_t       priority;                          /* Priority of the part 2 report */
     uint8_t        numPart1Params;                    /* Number of Part 1 parameters that influence the size of this part 2; values [1:4] in FAPI v3*/
     uint16_t       paramOffsets[MAX_PART1_PAPR_NUM];  /* Ordered list of parameter offsets (offset from 0 = first bit of part1); The real size is numPart1Params */
@@ -96,12 +113,14 @@ typedef struct {
 }Part2ReportInfo;
 
 /* Uci information for determining UCI Part1 to Part2 correspondence, added in FAPIv3 */
-typedef struct {
-    uint16_t        numPart2s;
+typedef struct 
+{
+    uint16_t        numPart2s;               /* Max number of UCI part2 that could be included in the CSI report */
     Part2ReportInfo part2ReportInfo;
 }UciInfoAddInV3;
 
-typedef struct {
+typedef struct 
+{
     uint16_t         pduBitmap;              /* Bit 0: puschData; Bit 1:puschUci; Bit 2: puschPtrs; Bit 3: dftsOfdm; All other bits reserved*/
     uint16_t         ueRnti;                 /* The RNTI used for identifying the UE when receiving the PDU*/
     uint32_t         handle;                 /* An opaque handling returned in the Rx_Data.indication and/or UCI.indication message*/
@@ -149,14 +168,15 @@ typedef struct {
     UciInfoAddInV3   uciInfoAddInV3;         /* Optional puschUci added in FAPIv3 */
 }FapiNrMsgPuschPduInfo;
 
-
 /* P7 Pucch slot messages are transmitted, or received, every slot */
-typedef struct {
+typedef struct 
+{
     uint8_t        maxCodeRate;
     uint8_t        ulBwpId;
 }PucchParaAddInV3;
 
-typedef struct {
+typedef struct 
+{
     uint16_t        ueRnti;                /* The RNTI used for identifying the UE when receiving the PDU */
     uint32_t        handle;                /* An opaque handling returned in the UCI.indication message */
     /* BWP */
@@ -176,7 +196,6 @@ typedef struct {
     uint8_t         intraSlotFreqHopping;  /* Intra-slot Frequency hopping for a PUCCH resource */
     uint16_t        secondHopPRB;          /* Index of the first PRB after frequency hopping */
     uint8_t         groupOrSequenceHopping;/* 0: neither, neither group or sequence hopping is enabled; 1: enable, enable group hopping and disable sequence hopping; 2: disable, disable group hopping and enable sequence hopping*/
-
     uint8_t         obsolete8bit;          /* This flag is obsolete in FAPIv3 */
     uint16_t        nIdPucchHopping;       /* The parameter nID used for sequence hopping */
     uint16_t        initCyclicShift;       /* Initial cyclic shift (M0) used as part of frequency hopping */
@@ -190,14 +209,15 @@ typedef struct {
     uint8_t         srFlag;                /* Indicates whether there is an SR opportunity in the UCI */
     uint16_t        bitLenHarq;            /* Bit length of HARQ payload Valid for all formats */
     uint16_t        csiPart1BitLength;     /* Bit length of CSI part 1 payload. Valid for formats 2, 3 and 4 */
-   
+
     RxBeamformingInfo rxBeamFormingInfo;   /* The beamforming PDU is included in the PRACH */
-    PucchParaAddInV3 pucchParaAddInV3;     /* PUCCH Maintenance Parameters added in FAPIv3 */
-    UciInfoAddInV3   uciInfoAddInV3;       /* Optional pucchUci added in FAPIv3 */
-}FapiPucchPduInfo;
+    PucchParaAddInV3  pucchParaAddInV3;    /* PUCCH Maintenance Parameters added in FAPIv3 */
+    UciInfoAddInV3    uciInfoAddInV3;      /* Optional pucchUci added in FAPIv3 */
+}FapiNrMsgPucchPduInfo;
 
 /* P7 Srs slot messages are transmitted, or received, every slot */
-typedef struct {
+typedef struct 
+{
     uint16_t        ueRnti;                /* The RNTI used for identifying the UE when receiving the PDU */
     uint32_t        handle;                /* An opaque handling returned in the UCI.indication message */
     /* BWP */
@@ -221,22 +241,25 @@ typedef struct {
     uint8_t         groupOrSequenceHopping;/* 0: neither, neither group or sequence hopping is enabled; 1: enable, enable group hopping and disable sequence hopping; 2: disable, disable group hopping and enable sequence hopping*/
     uint8_t         resourceType;          /* Type of SRS resource allocation, 0: aperiodic, 1: semi-persistent, 2: periodic  */
     uint16_t        Toffset;               /* Slot offset value  */
-    RxBeamformingInfo rxBeamFormingInfo;   /* The beamforming PDU is included in the PRACH */
-}FapiSrsPduInfo;
 
-typedef struct {
+    RxBeamformingInfo rxBeamFormingInfo;   /* The beamforming PDU is included in the PRACH */
+}FapiNrMsgSrsPduInfo;
+
+typedef struct 
+{
     uint16_t pduType;  /* 0: PRACH PDU; 1: PUSCH PDU; 2: PUCCH PDU; 3: SRS PDU */  
     uint16_t pduSize;
     union
     {
       FapiNrMsgPrachPduInfo prachPduInfo;
-      FapiNrMsgPrachPduInfo puschPduInfo; 
-      FapiNrMsgPrachPduInfo pucchPduInfo; 
-      FapiNrMsgPrachPduInfo srsPduInfo; 
+      FapiNrMsgPuschPduInfo puschPduInfo; 
+      FapiNrMsgPucchPduInfo pucchPduInfo; 
+      FapiNrMsgSrsPduInfo   srsPduInfo; 
     };
 }FapiNrMsgUlTtiPduInfo;
 
-typedef struct {
+typedef struct
+{
     uint16_t              numSFN;
     uint16_t              numSlot;
     uint16_t              numPdus;                       /* Number of PDUs that are included in this message. */
@@ -245,17 +268,19 @@ typedef struct {
     uint8_t               ueGroupNum;                    /* Number of UE Groups included in this message */
     FapiNrMsgUlTtiPduInfo ulTtiPduInfo[MAX_UL_PDU_NUM];  /* PDU info in this message */   
     FapiNrUeGroupInfo     ueGroupInfo[MAX_GROUP_NUM];    /* Group info in this message */   
-}FapiUlTtiRequest;
+}FapiNrUlTtiRequest;
 
 /* RACH.indication Message, There can be more than one RACH.indication message per slot*/
-typedef struct {	
+typedef struct 
+{	
     uint8_t         preambleIndex;      /* Preamble Index */
     uint16_t        timingAdvance;      /* Timing advance for PRACH */
     uint32_t        preamblePwr;        /* Preamble Received power in dBm */
     uint8_t         preambleSnr;        /* Preamble SNR in dB */
 }PrachMeasPerId;	
 	
-typedef struct {	
+typedef struct 
+{	
     uint16_t        handle;             /* Handle for the UL_TTI.request RACH PDU to which this report is linked */
     uint8_t         startSymbolIndex;   /* The index of first symbol of the PRACH TD occasion */
     uint8_t         slotIndex;          /* The index of first slot of the PRACH TD occasion in a system frame */
@@ -266,9 +291,10 @@ typedef struct {
     PrachMeasPerId  prachMesaPerId[];   /* For each preamble */
 }PrachMeasPerPdu;	
 	
-typedef struct {	
+typedef struct 
+{	
     uint16_t        numSFN;             /* system frame number 0->1023 */
     uint16_t        numSlot;            /* SLOT number 0->159 */
     uint8_t         numPdus;            /* Number of Measurement PDUs included in this message*/
     PrachMeasPerPdu prachMeasPerPdu[];  /* For each Measurement PDU */
-}FapiPrachIndication;	
+}FapiNrPrachIndication;	
