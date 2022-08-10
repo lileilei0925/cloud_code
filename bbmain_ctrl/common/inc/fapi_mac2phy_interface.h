@@ -1,3 +1,4 @@
+#pragma once
 #include "common_teypedef.h"
 #include "common_macro.h"
 
