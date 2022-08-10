@@ -1,9 +1,0 @@
-{
-    "files.associations": {
-        "fapi_slot_interface.h": "c",
-        "common_teypedef.h": "c",
-        "common_macro.h": "c",
-        "ul_phy_interface.h": "c",
-        "fapi_mac2phy_interface.h": "c"
-    }
-}

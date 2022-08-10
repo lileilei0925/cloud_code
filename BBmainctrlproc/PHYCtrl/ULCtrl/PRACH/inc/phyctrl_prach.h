@@ -1,6 +1,6 @@
 #pragma once
-#include "../inc/common_teypedef.h"
-#include "../inc/common_macro.h"
+#include "../../../../Common/inc/common_teypedef.h"
+#include "../../../../Common/inc/common_macro.h"
 
 
 #define    MAX_PRACH_FDM_NUM                 2
