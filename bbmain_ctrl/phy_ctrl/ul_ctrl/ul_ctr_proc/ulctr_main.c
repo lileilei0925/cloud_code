@@ -1,6 +1,7 @@
+#if 1
 #include <stdio.h>
 #include <string.h>
-#include "../PRACH/src/phyctrl_prach.c"
+#include "../prach/src/phyctrl_prach.c"
 
 uint32_t MessageUlTtiRequestParse(uint8_t cellIndex, uint8_t *srcUlSlotMesagesBuff);
 
@@ -99,3 +100,4 @@ uint32_t MessageUlTtiRequestParse(uint8_t cellIndex, uint8_t *srcUlSlotMesagesBu
 
     return 0;
 }
+#endif

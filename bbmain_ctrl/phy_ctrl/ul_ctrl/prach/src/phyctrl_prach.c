@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <string.h>
-#include "../../../../Common/inc/fapi_mac2phy_interface.h"
+#include "../../../../common/inc/fapi_mac2phy_interface.h"
 #include "../inc/phyctrl_prach.h"
-#include "../inc/prach_Variable.h"
+#include "../inc/prach_variable.h"
 
 uint16_t ceil_div(uint16_t a, uint16_t b);
 uint32_t UlCarrierSampleRateCalc(uint16_t ulBwpBandwdith);
