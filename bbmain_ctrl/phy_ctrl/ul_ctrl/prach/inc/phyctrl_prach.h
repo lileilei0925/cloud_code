@@ -1,6 +1,6 @@
 #pragma once
-#include "../../../../Common/inc/common_teypedef.h"
-#include "../../../../Common/inc/common_macro.h"
+#include "../inc/common_teypedef.h"
+#include "../inc/common_macro.h"
 
 
 #define    MAX_PRACH_FDM_NUM                 2
@@ -91,12 +91,12 @@ typedef struct {
 /* P5 Cell configuration messages local structure*/
 typedef struct 
 {
-    uint16_t  bandWidthDl;
-    uint16_t  txAntNum;
-    uint16_t  bandWidthUl;
-    uint16_t  rxAntNum;
-    uint8_t   frameDuplexType;
-    uint8_t   cellIndex;
+    uint16_t bandWidthDl;
+    uint16_t txAntNum;
+    uint16_t bandWidthUl;
+    uint16_t rxAntNum;
+    uint8_t  frameDuplexType;
+    uint8_t  cellIndex;
 } L1CellConfigInfo;
 
 /* P7 Prach slot messages local structure*/
@@ -276,44 +276,44 @@ typedef struct
 
 typedef struct 
 {
-    uint16_t   uwPreambleFormat;
-    uint16_t   uwRALen;
-    uint8_t    repeatTimesOcas;
-    uint32_t   udRaCp;
+    uint16_t uwPreambleFormat;
+    uint16_t uwRALen;
+    uint8_t  repeatTimesOcas;
+    uint32_t udRaCp;
 } PrachPreambleLRA;
 
 typedef struct 
 {
     uint32_t prachScsValue;
     uint32_t puschScsValue; 
-    uint8_t nRaRB;
-    uint8_t raKbar;
+    uint8_t  nRaRB;
+    uint8_t  raKbar;
 } PrachRaRbAndKbar;
 
 typedef struct 
 {
-    uint8_t     prachConfigIdx;
-    uint8_t     preambleFormat[2];
-    uint8_t     uwStartSym;
-    uint8_t     occassionsInPrachSlot;
-    uint8_t     duration;
+    uint8_t prachConfigIdx;
+    uint8_t preambleFormat[2];
+    uint8_t uwStartSym;
+    uint8_t occassionsInPrachSlot;
+    uint8_t duration;
 } PrachConfigTable;
 
 typedef struct 
 {
-    uint8_t     numPdu;
-    uint8_t     handle[MAX_PRACH_FDM_NUM];
+    uint8_t numPdu;
+    uint8_t handle[MAX_PRACH_FDM_NUM];
 } PrachPduHandle;
 
 
 /* 临时结构体 DSP输出接口 */
 typedef struct 
 {
-    uint8_t   avgRssi;                                    /* Average value of RSSI in dB */
-    uint8_t   avgSnr;                                     /* Average value of SNR in dB */
-    uint8_t   numPreambles;                               /* Number of detected preambles in the PRACH occasion */
-    uint8_t   preambleIndex[PRACH_PREAMBLE_SEQ_NUM];      /* Preamble Index */
-    uint16_t  timingAdvance[PRACH_PREAMBLE_SEQ_NUM];      /* Timing advance for PRACH */
-    uint32_t  preamblePwr[PRACH_PREAMBLE_SEQ_NUM];        /* Preamble Received power in dBm */
-    uint8_t   preambleSnr[PRACH_PREAMBLE_SEQ_NUM];        /* Preamble SNR in dB */
+    uint8_t  avgRssi;                                    /* Average value of RSSI in dB */
+    uint8_t  avgSnr;                                     /* Average value of SNR in dB */
+    uint8_t  numPreambles;                               /* Number of detected preambles in the PRACH occasion */
+    uint8_t  preambleIndex[PRACH_PREAMBLE_SEQ_NUM];      /* Preamble Index */
+    uint16_t timingAdvance[PRACH_PREAMBLE_SEQ_NUM];      /* Timing advance for PRACH */
+    uint32_t preamblePwr[PRACH_PREAMBLE_SEQ_NUM];        /* Preamble Received power in dBm */
+    uint8_t  preambleSnr[PRACH_PREAMBLE_SEQ_NUM];        /* Preamble SNR in dB */
 } PrachDspCalcOut;

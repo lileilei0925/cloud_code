@@ -164,8 +164,8 @@ typedef struct
     PuschDftOfdmInfo puschDftOfdmInfo;       /* Optional dftsOfdm information */
     /* Beamforming */
     RxBeamformingInfo rxBeamFormingInfo;     /* The beamforming PDU is included in the PRACH */
-    PuschParaAddInV3 puschParaAddInV3;       /* PUSCH Maintenance Parameters added in FAPIv3 */
-    UciInfoAddInV3   uciInfoAddInV3;         /* Optional puschUci added in FAPIv3 */
+    PuschParaAddInV3  puschParaAddInV3;      /* PUSCH Maintenance Parameters added in FAPIv3 */
+    UciInfoAddInV3    uciInfoAddInV3;        /* Optional puschUci added in FAPIv3 */
 }FapiNrMsgPuschPduInfo;
 
 /* P7 Pucch slot messages are transmitted, or received, every slot */
