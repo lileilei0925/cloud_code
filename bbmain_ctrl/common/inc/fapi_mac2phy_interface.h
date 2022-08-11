@@ -2,12 +2,6 @@
 #include "common_typedef.h"
 #include "common_macro.h"
 
-#define    MAX_GROUP_NUM               8
-#define    MAX_UL_PDU_NUM              200
-#define    MAX_UL_PDU_TYPES            5
-#define    MAX_PART1_PAPR_NUM          4
-#define    PTRS_PORT_NUM               2
-
 /* P7 Prach slot messages are transmitted, or received, every slot */
 typedef struct 
 {
@@ -116,8 +110,8 @@ typedef struct
 /* Uci information for determining UCI Part1 to Part2 correspondence, added in FAPIv3 */
 typedef struct 
 {
-    uint16_t        numPart2s;               /* Max number of UCI part2 that could be included in the CSI report */
-    Part2ReportInfo part2ReportInfo;
+    uint16_t        numPart2s;               /* Max number of UCI part2 that could be included in the CSI report. Value: 0 -> 100 */
+    Part2ReportInfo part2ReportInfo[];
 }UciInfoAddInV3;
 
 typedef struct 

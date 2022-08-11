@@ -17,6 +17,7 @@
 #define FRAME_DUPLEX_TYPE_TDD        1
 
 #define MAX_CELL_NUM                 4
+#define MAX_RX_ANT_NUM               4
 
 #define SLOT_NUM_PER_FRAME           20
 #define SYM_NUM_PER_SLOT             14
@@ -34,6 +35,8 @@
 #define MAX_UCI_PART2_NUM            100
 #define MAX_PART1_PAPR_NUM           4
 #define PTRS_PORT_NUM                2
+#define PTRS_PORT_NUM                2
+#define MAX_CSI_PART2_REPOET_NUM     4
 
 #define MAX_BIT_FGH                 8*20*2  //20: 每帧包含的时隙数，2：hop
 #define MAX_BIT_V                   2*20    //20: 每帧包含的时隙数
