@@ -35,41 +35,6 @@
 #define    PRACH_PREAMBLE_SEQ_NUM            64 
 #define    MAX_PRACH_ROOT_NUM                32 
 
-
-/* 每个PDU的头,包含pduType，pduSize */
-typedef struct
-{
-    uint16_t pduType; /* 0:PRACH, 1:PUSCH, 2:PUCCH, 3:SRS */
-    uint16_t pduSize; /* Size of the PDU control information (in bytes). This length value includes the 4 bytes required for the PDU type and PDU size parameters */
-} PduHeadInfo;
-
-/* Slot Messages Ul_TTI.request的头,PDU信息之前的部分 */
-typedef struct
-{
-    uint16_t sfnNum;                           /* system frame number [0: 1023] */
-    uint16_t slotNum;                          /* SLOT number [0: 159] */
-    uint16_t pduNum;                           /* Number of PDUs that are included in this message */
-    uint8_t  ulPduTypes;                       /* Maximum number of UL PDU types supported by UL_TTI.request */
-    uint16_t pduNumPerType[MAX_UL_PDU_TYPES];  /* Number of PDUs of each type that are included in this message,nUlPduTypes = 5 */
-    uint8_t  ueGroupNum;                       /* Number of UE Groups included in this message */
-} UlTtiRequestHeadInfo;
-
-/* UeGroupInfo,包含ue数和每个ue对应得pduIndex */
-typedef struct
-{
-    uint8_t ueNum;           /* Number of UE in this group For SU-MIMO, one group includes one UE only. For MU-MIMO, one group includes up to 12 UEs */
-    uint8_t pduIdx[];        /* This value is an index for number of PDU identified by nPDU in this message */
-} UlueGoupNumInfo;
-
-/* UlPduMappingInfo, 用来解析pdu和ueGroup之间的对应关系 */
-typedef struct 
-{
-    uint8_t  groupIndex;
-    uint8_t  ueIndex;
-    uint16_t ueRnti;
-    uint8_t  pduIndex;
-} UlPduMappingInfo;
-
 /* P5 Prach configuration messages local structure*/
 typedef struct {	
     uint16_t prachResConfigIndex;
@@ -87,17 +52,6 @@ typedef struct {
     uint16_t unusedRootSequences[MAX_PRACH_FDM_NUM][MAX_PREAMBLES_NUM];
     uint8_t  ssbPerRach;
 }L1PrachConfigInfo;
-
-/* P5 Cell configuration messages local structure*/
-typedef struct 
-{
-    uint16_t bandWidthDl;
-    uint16_t txAntNum;
-    uint16_t bandWidthUl;
-    uint16_t rxAntNum;
-    uint8_t  frameDuplexType;
-    uint8_t  cellIndex;
-} L1CellConfigInfo;
 
 /* P7 Prach slot messages local structure*/
 typedef struct 
@@ -125,8 +79,8 @@ typedef struct
 typedef struct 
 {   
     uint16_t       sfnNum;        /* system frame number [0: 1023] */
-    uint16_t       slotNum;       /* SLOT number [0: 159] */ 
-    uint16_t       prachPduNum;   /* Number of PrachPdus that are parse from FAPI UlTTIRequset */
+    uint8_t        slotNum;       /* SLOT number [0: 159] */ 
+    uint8_t        prachPduNum;   /* Number of PrachPdus that are parse from FAPI UlTTIRequset */
     L1PrachPduInfo l1PrachPduInfo[MAX_PRACH_PDU_NUM];   /* FDM为2时 可以有2个prach PDU*/
 } L1PrachParaPduInfo;
 
@@ -161,7 +115,7 @@ typedef struct
     uint16_t nCpLen;
     uint32_t downSampleValue;
     uint16_t prachConfigIndex;
-    uint8_t  prachFormat;  
+    uint8_t  prachFormat;                      /* */
     uint16_t nNcs;                    
     uint8_t  prachRaLength;                    /* Long Or Short PRACH; 0:839; 1:139 */  
     uint16_t prachZcSize;                      /* 839 Or 139 */

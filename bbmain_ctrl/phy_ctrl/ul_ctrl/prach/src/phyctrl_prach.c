@@ -1,18 +1,18 @@
-#include <stdio.h>
-#include <string.h>
+//#include <stdio.h>
+//#include <string.h>
 #include "../../../../common/inc/fapi_mac2phy_interface.h"
+#include "../../../../common/inc/phy_ctrl_common.h"
+#include "../../../../common/src/common.c"
+
 #include "../inc/phyctrl_prach.h"
 #include "../inc/prach_variable.h"
 
-uint16_t ceil_div(uint16_t a, uint16_t b);
 uint32_t UlCarrierSampleRateCalc(uint16_t ulBwpBandwdith);
-uint32_t UlTtiRequestMessageSizeCalc(uint8_t *srcUlSlotMesagesBuff);
-uint32_t UlTtiRequestPrachPduparse(FapiNrMsgPrachPduInfo *fapiPrachPduParaIn, L1PrachPduInfo *l1PracPduOut, uint16_t pudIndex);
 uint32_t L1PrachRxInitParas(L1PrachParaPduInfo *l1prachParaPduInfoIn, L1PrachConfigInfo *l1PrachConfigInfoIn, PrachRxParaLocal *prachRxParaLocal);
 uint32_t L1PrachParaParse2LowPhy(PrachRxParaLocal *prachRxParaLocal, PrachLowPhyHacPara *prachLowPhyParaOut);
 uint16_t PrachCvCalc(PrachRxParaLocal *prachRxParaLocal);
 
-
+#if 0
 int main(void)
 {
   uint16_t a = 16;
@@ -24,6 +24,7 @@ int main(void)
 
   return 0;
 }
+#endif
 
 uint32_t L1PrachRxParasInit(L1PrachParaPduInfo *l1prachParaPduInfoIn, L1PrachConfigInfo *l1PrachConfigInfoIn, PrachRxParaLocal *prachRxParaLocal)
 {
@@ -312,44 +313,6 @@ uint32_t L1PrachParaParse2Dsp(PrachRxParaLocal *prachRxParaLocal, PrachDetectDsp
     return 0;
 }
 
-uint32_t UlTtiRequestPrachPduparse(FapiNrMsgPrachPduInfo *fapiPrachPduInfoIn, L1PrachPduInfo *l1PrachPduOut, uint16_t pudIndex)
-{
-    uint16_t prgIndex;
-    uint8_t  digitalBfNum, digitalBfIndex;
-    uint16_t *beamIndex = NULL;
-
-    l1PrachPduOut->pduIndex           = pudIndex;
-    l1PrachPduOut->phyCellID          = fapiPrachPduInfoIn->physCellID;
-    l1PrachPduOut->prachTdOcasNum     = fapiPrachPduInfoIn->numPrachOcas;
-    l1PrachPduOut->prachFormat        = fapiPrachPduInfoIn->prachFormat;
-    l1PrachPduOut->PrachFdmIndex      = fapiPrachPduInfoIn->indexFdRa;
-    l1PrachPduOut->prachStartSymb     = fapiPrachPduInfoIn->prachStartSymbol;
-    l1PrachPduOut->ncsValue           = fapiPrachPduInfoIn->numCs;
-
-    l1PrachPduOut->handle             = fapiPrachPduInfoIn->prachParaInV3.handle;
-    l1PrachPduOut->prachCfgScope      = fapiPrachPduInfoIn->prachParaInV3.prachCfgScope;
-    l1PrachPduOut->prachResCfgIndex   = fapiPrachPduInfoIn->prachParaInV3.prachResCfgIndex;
-    l1PrachPduOut->prachFdmNum        = fapiPrachPduInfoIn->prachParaInV3.numFdRa;
-    l1PrachPduOut->startPreambleIndex = fapiPrachPduInfoIn->prachParaInV3.startPreambleIndex;
-    l1PrachPduOut->preambleIndicesNum = fapiPrachPduInfoIn->prachParaInV3.numPreambleIndices;
-
-    l1PrachPduOut->trpScheme          = fapiPrachPduInfoIn->rxBeamFormingInfo.trpScheme;
-    l1PrachPduOut->prgNum             = fapiPrachPduInfoIn->rxBeamFormingInfo.numPRGs;
-    l1PrachPduOut->prgSize            = fapiPrachPduInfoIn->rxBeamFormingInfo.prgSize;
-    l1PrachPduOut->digitalBfNum       = fapiPrachPduInfoIn->rxBeamFormingInfo.digBfInterface;
-
-    digitalBfNum = l1PrachPduOut->digitalBfNum;
-    for (prgIndex = 0; prgIndex < l1PrachPduOut->prgNum; prgIndex++){
-        beamIndex = (uint16_t *)&fapiPrachPduInfoIn->rxBeamFormingInfo.beamIndex[0] + prgIndex * digitalBfNum;
-        for (digitalBfIndex = 0; digitalBfIndex < digitalBfNum; digitalBfIndex++){
-            l1PrachPduOut->beamIndex[prgIndex][digitalBfIndex] = *beamIndex;
-            beamIndex++;
-        }
-    }
-
-    return 0;
-}
-
 uint32_t UlCarrierSampleRateCalc(uint16_t ulBwpBandwdith)
 {
     uint32_t sampleRateCarry;
@@ -371,39 +334,6 @@ uint32_t UlCarrierSampleRateCalc(uint16_t ulBwpBandwdith)
     }
 
     return sampleRateCarry;
-}
-
-uint32_t UlTtiRequestMessageSizeCalc (uint8_t *srcUlSlotMesagesBuff)
-{
-    uint32_t ulTtirequestMessageSize = 0;
-    uint16_t ulPduNum, pduSize, pudIndex;
-    uint8_t  ueGroupNum, groupIndex,ueNumInGroup; 
-
-    UlTtiRequestHeadInfo *ulRequestHead = (UlTtiRequestHeadInfo *)srcUlSlotMesagesBuff;
-    ulPduNum   = ulRequestHead->pduNum;
-    ueGroupNum = ulRequestHead->ueGroupNum;
-    ulTtirequestMessageSize = sizeof(UlTtiRequestHeadInfo);/* Add Head length */
-    
-    if(ulPduNum == 0)
-    {
-        return 0;  //Add errCode ;
-    }
-
-    PduHeadInfo *pduHead = (PduHeadInfo *)((uint8_t *)&srcUlSlotMesagesBuff + ulTtirequestMessageSize);
-    for (pudIndex = 0; pudIndex < ulPduNum; pudIndex++){
-        pduSize = pduHead->pduSize;
-        pduHead = (PduHeadInfo *)((uint8_t *)pduHead + pduSize);
-        ulTtirequestMessageSize = ulTtirequestMessageSize + pduSize;/* Add PDU length */
-    }
-
-    UlueGoupNumInfo *ulUeGoupNumInfo = (UlueGoupNumInfo *)((uint8_t *)&srcUlSlotMesagesBuff + ulTtirequestMessageSize);
-    for (groupIndex = 0; groupIndex < ueGroupNum; groupIndex++){
-        ueNumInGroup    = ulUeGoupNumInfo->ueNum;
-        ulUeGoupNumInfo = ulUeGoupNumInfo + (sizeof(uint8_t) * (ueNumInGroup + 1));
-        ulTtirequestMessageSize = ulTtirequestMessageSize + sizeof(uint8_t) * (ueNumInGroup + 1);/* Add ueGroup length */
-    }
-
-    return ulTtirequestMessageSize;
 }
 
 uint16_t PrachCvCalc(PrachRxParaLocal *prachRxParaLocal)
@@ -473,15 +403,4 @@ uint16_t PrachCvCalc(PrachRxParaLocal *prachRxParaLocal)
     return nCv;
 }
 
-uint16_t ceil_div(uint16_t a, uint16_t b)
-{
-	uint16_t c = a / b;
-	if (a > b * c)
-	{
-		return (c + 1);
-	}
-	else
-	{
-		return c;
-	}
-}
+

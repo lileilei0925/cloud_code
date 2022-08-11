@@ -857,8 +857,5 @@ uint32_t g_DownSamplingValue139[4] ={3840000, 7680000, 15360000, 30720000}; /* 1
 
 uint16_t g_RepeatforLRA[PRACH_FORMAT_NUM] = {1, 2, 4, 4, 2, 4, 6, 2, 12, 1, 4};
 
-uint32_t            g_ulTtiMessageTempBuff[2000] = { 0 };    /* ULTTIMessage 本地buffer */
 L1PrachParaPduInfo  g_prachParaInfoOut[MAX_CELL_NUM] = { 0 };/* Prach 参数本地buffer */
-UlPduMappingInfo    g_ulPduMappingInfo[MAX_CELL_NUM][200] = { 0 };         /* 暂时假设有200个PDU */
-L1CellConfigInfo    g_cellConfigPara[MAX_CELL_NUM] = { 0 };
-PrachPduHandle      g_prachPduHandle[MAX_CELL_NUM] = { 0 };
+PrachPduHandle      g_prachPduHandle[MAX_CELL_NUM]   = { 0 };

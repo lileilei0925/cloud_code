@@ -107,3 +107,16 @@ void PseudoRandomSeqGen(uint8_t* pucDataOut, uint32_t udCinit, uint32_t udSequen
 	}
 	return;
 }
+
+
+uint16_t ceil_div(uint16_t a, uint16_t b)
+{
+	uint16_t c = a / b;
+
+	if (a > b * c){
+		return (c + 1);
+	}
+	else{
+		return c;
+	}
+}
