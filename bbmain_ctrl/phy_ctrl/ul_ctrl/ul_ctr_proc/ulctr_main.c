@@ -38,14 +38,8 @@ uint32_t MessageUlTtiRequestParse(uint8_t cellIndex, uint8_t *srcUlSlotMesagesBu
         memcpy(&g_ulTtiMessageTempBuff[0], srcUlSlotMesagesBuff, ulTtirequestMessageSize); /* Slot Messages Ul_TTI.request信息从共享DDR copy到Arm核内,后期改DMA搬移 */
 		
 		/* 本小区pucch相关变量初始化 */
-        g_pucchfmt1pdunum[cellIndex]   =  0;
-        g_pucchfmt023pdunum[cellIndex] =  0; 
-        g_pucchpduGroupNum[cellIndex]  =  0; 
-		memset(g_FapiPucchPduInfo[cellIndex],       0, MAX_PUCCH_NUM * sizeof(FapiNrMsgPucchPduInfo));
-		memset(g_pucchNumpersym[cellIndex]  ,       0, MAX_PUCCH_NUM);
-		memset(g_pucchIndex[cellIndex]      ,       0, (SYM_NUM_PER_SLOT * MAX_PUCCH_NUM));
-        memset(g_pucchpduNumPerGroup[cellIndex],    0, MAX_PUCCH_NUM);
-        memset(g_pucchpduIndexinGroup[cellIndex],   0, (MAX_PUCCH_NUM * MAX_USER_NUM_PER_OCC));
+        PucchParaInit(cellIndex);
+    
         /******************** Slot Messages Ul_TTI.request信息 parsing *******************/
         UlTtiRequestHeadInfo *ulRequestHead = (UlTtiRequestHeadInfo *)g_ulTtiMessageTempBuff;
         sfnNum     = ulRequestHead->sfnNum;

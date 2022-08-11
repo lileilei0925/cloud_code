@@ -1,12 +1,10 @@
 #pragma once
-#include "../../../../common/inc/common_teypedef.h"
+#include "../../../../common/inc/common_typedef.h"
 #include "../../../../common/inc/common_macro.h"
 
-#define SYM_NUM_PER_SLOT 14
 #define MAX_RX_ANT_NUM 4
 #define MAX_USER_NUM_PER_OCC 6
 #define SC_NUM_PER_RB 12
-#define HOP_NUM 2
 #define MAX_DMRS_SYM_NUM 7
 #define MAX_PUCCH_NUM 20    /* 待定 */
 
@@ -148,7 +146,7 @@ typedef struct
 {
     uint8_t pucchNum;										/* PUCCH总个数 */
 	uint8_t pucchNumpersym[SYM_NUM_PER_SLOT];				/* 每符号结束的PUCCH个数*/
-	uint8_t pucchIndex[SYM_NUM_PER_SLOT][MAX_PUCCH_NUM];  /* 每符号结束的PUCCH索引 */
+	uint8_t pucchIndex[SYM_NUM_PER_SLOT][MAX_PUCCH_NUM];    /* 每符号结束的PUCCH索引 */
 	
 	PucParam pucParam[MAX_PUCCH_NUM];
 }PucPerCellParam;

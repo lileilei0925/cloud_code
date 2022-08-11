@@ -1,5 +1,5 @@
 #pragma once
-#include "common_teypedef.h"
+#include "common_typedef.h"
 #include "common_macro.h"
 
 #define    MAX_GROUP_NUM               8
