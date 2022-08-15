@@ -1,9 +1,10 @@
+#pragma once
 #include <stdio.h>
 #include <string.h>
 #include "../inc/common_typedef.h"
 #include "../inc/common_macro.h"
 
-
+uint16_t ceil_div(uint16_t a, uint16_t b);
 uint32_t do_brev(uint32_t val_32bit);
 void PseudoRandomSeqGen(uint8_t* pucDataOut, uint32_t udCinit, uint32_t udSequenceLen);
 
