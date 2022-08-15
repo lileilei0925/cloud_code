@@ -1,10 +1,7 @@
-#include <stdio.h>
-#include <string.h>
 #include "../prach/src/phyctrl_prach.c"
+#include "../pusch/src/phyctrl_pusch.c"
 #include "../pucch/src/phyctrl_pucch.c"
-#include "../pusch/inc/phyctrl_pusch.h"
 
-uint16_t ceil_div(uint16_t a, uint16_t b);
 uint32_t MessageUlTtiRequestParse(uint8_t cellIndex, uint8_t *srcUlSlotMesagesBuff);
 uint32_t UlTtiRequestMessageSizeCalc (uint8_t *srcUlSlotMesagesBuff);
 uint32_t UlTtiRequestPrachPduparse(FapiNrMsgPrachPduInfo *fapiPrachPduInfoIn, L1PrachPduInfo *l1PrachPduOut, uint16_t pudIndex);

@@ -16,7 +16,8 @@ enum PUCCH_FORMAT
     PUCCH_FORMAT_3 = 3,    
     PUCCH_FORMAT_BUTT
  };
- typedef uint8_t PUCCH_FORMAT;
+ 
+ //typedef uint8_t PUCCH_FORMAT;
 
 typedef struct
 {
@@ -102,7 +103,7 @@ typedef struct
 	uint8_t scs; 								/* 子载波间隔索引，0:15kHz,1:30kHz,2:60kHz,3:120kHz,4:240kHz */
 	uint8_t rsv1[3];
 
-    PUCCH_FORMAT pucFormat; 				/* PUCCH格式，取值0/1/2/3，暂不支持格式 4 */
+    uint8_t pucFormat; 				/* PUCCH格式，取值0/1/2/3，暂不支持格式 4 */
 
     /* BWP parameter */
     uint16_t bwpStart; 						/* BWP起始RB索引，取值[0,274] */

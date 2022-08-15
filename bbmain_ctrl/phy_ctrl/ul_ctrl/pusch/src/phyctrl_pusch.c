@@ -1,20 +1,23 @@
-#include <stdio.h>
-#include <string.h>
 #include "../../../../common/inc/fapi_mac2phy_interface.h"
-#include "../inc/phyctrl_pusch.h"
-//#include "../inc/prach_variable.h"
+#include "../../../../common/inc/phy_ctrl_common.h"
+#include "../../../../common/src/common.c"
 
+#include "../inc/phyctrl_pusch.h"
+#include "../inc/pusch_variable.h"
+
+#if 0
 int main(void)
 {
   uint16_t a = 16;
   uint16_t b = 16;
   uint16_t c = 0;
 
-  printf("c = %d;\n",c);
+  printf("c = %d;\n",a+b);
   printf("___Hello World___;\n");
 
   return 0;
 }
+#endif
 
 #if 0
 uint32_t L1PuschRxParasInit(L1PuschParaPduInfo *l1puschParaPduInfoIn, L1PuschConfigInfo *l1PuschConfigInfoIn, PuschRxParaLocal *puschRxParaLocal)

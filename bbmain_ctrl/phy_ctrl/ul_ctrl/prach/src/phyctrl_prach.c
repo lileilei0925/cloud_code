@@ -1,5 +1,3 @@
-//#include <stdio.h>
-//#include <string.h>
 #include "../../../../common/inc/fapi_mac2phy_interface.h"
 #include "../../../../common/inc/phy_ctrl_common.h"
 #include "../../../../common/src/common.c"
@@ -19,7 +17,7 @@ int main(void)
   uint16_t b = 16;
   uint16_t c = 0;
 
-  printf("c = %d;\n",c);
+  printf("c = %d;\n",a+b+1);
   printf("___Hello World___;\n");
 
   return 0;

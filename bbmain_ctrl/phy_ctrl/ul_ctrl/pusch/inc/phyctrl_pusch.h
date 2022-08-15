@@ -133,9 +133,3 @@ typedef struct
     uint8_t        puschPduNum;     /* Number of PuschPdus that are parse from FAPI UlTTIRequset */
 	L1PuschPduInfo l1PuschPduInfo[MAX_PUSCH_PDU_NUM]; /* pusch ue级参数，最大处理16Ue */      
 } L1PuschParaPduInfo;
-
-
-
-
-
-L1PuschParaPduInfo  g_puschParaInfoOut[MAX_CELL_NUM] = { 0 };/* Prach 参数本地buffer */
