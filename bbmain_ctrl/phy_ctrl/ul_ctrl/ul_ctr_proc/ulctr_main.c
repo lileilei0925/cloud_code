@@ -95,15 +95,15 @@ uint32_t MessageUlTtiRequestParse(uint8_t cellIndex, uint8_t *srcUlSlotMesagesBu
                     fapipucchPduParaIn = (FapiNrMsgPucchPduInfo *)((uint8_t *)pduHead + sizeof(PduHeadInfo));
                     if(PUCCH_FORMAT_1 == fapipucchPduParaIn->formatType)
                     {
-                        fapipucchpduInfo = g_FapiPucchPduInfo[cellIndex] + g_pucchfmt1pdunum[cellIndex];
+                        fapipucchpduInfo = g_FapiPucchfmt1PduInfo[cellIndex] + g_pucchfmt1pdunum;
                         memcpy(fapipucchpduInfo, fapipucchPduParaIn, sizeof(FapiNrMsgPucchPduInfo));
-                        g_pucchfmt1pdunum[cellIndex]++;
+                        g_pucchfmt1pdunum++;
                     }
                     else
                     {    
-                        pucParam = (g_armtodspPucParam.pucPerCellParam[cellIndex].pucParam + g_pucchfmt023pdunum[cellIndex]);
-                        UlTtiRequestPucchFmt023Pduparse(fapipucchPduParaIn, pucParam, cellIndex);
-                        g_pucchfmt023pdunum[cellIndex]++;
+                        pucParam = (g_armtodspPucParam.pucPerCellParam[cellIndex].pucParam + g_pucchfmt023pdunum);
+                        UlTtiRequestPucchFmt023Pduparse(fapipucchPduParaIn, pucParam, sfnNum, slotNum, pduIndex, cellIndex);
+                        g_pucchfmt023pdunum++;
                     }
                     pduCntPerType[2]++;
                     break;
@@ -126,13 +126,13 @@ uint32_t MessageUlTtiRequestParse(uint8_t cellIndex, uint8_t *srcUlSlotMesagesBu
         //l1SrsParaInfoOut->puschPduNum   = pduCntPerType[3];
         
         /* pucch fmt1,将复用的PDU先分组，再解析*/
-        if(0 < g_pucchfmt1pdunum[cellIndex])
+        if(0 < g_pucchfmt1pdunum)
         {
             PucchFmt1Grouping(cellIndex);
-            for(pucchpduGroupCnt = 0; pucchpduGroupCnt < g_pucchpduGroupNum[cellIndex]; pucchpduGroupCnt++)
+            for(pucchpduGroupCnt = 0; pucchpduGroupCnt < g_pucchpduGroupNum; pucchpduGroupCnt++)
             {
-                pucParam = (g_armtodspPucParam.pucPerCellParam[cellIndex].pucParam + g_pucchfmt023pdunum[cellIndex] + pucchpduGroupCnt);
-                UlTtiRequestPucchFmt1Pduparse(pucParam, pucchpduGroupCnt, cellIndex);
+                pucParam = (g_armtodspPucParam.pucPerCellParam[cellIndex].pucParam + g_pucchfmt023pdunum + pucchpduGroupCnt);
+                UlTtiRequestPucchFmt1Pduparse(pucParam, pucchpduGroupCnt, sfnNum, slotNum, pduIndex, cellIndex);
             }
         }
         /************** pduIndex mapping relation with UE **************/
