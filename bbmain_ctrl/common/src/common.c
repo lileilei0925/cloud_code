@@ -4,18 +4,13 @@
 #include "../inc/common_typedef.h"
 #include "../inc/common_macro.h"
 
-uint16_t ceil_div(uint16_t a, uint16_t b);
-uint32_t do_brev(uint32_t val_32bit);
-void PseudoRandomSeqGen(uint8_t* pucDataOut, uint32_t udCinit, uint32_t udSequenceLen);
-
-
 /*******************************************************************************
 * 函数名称: do_brev
 * 函数功能: 完成对一个Uint 32位数bit位反转存储
 * 相关文档:
 * 函数参数:
 * 参数名称:   类型   输入/输出   描述
-* 返回值:   无
+* 返回值:   result bit翻转后的值
 * 函数类型: <回调、中断、可重入（阻塞、非阻塞）等函数必须说明类型及注意事项>
 * 函数说明:（以下述列表的方式说明本函数对全局变量的使用和修改情况，以及本函数
 *           未完成或者可能的改动）
@@ -36,7 +31,7 @@ uint32_t do_brev(uint32_t val_32bit)
 }
 
 /*******************************************************************************
-* 函数名称: App_pseudo_random_seq_gen
+* 函数名称: PseudoRandomSeqGen
 * 函数功能: 计算c(n)序列
 * 相关文档: 3GPP TS 211 计算PN序列
 * 函数参数:
@@ -109,7 +104,21 @@ void PseudoRandomSeqGen(uint8_t* pucDataOut, uint32_t udCinit, uint32_t udSequen
 	return;
 }
 
-
+/*******************************************************************************
+* 函数名称: ceil_div
+* 函数功能: 实现向上取整的除法
+* 相关文档: 
+* 函数参数:
+* 参数名称:   类型   输入/输出   描述
+*
+* a        uint16_t   in       被除数 
+* b        uint16_t   in       除数 
+*
+* 返回值:   c 
+* 函数类型: <回调、中断、可重入（阻塞、非阻塞）等函数必须说明类型及注意事项>
+* 函数说明:（以下述列表的方式说明本函数对全局变量的使用和修改情况，以及本函数
+*
+*******************************************************************************/
 uint16_t ceil_div(uint16_t a, uint16_t b)
 {
 	uint16_t c = a / b;
@@ -120,4 +129,37 @@ uint16_t ceil_div(uint16_t a, uint16_t b)
 	else{
 		return c;
 	}
+}
+
+/*******************************************************************************
+* 函数名称: count_bit1_and_index
+* 函数功能: 对输入数据以二进制从低位到高位统计bit1的个数和对应的位置索引
+* 相关文档: 
+* 函数参数:
+* 参数名称:   类型   输入/输出   描述
+*
+* inputData  uint16_t  in      输入数据
+* bit1Num    uint8_t*  out     输出inputData中1的bit数量      
+* bit1Index  uint8_t*  out     输出inputData中1对应的bit索引   
+*
+* 返回值:   无
+* 函数类型: <回调、中断、可重入（阻塞、非阻塞）等函数必须说明类型及注意事项>
+* 函数说明:（以下述列表的方式说明本函数对全局变量的使用和修改情况，以及本函数
+*
+*******************************************************************************/
+void count_bit1_and_index(uint16_t inputData, uint8_t *bit1Num, uint8_t *bit1Index)
+{
+	uint8_t count0 = 0;
+	uint8_t count1 = 0;
+
+	while (inputData)
+	{
+		if((inputData % 2) == 1){
+            bit1Index[count0] = count1;
+			count0++;
+		}
+		inputData = inputData >> 1;
+		count1++;
+	}
+	*bit1Num = count0;
 }
