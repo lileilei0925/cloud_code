@@ -2,12 +2,15 @@
 #include "../../../../common/inc/common_typedef.h"
 #include "../../../../common/inc/common_macro.h"
 
+#define  NR_PUSCH_MAX_UE_NUM_PER_SLOT     16
+#define  NR_PUSCH_MAX_CHE_PRB_GROUP_NUM   137
+
 typedef struct 
 {
     uint16_t ptrsPortIndex;     /* PT-RS antenna ports index */
     uint8_t  ptrsDmrsPort;      /* DMRS port corresponding to PTRS */
     uint8_t  ptrsReOffset;      /* PT-RS resource element offset value taken from */
-}PtrsPortPara;
+} PtrsPortPara;
 
 typedef struct
 {
@@ -17,7 +20,7 @@ typedef struct
     uint32_t nTBSzie;            /* Transmit block size */
     uint32_t numCb;              /* Number of CBs in the TB; Should be set to zero in any of the following conditions: 1) CBG is not supported 2) newData=1 (new transmission) 3) tbSize=0 */
     uint8_t  cbPresentAndPos[4]; /* CB is present in the current retx of the PUSCH. 1=PRESENT, 0=NOT PRESENT. uint8_t[ceil(numCb/8)] 暂不支持CBG传输，所以numCb为0 */
-}PuschDataPara;
+} PuschDataPara;
 
 typedef struct 
 {
@@ -28,7 +31,7 @@ typedef struct
     uint8_t  betaOffsetHarqAck;  /* Beta Offset for HARQ-ACK bits. Value: 0->15 */
     uint8_t  betaOffsetCsi1;     /* Beta Offset for CSI-part1 bits.Value: 0->18 */
     uint8_t  betaOffsetCsi2;     /* Beta Offset for CSI-part2 bits.Value: 0->18 */
-}PuschUciPara;
+} PuschUciPara;
 
 typedef struct 
 {
@@ -37,7 +40,7 @@ typedef struct
     uint8_t      ptrsTimeDensity;             /* PT-RS time density.Value: 0: 1, 1: 2, 2: 4 */
     uint8_t      ptrsFreqDensity;             /* PT-RS frequency density. Value: 0: 2, 1: 4 */
     uint8_t      ulPtrsPower;                 /* PUSCH to PT-RS power ratio per layer per RE. Value: 0: 0dB,1: 3dB,2: 4.77dB,3: 6dB*/
-}PuschPtrsPara;
+} PuschPtrsPara;
 
 typedef struct 
 {
@@ -45,7 +48,7 @@ typedef struct
     uint16_t lowPaprSeqNum;          /* sequence number of Low PAPR sequence.  For DFTS-OFDM */
     uint8_t  ulptrsSampleDensity;    /* Number of PTRS groups. */
     uint8_t  ulptrsTimeDensity;      /* Number of samples per PTRS group.*/
-}PuschDftOfdmPara;
+} PuschDftOfdmPara;
 
 typedef struct 
 {
@@ -54,18 +57,18 @@ typedef struct
     uint16_t paramOffsets[MAX_PART1_PAPR_NUM];  /* Ordered list of parameter offsets (offset from 0 = first bit of part1); The real size is numPart1Params */
     uint8_t  paramSizes[MAX_PART1_PAPR_NUM];    /* Bitsizes of part 1 param in the same order as paramOffsets; The real size is numPart1Params */
     uint16_t part2SizeMapIndex;                 /* Index of one of the maps configured Table 3-40, for determining the size of a part2, from the part 1 parameter values */
-}Part2ReportPara;
+} Part2ReportPara;
 
 /* Uci information for determining UCI Part1 to Part2 correspondence, added in FAPIv3 */
 typedef struct 
 {
     uint16_t        numPart2s;       /* Max number of UCI part2 that could be included in the CSI report. Value: 0 -> 100 */
     Part2ReportPara part2ReportPara[MAX_CSI_PART2_REPOET_NUM]; 
-}Part2InfoAddInV3;
+} Part2InfoAddInV3;
 
 typedef struct
 {
-	uint16_t pduIndex;
+	uint16_t pduIndex;          
     uint16_t pduBitMap;               /* Bit 0: puschData; Bit 1:puschUci; Bit 2: puschPtrs; Bit 3: dftsOfdm; All other bits reserved*/
     uint16_t ueRnti;                  /* The RNTI used for identifying the UE when receiving the PDU*/
     uint32_t handle;                  /* An opaque handling returned in the Rx_Data.indication and/or UCI.indication message*/
@@ -123,8 +126,8 @@ typedef struct
     PuschUciPara     puschUciPara;     /**/
     PuschPtrsPara    puschPtrsPara;    /**/ 
     PuschDftOfdmPara puschDftOfdmPara; /**/
-    Part2InfoAddInV3  part2InfoAddInV3;/**/
-}L1PuschPduInfo;
+    Part2InfoAddInV3 part2InfoAddInV3; /**/
+} L1PuschPduInfo;
 
 typedef struct
 {
@@ -133,3 +136,83 @@ typedef struct
     uint8_t        puschPduNum;     /* Number of PuschPdus that are parse from FAPI UlTTIRequset */
 	L1PuschPduInfo l1PuschPduInfo[MAX_PUSCH_PDU_NUM]; /* pusch ue级参数，最大处理16Ue */      
 } L1PuschParaPduInfo;
+
+typedef struct
+{
+    uint16_t pduBitMap;               /* Bit 0: puschData; Bit 1:puschUci; Bit 2: puschPtrs; Bit 3: dftsOfdm; All other bits reserved*/
+    uint16_t ueRnti;                  /* The RNTI used for identifying the UE when receiving the PDU*/
+    uint32_t handle;                  /* An opaque handling returned in the Rx_Data.indication and/or UCI.indication message*/
+} PuschRxParaLocal;
+
+
+/* PUSCH DSP Param struct */
+typedef struct
+{
+    uint8_t  cellIdx;             /* L1与L2之间的小区标识 */     
+    uint8_t  cellModeType;        /* 小区类型，0：NR，1：LTE */
+    uint8_t  rxAntNum;            /* 接收天线数 [1,2,4] */
+	uint8_t  puschEqAlgFlag;      /* 0:MRC, 1:IRC, 2:adaptive */
+    uint8_t  ruuAvgFlag;          /* 主要针对两列导频计中，计算完最后一列导频后的RUU是否求平均，可配置 */
+    uint8_t  ruuAvgRbGrpNum;      /* 频域平局计算颗粒度 */
+    uint8_t  freqOffSetSwitch;    /* 频偏估计开关 */
+} NrPuschCellPara;
+
+typedef struct
+{
+    uint16_t ueIndex;
+    uint8_t  dftPrecEn;           /* (transform_precoding_enable),0:CP波形,1:DFT波形*/
+    uint8_t  dmrsCfgType;         /* DMRS configuration type, 0:type1,1:type2*/
+    uint8_t  validCdmNum;         /* UE使用的端口数实际占用几个CDM数*/
+    uint8_t  cdmIdx[3];           /* 有效CDM对应的索引值,0-2*/
+    uint8_t  portNum;             /* 取值范围1~4*/
+    uint8_t  portIdx[4];          /* */
+    uint8_t  perCdmPortIdx[3][2]; /* 单符号取值范围0-5和0XFF,按照协议CDM group最大个数为3，每个CDM对应两个端口，如果对应的端口号都有效，则填写真实值，无效则填写0xff */
+    uint16_t startRbgIdx;         /* 起始 */
+    uint16_t cheRbgNum;           /* 连续的RBG个数 */
+    uint8_t  totalDmrsSymbNum;    /* 该UE总的DMRS符号个数，当前方案除了msg3可携带3个DMRS符号，常规上行子帧最大2个DMRS符号*/
+    uint8_t  lastDmrsFlag;        /* 该UE总的DMRS符号个数，当前方案除了msg3可携带3个DMRS符号，常规上行子帧最大2个DMRS符号*/
+} NrPuschUePara;
+
+typedef struct
+{
+    uint16_t rbStart;
+    uint16_t rbNum;
+    /*外推平滑滤波参数*/
+    uint32_t freqExtraFliterOrder;  /* 外推平滑滤波阶数*/
+    int16_t  sinr;                  /* Q(1,16,8)*/
+    /*时域降噪窗参数*/
+    uint16_t lenWtriang;            /* 变换域去噪三角窗长度，单位变换域样点个数*/
+    uint16_t lenWrectPre;           /* 变换域去噪矩形窗前窗长度*/
+    uint16_t lenWrectPost;          /* 变换域去噪矩形窗后窗长度*/
+    uint16_t cheDenoiseWrectCoe;    /* 变换域去噪矩形窗后窗长度*/
+    uint16_t *cheDenoiseWtriangCoe; /* 变换域去噪窗系数指针，*/
+} NrPuschCePara;
+
+typedef struct
+{
+    // ...
+} NrPuschMeasPara;
+
+typedef struct
+{
+    uint8_t         validUeNum;/*当前符号调度的有效用户数*/
+    NrPuschUePara   puschUePara[NR_PUSCH_MAX_UE_NUM_PER_SLOT];
+    NrPuschCePara   puschCePara[NR_PUSCH_MAX_CHE_PRB_GROUP_NUM];
+    NrPuschMeasPara puschMeasPara[NR_PUSCH_MAX_UE_NUM_PER_SLOT];
+    uint32_t       *puschFreqDmrs[MAX_RX_ANT_NUM]; /*接收的DMRS符号*/
+    uint32_t       *puschBaseSeq; /*DMRS基序列*/
+    uint32_t       *puschCheResult[MAX_RX_ANT_PORT_NUM][MAX_RX_ANT_NUM]; /*信道估计输出指针，dsp_hac的目的地址*/
+    uint32_t       *puschRuuResult[MAX_RX_ANT_PORT_NUM][MAX_RX_ANT_NUM]; /*信道估计输出指针，dsp_hac的目的地址*/
+    int32_t        *puschCheAgc; /*信道估计输出AGC，主要来源是变换域ifft和FFT的输出，dsp_hac的目的地址*/
+}NrPuschSymPara;
+
+typedef struct 
+{
+    uint16_t        sfnNum;               /* system frame number [0: 1023] */
+    uint8_t         slotNum;              /* slot number [0: 159]  */
+    NrPuschCellPara puschCellPara;
+    NrPuschSymPara  puschSymPara;
+} PuschDecPara;
+
+
+

@@ -8,6 +8,8 @@
 uint32_t UlCarrierSampleRateCalc(uint16_t ulBwpBandwdith);
 uint32_t L1PrachRxInitParas(L1PrachParaPduInfo *l1prachParaPduInfoIn, L1PrachConfigInfo *l1PrachConfigInfoIn, PrachRxParaLocal *prachRxParaLocal);
 uint32_t L1PrachParaParse2LowPhy(PrachRxParaLocal *prachRxParaLocal, PrachLowPhyHacPara *prachLowPhyParaOut);
+uint32_t L1PrachParaParse2Rpp(PrachRxParaLocal *prachRxParaLocal, PrachRPPHacPara *prachRppParaOut);
+uint32_t L1PrachParaParse2Dsp(PrachRxParaLocal *prachRxParaLocal, PrachDetectDspPara *prachDspParaOut);
 uint16_t PrachCvCalc(PrachRxParaLocal *prachRxParaLocal);
 
 #if 0

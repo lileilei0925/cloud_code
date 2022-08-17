@@ -5,7 +5,7 @@
 #include "../inc/phyctrl_pusch.h"
 #include "../inc/pusch_variable.h"
 
-#if 0
+#if 1
 int main(void)
 {
   uint16_t a = 16;
@@ -15,9 +15,25 @@ int main(void)
   printf("c = %d;\n",a+b);
   printf("___Hello World___;\n");
 
+#if 0
+  uint16_t inputData = 0x0012;
+  uint8_t  bit1Num   = 0;
+  uint8_t  bit1Index[7] = { 0 };
+
+  count_bit1_and_index(inputData, &bit1Num, &bit1Index[0]);
+#endif
+
   return 0;
 }
 #endif
+
+uint32_t L1PuschRxParasInit(L1PuschParaPduInfo *l1puschParaPduInfoIn, PuschRxParaLocal *puschRxParaLocal)
+{
+
+    return 0;
+}
+
+
 
 #if 0
 uint32_t L1PuschRxParasInit(L1PuschParaPduInfo *l1puschParaPduInfoIn, L1PuschConfigInfo *l1PuschConfigInfoIn, PuschRxParaLocal *puschRxParaLocal)

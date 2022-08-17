@@ -18,6 +18,7 @@
 
 #define MAX_CELL_NUM                 4
 #define MAX_RX_ANT_NUM               4
+#define MAX_RX_ANT_PORT_NUM          4
 
 #define SLOT_NUM_PER_FRAME           20
 #define SYM_NUM_PER_SLOT             14
