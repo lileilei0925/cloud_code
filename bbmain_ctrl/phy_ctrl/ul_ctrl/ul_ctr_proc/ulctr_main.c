@@ -12,7 +12,7 @@ int main(void)
 {
   uint16_t a = 16;
   uint16_t b = 16;
-  uint16_t c = 0;
+  uint32_t c = 0;
 
   printf("c = %d;\n",c);
   printf("___Hello World___;\n");

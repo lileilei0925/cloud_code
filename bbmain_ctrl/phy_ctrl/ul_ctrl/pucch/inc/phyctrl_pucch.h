@@ -6,7 +6,7 @@
 #define MAX_USER_NUM_PER_OCC 6
 #define SC_NUM_PER_RB 12
 #define MAX_DMRS_SYM_NUM 7
-#define MAX_PUCCH_NUM 20    /* 待定 */
+#define MAX_PUCCH_NUM 50    /* 待定 */
 
 enum PUCCH_FORMAT
 {
@@ -37,7 +37,7 @@ typedef struct
 	uint8_t cyclicShift[SYM_NUM_PER_SLOT]; 	    /* 38.211协议 6.3.2.2.2计算得到的各符号α值，取值[0,11] */
 	
 	uint16_t rnti;							    /* UE唯一标识，取值[1,65535] */
-}PucFmt1UEParam;//5DW
+}PucFmt1UEParam;//4.5DW
 
 typedef struct
 {
@@ -49,12 +49,12 @@ typedef struct
 	uint8_t rsv;  
 	
     int32_t threshold;    					        /* 算法参数，DTX检测门限，取值范围待定 */
-}PucFmt1Param;//32DW
+}PucFmt1Param;//29DW
 
 typedef struct
 {
-    uint8_t MrcIrcFlag;   					        /* 算法参数，MRC/IRC模式，取值0:MRC,1:IRC,2: MRC/IRC自适应 */ 
-	uint8_t srbitlen;            				    /* SR比特个数，取值[0,4] */
+    uint8_t  MrcIrcFlag;   					        /* 算法参数，MRC/IRC模式，取值0:MRC,1:IRC,2: MRC/IRC自适应 */ 
+	uint8_t  srbitlen;            				    /* SR比特个数，取值[0,4] */
 	uint16_t rnti;							        /* UE唯一标识，取值[1,65535] */
 	
 	uint16_t harqBitLength;					        /* HARQ的payload,取值[0,1706]除了1 */
@@ -78,15 +78,17 @@ typedef struct
 	
 	uint16_t harqBitLength;					        /* HARQ的payload,取值[0,1706]除了1 */
     uint16_t csipart1BitLength;				        /* CSI part1的payload,取值[0,1706] */
-	uint16_t nid;							        /* 211协议6.3.2.6.1加扰使用的nid，取值[0,1023] */
-	
+
+    uint16_t nid;							        /* 211协议6.3.2.6.1加扰使用的nid，取值[0,1023] */
 	uint8_t cyclicShift[SYM_NUM_PER_SLOT]; 	        /* 38.211协议 6.3.2.2.2计算得到的各符号α值 */
 	
 	uint16_t rnti;							        /* UE唯一标识，取值[1,65535] */
 	uint16_t beta;         					        /* 算法参数，对角拉齐因子，取值范围待定 */
+    
     uint16_t segNum;       					        /* 算法参数，RB个数按照粒度Ruu Granularity分为seg的个数，默认值4，取值范围待定 */
+    
     int32_t threshold;     					        /* 算法参数，DTX检测门限，取值范围待定 */
-}PucFmt3Param;
+}PucFmt3Param;//8.5DW
 
 typedef struct
 {
@@ -100,9 +102,7 @@ typedef struct
     uint8_t  rxAntNum;	    				        /* 基站接收天线个数，取值2/4 */
     uint8_t  BW; 								    /* 小区带宽，取值5,10,15,20,25,30,40,50,60,70,80,90,100,200,400，单位MHz */
 	uint8_t  scs; 								    /* 子载波间隔索引，0:15kHz,1:30kHz,2:60kHz,3:120kHz,4:240kHz */
-	uint8_t  rsv1;
-
-    uint8_t pucFormat; 				                /* PUCCH格式，取值0/1/2/3，暂不支持格式 4 */
+    uint8_t  pucFormat; 				             /* PUCCH格式，取值0/1/2/3，暂不支持格式 4 */
 
     /* BWP parameter */
     uint16_t bwpStart; 						        /* BWP起始RB索引，取值[0,274] */
@@ -122,7 +122,7 @@ typedef struct
 	uint8_t dmrsSymNum[HOP_NUM];   			        /* 导频符号个数,取值[1-7] */
 	
     uint8_t uciSymNum[HOP_NUM];    			        /* 数据符号个数,取值[1-7] */
-	uint8_t rsv2[2];
+	uint8_t rsv[2];
 
     /* PUC data在DDR中的存放地址 */
     int32_t *dataAddr[SYM_NUM_PER_SLOT][MAX_RX_ANT_NUM];  
@@ -161,3 +161,100 @@ typedef struct
 
     PucPerCellParam pucPerCellParam[MAX_CELL_NUM];
 }ArmToDspPucParam;
+
+typedef struct
+{
+	uint8_t		SRindication;					/* SR检测结果，0:未检测到SR,1:检测到SR */
+	uint8_t		SRconfidenceLevel;				/* SR检测置信度，0:置信,1:不置信,无效值255 */
+}SRInfoFmt01;//0.5DW
+
+typedef struct
+{
+	uint16_t	SrBitLen;						/* SR比特长度，取值范围[1,8] */
+	uint8_t		SrPayload;						/* SR码流 */
+    uint8_t		rsv;						
+}SRInfoFmt234;//1DW
+
+typedef struct
+{
+	uint8_t		NumHarq;						/* HARQ比特个数，取值1或2 */
+	uint8_t		HarqconfidenceLevel;			/* HARQ检测置信度，0:置信,1:不置信,无效值255 */
+	uint8_t 	HarqValue[2];					/* HARQ解调结果，0:ACK,1:NACK,2:DTX */
+}HARQInfoFmt01;//1dw
+
+typedef struct
+{
+	uint8_t		HarqCrc;						/* HARQ CRC结果，0:pass,1:fail,2:not present */
+	uint8_t		rsv;
+	uint16_t	HarqBitLen;						/* HARQ比特长度，取值范围[1,1706] */
+	
+    uint8_t 	HarqPayload[214];				/* HARQ码流 */
+}HARQInfoFmt234;//54.5DW
+
+typedef struct
+{
+	uint8_t		CsiPart1Crc;					/* CsiPart1 CRC结果，0:pass,1:fail,2:not present */
+	uint8_t		rsv;
+	uint16_t	CsiPart1BitLen;					/* CsiPart1比特长度，取值范围[1,1706] */
+	
+    uint8_t 	CsiPart1Payload[214];			/* CsiPart1码流 */
+}CSIpart1Info;//54.5DW
+
+typedef struct
+{
+	uint8_t		CsiPart2Crc;					/* CsiPart2 CRC结果，0:pass,1:fail,2:not present */
+	uint8_t		rsv;
+	uint16_t	CsiPart2BitLen;					/* CsiPart2比特长度，取值范围[1,1706] */
+	
+    uint8_t 	CsiPart2Payload[214];			/* CsiPart2码流 */
+}CSIpart2Info;
+
+typedef struct
+{
+	uint8_t  pduBitmap;       					/* bit0:SR,bit1:HARQ,其他比特位清0。0:存在,1:不存在 */
+    uint8_t  rsv;
+
+	uint32_t Handle;  							/* ？ARM侧无法区分，待定 */
+    
+	uint16_t RNTI;    							/* UE的RNTI */
+	uint8_t  PucchFormat;						/* PUCCH格式,0: PUCCH Format0,1: PUCCH Format1 */
+	uint8_t  UL_CQI;							/* SNR,取值范围[0,255],代表-64dB到63dB,步长0.5dB，无效值255 */
+	
+	uint16_t TA;								/* UE的TA值,取值范围[0,63],213协议4.2节,无效值65535 */
+	uint16_t RSSI;								/* 取值范围[0,1280],步长0.1dB */
+	
+	SRInfoFmt01   srInfoFmt01;
+	HARQInfoFmt01 harqInfoFmt01;
+}PucFmt01Rpt;
+
+typedef struct
+{
+	uint8_t  pduBitmap;       					/* bit0:SR,bit1:HARQ,bit2:CSI Part 1,bit3:CSI Part 2,其他比特位清0。0:存在,1:不存在 */
+    uint8_t  rsv;
+
+	uint32_t Handle;  							/* ？ARM侧无法区分，待定 */
+    
+	uint16_t RNTI;    							/* UE的RNTI */
+	uint8_t  PucchFormat;						/* PUCCH格式,0: PUCCH Format2,1: PUCCH Format3,2: PUCCH Format4 */
+	uint8_t  UL_CQI;							/* SNR,取值范围[0,255],代表-64dB到63dB,步长0.5dB，无效值255 */
+	
+	uint16_t TA;								/* UE的TA值,取值范围[0,63],213协议4.2节,无效值65535 */
+	uint16_t RSSI;								/* 取值范围[0,1280],步长0.1dB */
+	
+	SRInfoFmt234   srInfoFmt234;
+	
+	HARQInfoFmt234 harqInfoFmt234;
+	
+	CSIpart1Info   csipart1Info;
+	
+	CSIpart2Info   csipart2Info;
+}PucFmt234Rpt;
+
+typedef struct
+{
+	uint8_t PucFmt01Num;
+	uint8_t PucFmt234Num;
+
+	PucFmt01Rpt  pucFmt01Rpt[MAX_PUCCH_NUM];
+	PucFmt234Rpt pucFmt234Rpt[MAX_PUCCH_NUM];
+}PucFmtRpt;
