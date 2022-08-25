@@ -356,6 +356,8 @@ void UlTtiRequestPucchFmt1Pduparse(PucParam *pucParam, uint8_t pucchpduGroupCnt,
     //fmt1Param->noiseTapNum       = 6;////算法参数
     //fmt1Param->threshold         = ;////算法参数,待定
 
+    memset(fmt1Param->ueTapBitMap, 0, SYM_NUM_PER_SLOT);
+
     /* fmt1 UE*/
     for(pucchpduIndex = 0; pucchpduIndex < g_pucchpduNumPerGroup[pucchpduGroupCnt]; pucchpduIndex++)
     {
@@ -367,7 +369,8 @@ void UlTtiRequestPucchFmt1Pduparse(PucParam *pucParam, uint8_t pucchpduGroupCnt,
         PucchNcsandUVCalc(SlotIdx,fapipucchpduInfo->nIdPucchHopping,fapipucchpduInfo->groupOrSequenceHopping);
         for (SymbIdx = 0; SymbIdx < SYM_NUM_PER_SLOT; SymbIdx++)
         {
-            fmt1UEParam->cyclicShift[SymbIdx] = (fapipucchpduInfo->initCyclicShift + g_NcsValue[SlotIdx * SYM_NUM_PER_SLOT + SymbIdx]) % SC_NUM_PER_RB;
+            fmt1UEParam->cyclicShift[SymbIdx]  = (fapipucchpduInfo->initCyclicShift + g_NcsValue[SlotIdx * SYM_NUM_PER_SLOT + SymbIdx]) % SC_NUM_PER_RB;
+            fmt1Param->ueTapBitMap[SymbIdx]   |=  (1<<(fmt1UEParam->cyclicShift[SymbIdx]));
         }
 
         fmt1UEParam->rnti  = fapipucchpduInfo->ueRnti;
