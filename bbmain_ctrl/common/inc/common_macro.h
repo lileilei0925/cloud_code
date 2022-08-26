@@ -39,10 +39,6 @@
 #define PTRS_PORT_NUM                2
 #define MAX_CSI_PART2_REPOET_NUM     4
 
-#define MAX_BIT_FGH                 8*20*2  //20: 每帧包含的时隙数，2：hop
-#define MAX_BIT_V                   2*20    //20: 每帧包含的时隙数
-#define MAX_BIT_NCS                 8*14*20 //14: 每时隙包含的符号数，20: 每帧包含的时隙数
-
 #define _extu(v1, csta, cstb)     (((uint32_t)(v1) << (csta)) >> (cstb))
 
 #endif

@@ -37,18 +37,19 @@ uint32_t do_brev(uint32_t val_32bit)
 * 函数参数:
 * 参数名称:   类型   输入/输出   描述
 *
-* pucDataOut        UCHAR*   out       c序列的指针
-* udCinit           UINT32   in        cinit值
-* udSequenceLen     UINT32   in        序列的长度
+* pucDataOut        UINT32*  out       c序列的指针
+* Cinit             UINT32   in        cinit值
+* SequenceLen       UINT32   in        序列的长度
+* StartSaveIdx      UINT8    in        开始保存的索引,以DW为单位
 *
 * 返回值:   无
 * 函数类型: <回调、中断、可重入（阻塞、非阻塞）等函数必须说明类型及注意事项>
 * 函数说明:（以下述列表的方式说明本函数对全局变量的使用和修改情况，以及本函数
 *
 *******************************************************************************/
-void PseudoRandomSeqGen(uint8_t* pucDataOut, uint32_t udCinit, uint32_t udSequenceLen)
+void PseudoRandomSeqGen(uint32_t* pDataOut, uint32_t Cinit, uint32_t SequenceLen, uint8_t StartSaveIdx)
 {
-	uint32_t udLoopIdx = 0;
+	uint32_t LoopIdx = 0;
 	uint32_t x1_p1 = 0;
 	uint32_t x1_p2 = 0;
 	uint32_t x2_p1 = 0;
@@ -57,49 +58,52 @@ void PseudoRandomSeqGen(uint8_t* pucDataOut, uint32_t udCinit, uint32_t udSequen
 	uint32_t x1_new = 0;
 	uint32_t x2_pre = 0;
 	uint32_t x2_new = 0;
-	uint32_t* pudOut = NULL;
 	uint32_t num_pn_word = 0;
 
-	pudOut = (uint32_t*)pucDataOut;
-
 	/*初始化x1序列*/
-	x1_pre = 0x80000001;
+	x1_pre = 0x80000001;//do_brev(0x80000001)
 	/*初始化x2序列*/
-	x2_p1 = do_brev(udCinit);
+	x2_p1 = do_brev(Cinit);
 	x2_p2 = (x2_p1 >> 31) ^ _extu(x2_p1, 1, 31) ^ _extu(x2_p1, 2, 31) ^ _extu(x2_p1, 3, 31);
 	x2_pre = x2_p1 | x2_p2;
 
 	/* x1x2C */
-	num_pn_word = (udSequenceLen + 31) >> 5;
+	num_pn_word = (SequenceLen + 31) >> 5;//向上取整
 
 	/* 计算前1600个bit */
-	for (udLoopIdx = 1; udLoopIdx < 50; udLoopIdx++)/*Nc=1600*/
+	for (LoopIdx = 1; LoopIdx < 50; LoopIdx++)/*Nc=1600*/
 	{
 		/*x1序列*/
 		x1_new = (x1_pre << 1) ^ (x1_pre << 4);/*前28bit*/
 		x1_p1 = (x1_pre << 1) | (x1_new >> 31);
 		x1_p2 = (x1_pre << 4) | (x1_new >> 28);
-		x1_pre = x1_p1 ^ x1_p2;
+		x1_pre = x1_p1 ^ x1_p2;/*前28bit和后4bit拼接*/
 		/*x2序列*/
 		x2_new = (x2_pre << 1) ^ (x2_pre << 2) ^ (x2_pre << 3) ^ (x2_pre << 4);/*前28bit*/
 		x2_p1 = ((x2_pre << 1) | (x2_new >> 31)) ^ ((x2_pre << 2) | (x2_new >> 30));
 		x2_p2 = ((x2_pre << 3) | (x2_new >> 29)) ^ ((x2_pre << 4) | (x2_new >> 28));
-		x2_pre = x2_p1 ^ x2_p2;
+		x2_pre = x2_p1 ^ x2_p2;/*前28bit和后4bit拼接*/
 	}
 
-	for (udLoopIdx = 0; udLoopIdx < num_pn_word; udLoopIdx++)
+	for (LoopIdx = 0; LoopIdx < num_pn_word; LoopIdx++)
 	{
 		/*x1序列*/
 		x1_new = (x1_pre << 1) ^ (x1_pre << 4);/*前28bit*/
 		x1_p1 = (x1_pre << 1) | (x1_new >> 31);
 		x1_p2 = (x1_pre << 4) | (x1_new >> 28);
-		x1_pre = x1_p1 ^ x1_p2;
+		x1_pre = x1_p1 ^ x1_p2;/*前28bit和后4bit拼接*/
 		/*x2序列*/
 		x2_new = (x2_pre << 1) ^ (x2_pre << 2) ^ (x2_pre << 3) ^ (x2_pre << 4);/*前28bit*/
 		x2_p1 = ((x2_pre << 1) | (x2_new >> 31)) ^ ((x2_pre << 2) | (x2_new >> 30));
 		x2_p2 = ((x2_pre << 3) | (x2_new >> 29)) ^ ((x2_pre << 4) | (x2_new >> 28));
-		x2_pre = x2_p1 ^ x2_p2;
-		pudOut[udLoopIdx] = x1_pre ^ x2_pre;
+		x2_pre = x2_p1 ^ x2_p2;/*前28bit和后4bit拼接*/
+
+		/*按照要求保存*/
+		if(LoopIdx >= StartSaveIdx)
+		{
+			*pDataOut = x1_pre ^ x2_pre;
+			pDataOut++;
+		}
 	}
 	return;
 }

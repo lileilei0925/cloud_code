@@ -3,16 +3,11 @@
 
 #define   FUNC_BIT_2_WORD(x)   (((x) + 31) >> 5)     
 
-/* 组跳频，fgh(ns) 根据cell_para_id计算，为PUCCH计算组跳频基序列时共用*/
-uint32_t g_NghData[FUNC_BIT_2_WORD(MAX_BIT_FGH)];  /*(8*20*2)>>5=10words*/
-/* 序列跳  V_seq = c(2*ns+n_hop), 20->ns max,*/
-uint32_t g_NvData[FUNC_BIT_2_WORD(MAX_BIT_V)];     /*(2*20)>>5 = 2words*/
-/* PUCCH   n_cs_cell(ns,l)=sum(c(8 * N_UL_symb * ns + 8 * l + i) * 2^i) i = 0,...,7 */
-uint32_t g_NcsData[FUNC_BIT_2_WORD(MAX_BIT_NCS)];  /*(8*14*20)>>5=70words*/
+uint32_t g_NghNvNcsBuff[6];  /*组跳频，序列跳，循环移位扰码计算相关buff,Ngh/Nv最多使用一个DW,Ncs最多使用 (((8*14sym)>>5向上取整)+1=6DW*/
 
-uint32_t g_NuValue[SLOT_NUM_PER_FRAME][HOP_NUM];             //20slot*2hop
-uint32_t g_NvValue[SLOT_NUM_PER_FRAME][HOP_NUM];             //20slot*2hop
-uint32_t g_NcsValue[SLOT_NUM_PER_FRAME*SYM_NUM_PER_SLOT];    //20slot*14symbol
+uint8_t g_NuValue[HOP_NUM];                               //2hop
+uint8_t g_NvValue[HOP_NUM];                               //20slot*2hop
+uint8_t g_NcsValue[SYM_NUM_PER_SLOT];                     //14symbol
 
 uint32_t g_fmt23dataScrambuff[144];                          //
 uint32_t g_fmt2pilotScrambuff[2][72];                       //
