@@ -50,78 +50,78 @@ void PucchNcsandUVCalc(uint8_t SlotIdx, uint16_t PucchHoppingId,uint8_t GroupHop
     uint8_t  FssPucch = 0;
     uint8_t  FghPucch = 0;
     uint8_t  SlotBits = 0;
+    uint8_t  StartSaveIdx = 0;
     uint8_t  SymbIdx = 0;
     uint8_t  NcsTemp = 0;
     
+    FghPucch = 0;
     FssPucch = PucchHoppingId % 30;
     NIDdiv30 = PucchHoppingId / 30;
 
-    Cinit = NIDdiv30;
-    SequenceLen = 8 * (SlotIdx + 1) * 2;
-    PseudoRandomSeqGen((uint8_t*)g_NghData, Cinit, SequenceLen);
-
-    Cinit = (NIDdiv30 << 5) + FssPucch;
-    SequenceLen = (SlotIdx + 1) * 2;
-    PseudoRandomSeqGen((uint8_t*)g_NvData, Cinit, SequenceLen);
-
-    Cinit = PucchHoppingId;
-    SequenceLen = 8 * 14 * (SlotIdx + 1);
-    PseudoRandomSeqGen((uint8_t*)g_NcsData, Cinit, SequenceLen);
-
-    FghPucch = 0;
     if ((1 == GroupHopping))   /*group hopping is enable */
     {
         /*calculate first hop u,v*/
-        SlotIdx1 = (8 * 2 * SlotIdx) >> 5;
+        Cinit        = NIDdiv30;
+        SequenceLen  = 8 * (SlotIdx + 1) * 2;
+        StartSaveIdx = (8 * 2 * SlotIdx) >> 5;
+        PseudoRandomSeqGen(g_NghNvNcsBuff, Cinit, SequenceLen, StartSaveIdx);
+
         SlotBits = (8 * 2 * SlotIdx) & 0x1F;  /* %32 */
-        TempData = do_brev(g_NghData[SlotIdx1]);   /* 位反转 */
+        TempData = do_brev(g_NghNvNcsBuff[0]);   /* 位反转 */
         FghPucch = (_extu(TempData, (24 - SlotBits), 24)) % 30;
-        g_NuValue[SlotIdx][0] = (FssPucch + FghPucch) % 30;
-        g_NvValue[SlotIdx][0] = 0;
+        g_NuValue[0] = (FssPucch + FghPucch) % 30;
+        g_NvValue[0] = 0;
 
         /*calculate second hop u,v*/
-        SlotIdx1 = (8 * (2 * SlotIdx + 1)) >> 5;
         SlotBits = (8 * (2 * SlotIdx + 1)) & 0x1F;  /* %32 */
-        TempData = do_brev(g_NghData[SlotIdx1]);   /* 位反转 */
+        TempData = do_brev(g_NghNvNcsBuff[0]);   /* 位反转 */
         FghPucch = (_extu(TempData, (24 - SlotBits), 24)) % 30;
-        g_NuValue[SlotIdx][1] = (FssPucch + FghPucch) % 30;
-        g_NvValue[SlotIdx][1] = 0;
+        g_NuValue[1] = (FssPucch + FghPucch) % 30;
+        g_NvValue[1] = 0;
     }
     else if (2 == GroupHopping) /*group hopping is disabled,sequence hopping is enable */
     {
         /*calculate first hop u,v*/
-        SlotIdx1 = (2 * SlotIdx) >> 5;
+        Cinit        = (NIDdiv30 << 5) + FssPucch;
+        SequenceLen  = (SlotIdx + 1) * 2;
+        StartSaveIdx = (2 * SlotIdx) >> 5;
+        PseudoRandomSeqGen(g_NghNvNcsBuff, Cinit, SequenceLen, StartSaveIdx);
+        
         SlotBits = (2 * SlotIdx) & 0x1F;  /* %32 */
-        TempData = g_NvData[SlotIdx1];
-        g_NuValue[SlotIdx][0] = (FssPucch + FghPucch) % 30;
-        g_NvValue[SlotIdx][0] = (TempData >> (31 - SlotBits)) & 0x1;
+        TempData = g_NghNvNcsBuff[SlotIdx1 - StartSaveIdx];
+        g_NuValue[0] = (FssPucch + FghPucch) % 30;
+        g_NvValue[0] = (TempData >> (31 - SlotBits)) & 0x1;
 
         /*calculate second hop u,v*/
-        SlotIdx1 = (2 * SlotIdx + 1) >> 5;// Ts 38.211 6.3.2.2.1  nhop
         SlotBits = (2 * SlotIdx + 1) & 0x1F;  /* %32 */
-        TempData = g_NvData[SlotIdx1];
-        g_NuValue[SlotIdx][1] = (FssPucch + FghPucch) % 30;
-        g_NvValue[SlotIdx][1] = (TempData >> (31 - SlotBits)) & 0x1;
+        TempData = g_NghNvNcsBuff[0];
+        g_NuValue[1] = (FssPucch + FghPucch) % 30;
+        g_NvValue[1] = (TempData >> (31 - SlotBits)) & 0x1;
     }
     else /*group hopping is disabled,sequence hopping is disabled, */
     {
         /*calculate first hop u,v*/
-        g_NuValue[SlotIdx][0] = (FssPucch + FghPucch) % 30;
-        g_NvValue[SlotIdx][0] = 0;
+        g_NuValue[0] = (FssPucch + FghPucch) % 30;
+        g_NvValue[0] = 0;
 
         /*calculate second hop u,v*/
-        g_NuValue[SlotIdx][1] = (FssPucch + FghPucch) % 30;
-        g_NvValue[SlotIdx][1] = 0;
+        g_NuValue[1] = (FssPucch + FghPucch) % 30;
+        g_NvValue[1] = 0;
     }
 
+    /*calculate ncs of current slot in TS 38.211 6.3.2.2.2*/
+    Cinit        = PucchHoppingId;
+    SequenceLen  = 8 * SYM_NUM_PER_SLOT * (SlotIdx + 1);
+    StartSaveIdx = (8 * SYM_NUM_PER_SLOT * SlotIdx)>>5;
+    PseudoRandomSeqGen(g_NghNvNcsBuff, Cinit, SequenceLen, StartSaveIdx);
     for (SymbIdx = 0; SymbIdx < SYM_NUM_PER_SLOT; SymbIdx++)
     {
         TempData = 8 * SYM_NUM_PER_SLOT * SlotIdx + 8 * SymbIdx;
         SlotIdx1 = TempData >> 5;
         SlotBits = TempData & 0x1F; /* %32 */
-        TempData = do_brev(g_NcsData[SlotIdx1]);
-        NcsTemp = _extu(TempData, (24 - SlotBits), 24);
-        g_NcsValue[SlotIdx * SYM_NUM_PER_SLOT + SymbIdx] = NcsTemp;
+        TempData = do_brev(g_NghNvNcsBuff[SlotIdx1 - StartSaveIdx]);
+        NcsTemp  = _extu(TempData, (24 - SlotBits), 24);
+        g_NcsValue[SymbIdx] = NcsTemp;
     }
 }
 
@@ -135,6 +135,7 @@ void UlTtiRequestPucchFmt023Pduparse(FapiNrMsgPucchPduInfo *fapipucchpduInfo, Pu
     uint8_t  intraSlotFreqHopping; 
     uint8_t  symNum[HOP_NUM];
     uint8_t  SymbIdx;
+    uint8_t  StartSaveIdx;
     uint32_t Cinit = 0;
     uint32_t SequenceLen = 0;
     PucFmt0Param *fmt0Param = NULL;
@@ -199,7 +200,7 @@ void UlTtiRequestPucchFmt023Pduparse(FapiNrMsgPucchPduInfo *fapipucchpduInfo, Pu
         PucchNcsandUVCalc(slotNum,fapipucchpduInfo->nIdPucchHopping,fapipucchpduInfo->groupOrSequenceHopping);
         for (SymbIdx = 0; SymbIdx < SYM_NUM_PER_SLOT; SymbIdx++)
         {
-            fmt0Param->cyclicShift[SymbIdx] = (fapipucchpduInfo->initCyclicShift + g_NcsValue[slotNum * SYM_NUM_PER_SLOT + SymbIdx]) % SC_NUM_PER_RB;
+            fmt0Param->cyclicShift[SymbIdx] = (fapipucchpduInfo->initCyclicShift + g_NcsValue[SymbIdx]) % SC_NUM_PER_RB;
         }
 
         fmt0Param->rnti = fapipucchpduInfo->ueRnti;
@@ -212,15 +213,22 @@ void UlTtiRequestPucchFmt023Pduparse(FapiNrMsgPucchPduInfo *fapipucchpduInfo, Pu
         pucParam->dmrsSymNum[0] = pucParam->uciSymNum[0];
         pucParam->dmrsSymNum[1] = pucParam->uciSymNum[1];
 
-        Cinit 		= ((fapipucchpduInfo->ueRnti)<<15)  + fapipucchpduInfo->nIdPucchHopping;
-        SequenceLen = 16*(fapipucchpduInfo->numSymbols)*((fapipucchpduInfo->prbSize));
-        PseudoRandomSeqGen((uint8_t*)g_fmt23dataScrambuff, Cinit, SequenceLen);
+        Cinit 		 = ((fapipucchpduInfo->ueRnti)<<15)  + fapipucchpduInfo->nIdPucchHopping;
+        SequenceLen  = 16*(fapipucchpduInfo->numSymbols)*((fapipucchpduInfo->prbSize));
+        PseudoRandomSeqGen(g_fmt23dataScrambuff, Cinit, SequenceLen, 0);
 
-        SequenceLen = ((fapipucchpduInfo->prbStart) * SC_NUM_PER_RB * 2 * 1/3);
-	    Cinit 		= ((((SYM_NUM_PER_SLOT * slotNum + fapipucchpduInfo->StartSymbolIndex + 1)*(2 * fapipucchpduInfo->dmrsScramblingId + 1))<<17)  + (2 * fapipucchpduInfo->dmrsScramblingId))&0x7fffffff;//超过32位
-        PseudoRandomSeqGen((uint8_t*)g_fmt2pilotScrambuff[0], Cinit, SequenceLen);
-	    Cinit 		= ((((SYM_NUM_PER_SLOT * slotNum + fapipucchpduInfo->StartSymbolIndex + 2)*(2 * fapipucchpduInfo->dmrsScramblingId + 1))<<17)  + (2 * fapipucchpduInfo->dmrsScramblingId))&0x7fffffff;;//超过32位
-	    PseudoRandomSeqGen((uint8_t*)g_fmt2pilotScrambuff[1], Cinit, SequenceLen);
+	    Cinit 		 = ((((SYM_NUM_PER_SLOT * slotNum + fapipucchpduInfo->StartSymbolIndex + 1)*(2 * fapipucchpduInfo->dmrsScramblingId + 1))<<17)  + (2 * fapipucchpduInfo->dmrsScramblingId))&0x7fffffff;//超过32位
+        SequenceLen  = ((fapipucchpduInfo->prbStart + fapipucchpduInfo->prbSize) * SC_NUM_PER_RB * 2 * 1/3);
+        StartSaveIdx = (fapipucchpduInfo->prbStart * SC_NUM_PER_RB * 2 * 1/3) >> 5;
+        PseudoRandomSeqGen(g_fmt2pilotScrambuff[0], Cinit, SequenceLen, StartSaveIdx);
+	    
+        Cinit 		 = ((((SYM_NUM_PER_SLOT * slotNum + fapipucchpduInfo->StartSymbolIndex + 2)*(2 * fapipucchpduInfo->dmrsScramblingId + 1))<<17)  + (2 * fapipucchpduInfo->dmrsScramblingId))&0x7fffffff;;//超过32位
+        if(fapipucchpduInfo->intraSlotFreqHopping)
+        {
+            SequenceLen  = (fapipucchpduInfo->secondHopPRB + fapipucchpduInfo->prbSize) * SC_NUM_PER_RB * 2 * 1/3;
+	        StartSaveIdx = (fapipucchpduInfo->secondHopPRB * SC_NUM_PER_RB * 2 * 1/3) >> 5;
+        }
+        PseudoRandomSeqGen(g_fmt2pilotScrambuff[1], Cinit, SequenceLen, StartSaveIdx);
         
         fmt2Param = (PucFmt2Param *)((uint8_t *)pucParam  + sizeof(PucParam) - sizeof(PucFmt1Param));
         fmt2Param->MrcIrcFlag = 0;
@@ -249,12 +257,12 @@ void UlTtiRequestPucchFmt023Pduparse(FapiNrMsgPucchPduInfo *fapipucchpduInfo, Pu
         PucchNcsandUVCalc(slotNum,fapipucchpduInfo->nIdPucchHopping,fapipucchpduInfo->groupOrSequenceHopping);
         for (SymbIdx = 0; SymbIdx < SYM_NUM_PER_SLOT; SymbIdx++)
         {
-            fmt3Param->cyclicShift[SymbIdx] = (fapipucchpduInfo->initCyclicShift + g_NcsValue[slotNum * SYM_NUM_PER_SLOT + SymbIdx]) % SC_NUM_PER_RB;
+            fmt3Param->cyclicShift[SymbIdx] = (fapipucchpduInfo->initCyclicShift + g_NcsValue[SymbIdx]) % SC_NUM_PER_RB;
         }
 
-        Cinit = ((fapipucchpduInfo->ueRnti)<<15)  + fapipucchpduInfo->nIdPucchHopping;
-        SequenceLen = 12*(2-fapipucchpduInfo->pi2BpskFlag)*(fapipucchpduInfo->numSymbols)*((fapipucchpduInfo->prbSize));;
-        PseudoRandomSeqGen((uint8_t*)g_fmt23dataScrambuff, Cinit, SequenceLen);
+        Cinit         = ((fapipucchpduInfo->ueRnti)<<15)  + fapipucchpduInfo->nIdPucchHopping;
+        SequenceLen   = 12*(2-fapipucchpduInfo->pi2BpskFlag)*(fapipucchpduInfo->numSymbols)*((fapipucchpduInfo->prbSize));
+        PseudoRandomSeqGen(g_fmt23dataScrambuff, Cinit, SequenceLen, 0);
 
         fmt3Param->rnti = fapipucchpduInfo->ueRnti;
         //fmt3Param->beta = ;////算法参数，待定
@@ -369,7 +377,7 @@ void UlTtiRequestPucchFmt1Pduparse(PucParam *pucParam, uint8_t pucchpduGroupCnt,
         PucchNcsandUVCalc(SlotIdx,fapipucchpduInfo->nIdPucchHopping,fapipucchpduInfo->groupOrSequenceHopping);
         for (SymbIdx = 0; SymbIdx < SYM_NUM_PER_SLOT; SymbIdx++)
         {
-            fmt1UEParam->cyclicShift[SymbIdx]  = (fapipucchpduInfo->initCyclicShift + g_NcsValue[SlotIdx * SYM_NUM_PER_SLOT + SymbIdx]) % SC_NUM_PER_RB;
+            fmt1UEParam->cyclicShift[SymbIdx]  = (fapipucchpduInfo->initCyclicShift + g_NcsValue[SymbIdx]) % SC_NUM_PER_RB;
             fmt1Param->ueTapBitMap[SymbIdx]   |=  (1<<(fmt1UEParam->cyclicShift[SymbIdx]));
         }
 
