@@ -12,7 +12,7 @@ int main(void)
 {
   uint16_t a = 16;
   uint16_t b = 16;
-  uint32_t c = 0;
+  uint32_t c = sizeof(PucParam);
 
   printf("c = %d;\n",c);
   printf("___Hello World___;\n");
@@ -55,7 +55,7 @@ uint32_t MessageUlTtiRequestParse(uint8_t cellIndex, uint8_t *srcUlSlotMesagesBu
         memcpy(&g_ulTtiMessageTempBuff[0], srcUlSlotMesagesBuff, ulTtirequestMessageSize); /* Slot Messages Ul_TTI.request信息从共享DDR copy到Arm核内,后期改DMA搬移 */
 		
 		/* 本小区pucch相关变量初始化 */
-        PucchParaInit(cellIndex);
+        memset(&g_armPucParam, 0, sizeof(ArmPucParam));
     
         /******************** Slot Messages Ul_TTI.request信息 parsing *******************/
         UlTtiRequestHeadInfo *ulRequestHead = (UlTtiRequestHeadInfo *)g_ulTtiMessageTempBuff;
@@ -95,15 +95,15 @@ uint32_t MessageUlTtiRequestParse(uint8_t cellIndex, uint8_t *srcUlSlotMesagesBu
                     fapipucchPduParaIn = (FapiNrMsgPucchPduInfo *)((uint8_t *)pduHead + sizeof(PduHeadInfo));
                     if(PUCCH_FORMAT_1 == fapipucchPduParaIn->formatType)
                     {
-                        fapipucchpduInfo = g_FapiPucchfmt1PduInfo[cellIndex] + g_pucchfmt1pdunum;
+                        fapipucchpduInfo = g_armPucParam.FapiPucchfmt1PduInfo + g_armPucParam.pucchfmt1pdunum;
                         memcpy(fapipucchpduInfo, fapipucchPduParaIn, sizeof(FapiNrMsgPucchPduInfo));
-                        g_pucchfmt1pdunum++;
+                        g_armPucParam.pucchfmt1pdunum++;
                     }
                     else
                     {    
-                        pucParam = (g_armtodspPucParam.pucPerCellParam[cellIndex].pucParam + g_pucchfmt023pdunum);
+                        pucParam = (g_armtodspPucParam.pucPerCellParam[cellIndex].pucParam + g_armPucParam.pucchfmt023pdunum);
                         UlTtiRequestPucchFmt023Pduparse(fapipucchPduParaIn, pucParam, sfnNum, slotNum, pduIndex, cellIndex);
-                        g_pucchfmt023pdunum++;
+                        g_armPucParam.pucchfmt023pdunum++;
                     }
                     pduCntPerType[2]++;
                     break;
@@ -126,12 +126,12 @@ uint32_t MessageUlTtiRequestParse(uint8_t cellIndex, uint8_t *srcUlSlotMesagesBu
         //l1SrsParaInfoOut->puschPduNum   = pduCntPerType[3];
         
         /* pucch fmt1,将复用的PDU先分组，再解析*/
-        if(0 < g_pucchfmt1pdunum)
+        if(0 < g_armPucParam.pucchfmt1pdunum)
         {
             PucchFmt1Grouping(cellIndex);
-            for(pucchpduGroupCnt = 0; pucchpduGroupCnt < g_pucchpduGroupNum; pucchpduGroupCnt++)
+            for(pucchpduGroupCnt = 0; pucchpduGroupCnt < g_armPucParam.pucchpduGroupNum; pucchpduGroupCnt++)
             {
-                pucParam = (g_armtodspPucParam.pucPerCellParam[cellIndex].pucParam + g_pucchfmt023pdunum + pucchpduGroupCnt);
+                pucParam = (g_armtodspPucParam.pucPerCellParam[cellIndex].pucParam + g_armPucParam.pucchfmt023pdunum + pucchpduGroupCnt);
                 UlTtiRequestPucchFmt1Pduparse(pucParam, pucchpduGroupCnt, sfnNum, slotNum, pduIndex, cellIndex);
             }
         }
