@@ -5,7 +5,7 @@
 #include "../inc/phyctrl_pusch.h"
 #include "../inc/pusch_variable.h"
 
-#if 1
+#if 0
 int main(void)
 {
   uint16_t a = 16;

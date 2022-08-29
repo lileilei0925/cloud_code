@@ -103,9 +103,9 @@ typedef struct
     uint16_t slot;        					        /* 时隙号，取值[0,9]或[0,19] */
     uint16_t pduIndex;                              /* 透传即可 */
 
-    uint8_t   rxAntNum;	    				        /* 基站接收天线个数，取值2/4 */
-	uint8_t   scs; 								    /* 子载波间隔索引，0:15kHz,1:30kHz,2:60kHz,3:120kHz,4:240kHz */
-    uint16_t  BW; 								    /* 小区带宽，取值5,10,15,20,25,30,40,50,60,70,80,90,100,200,400，单位MHz */
+    uint8_t  rxAntNum;	    				        /* 基站接收天线个数，取值2/4 */
+	uint8_t  scs; 								    /* 子载波间隔索引，0:15kHz,1:30kHz,2:60kHz,3:120kHz,4:240kHz */
+    uint16_t BW; 								    /* 小区带宽，取值5,10,15,20,25,30,40,50,60,70,80,90,100,200,400，单位MHz */
     
     /* BWP parameter */
     uint16_t bwpStart; 						        /* BWP起始RB索引，取值[0,274] */
@@ -120,25 +120,25 @@ typedef struct
     uint16_t secondHopPrb; 					        /* 跳频后起始RB索引，取值[0,274] */
 
     /* time domain */
-    uint8_t startSymIdx;  					        /* 起始符号索引，取值[0,13] */
-    uint8_t symNum; 							    /* 符号个数，fmt0/2取值[1,2]，fmt1/3/4取值[4,14] */
-	uint8_t dmrsSymNum[HOP_NUM];   			        /* 导频符号个数,取值[1-7] */
+    uint8_t  startSymIdx;  					        /* 起始符号索引，取值[0,13] */
+    uint8_t  symNum; 							    /* 符号个数，fmt0/2取值[1,2]，fmt1/3/4取值[4,14] */
+	uint8_t  dmrsSymNum[HOP_NUM];   			        /* 导频符号个数,取值[1-7] */
 	
-    uint8_t uciSymNum[HOP_NUM];    			        /* 数据符号个数,取值[1-7] */
-    uint8_t pucFormat; 				                /* PUCCH格式，取值0/1/2/3，暂不支持格式 4 */
-	uint8_t rsv;
+    uint8_t  uciSymNum[HOP_NUM];    			        /* 数据符号个数,取值[1-7] */
+    uint8_t  pucFormat; 				                /* PUCCH格式，取值0/1/2/3，暂不支持格式 4 */
+	uint8_t  rsv;
 
     /* PUC data在DDR中的存放地址 */
-    int32_t *dataAddr[SYM_NUM_PER_SLOT][MAX_RX_ANT_NUM];  
+    int32_t  *dataAddr[SYM_NUM_PER_SLOT][MAX_RX_ANT_NUM];  
     
     /* PUC DAGC因子在DDR中的存放地址 */
-    int16_t *dagcAddr[SYM_NUM_PER_SLOT][MAX_RX_ANT_NUM];  
+    int16_t  *dagcAddr[SYM_NUM_PER_SLOT][MAX_RX_ANT_NUM];  
 
     /* ZC基序列或PN序列在DDR中的存放地址，fmt0数据/fmt1数据和导频/fmt3导频使用ZC序列，fmt2导频使用PN序列*/
-    int32_t *baseSeqAddr[HOP_NUM]; 
+    int32_t  *baseSeqAddr[HOP_NUM]; 
 
     /* fmt2和fmt3的数据扰码*/
-    int32_t *ScramleAddr[HOP_NUM]; 		
+    int32_t  *ScramleAddr[HOP_NUM]; 		
 
     /* 各format需要的参数 */
     union{
@@ -167,6 +167,23 @@ typedef struct
 
     PucPerCellParam pucPerCellParam[MAX_CELL_NUM];
 }ArmToDspPucParam;
+
+typedef struct
+{
+    uint8_t pucchfmt1pdunum;                                		         /* 本小区pucch fmt1的PDU个数 */
+    uint8_t pucchfmt023pdunum;                              		         /* 本小区pucch fmt023的PDU个数 */
+    uint8_t pucchNumpersym[SYM_NUM_PER_SLOT];               		         /* 本小区按符号统计的PUCCH个数 */
+    
+    uint8_t pucchIndex[SYM_NUM_PER_SLOT][MAX_PUCCH_NUM];    		         /* 本小区按符号统计的PUCCH索引 */
+
+    uint8_t pucchpduGroupNum;                                                /* 本小区PUCCH fmt1的组数 */
+    uint8_t rsv;                                              
+    uint8_t pucchpduNumPerGroup[MAX_PUCCH_NUM];                              /* 本小区PUCCH fmt1每组PDU个数 */
+
+    uint8_t pucchpduIndexinGroup[MAX_PUCCH_NUM][MAX_USER_NUM_PER_OCC];       /* 本小区PUCCH fmt1各组PDU索引值 */
+
+    FapiNrMsgPucchPduInfo FapiPucchfmt1PduInfo[MAX_PUCCH_NUM];       	     /* 本小区pucch fmt1的PDU信息 */
+}ArmPucParam;
 
 typedef struct
 {
