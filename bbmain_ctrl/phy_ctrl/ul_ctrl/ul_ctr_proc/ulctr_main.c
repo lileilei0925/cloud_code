@@ -12,7 +12,7 @@ int main(void)
 {
   uint16_t a = 16;
   uint16_t b = 16;
-  uint32_t c = sizeof(PucParam);
+  uint32_t c = sizeof(PucFmtRpt);
 
   printf("c = %d;\n",c);
   printf("___Hello World___;\n");
@@ -28,10 +28,9 @@ uint32_t MessageUlTtiRequestParse(uint8_t cellIndex, uint8_t *srcUlSlotMesagesBu
     FapiNrMsgPrachPduInfo *fapiPrachPduParaIn = NULL;
     FapiNrMsgPuschPduInfo *fapiPuschPduParaIn = NULL;
     FapiNrMsgPucchPduInfo *fapipucchPduParaIn  = NULL;
-    FapiNrMsgPucchPduInfo  *fapipucchpduInfo   = NULL;
+    FapiNrMsgPucchPduInfo *fapipucchpduInfo   = NULL;
     L1PrachPduInfo        *l1PrachPduInfo      = NULL;
     L1PuschPduInfo        *l1PuschPduInfo      = NULL;
-    ArmToDspPucParam      *armTodspPucParam    = NULL;
     PucParam              *pucParam            = NULL;
 
     uint16_t sfnNum,slotNum,ulPduNum;
@@ -101,7 +100,7 @@ uint32_t MessageUlTtiRequestParse(uint8_t cellIndex, uint8_t *srcUlSlotMesagesBu
                     }
                     else
                     {    
-                        pucParam = (g_armtodspPucParam.pucPerCellParam[cellIndex].pucParam + g_armPucParam.pucchfmt023pdunum);
+                        pucParam = (g_PucchPara[cellIndex].pucParam + g_armPucParam.pucchfmt023pdunum);
                         UlTtiRequestPucchFmt023Pduparse(fapipucchPduParaIn, pucParam, sfnNum, slotNum, pduIndex, cellIndex);
                         g_armPucParam.pucchfmt023pdunum++;
                     }
@@ -131,7 +130,7 @@ uint32_t MessageUlTtiRequestParse(uint8_t cellIndex, uint8_t *srcUlSlotMesagesBu
             PucchFmt1Grouping(cellIndex);
             for(pucchpduGroupCnt = 0; pucchpduGroupCnt < g_armPucParam.pucchpduGroupNum; pucchpduGroupCnt++)
             {
-                pucParam = (g_armtodspPucParam.pucPerCellParam[cellIndex].pucParam + g_armPucParam.pucchfmt023pdunum + pucchpduGroupCnt);
+                pucParam = (g_PucchPara[cellIndex].pucParam + g_armPucParam.pucchfmt023pdunum + pucchpduGroupCnt);
                 UlTtiRequestPucchFmt1Pduparse(pucParam, pucchpduGroupCnt, sfnNum, slotNum, pduIndex, cellIndex);
             }
         }

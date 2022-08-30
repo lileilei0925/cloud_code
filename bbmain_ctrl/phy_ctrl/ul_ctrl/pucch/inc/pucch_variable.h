@@ -13,6 +13,6 @@ uint32_t g_fmt23dataScrambuff[144];                       //fmt23数据符号扰
 uint32_t g_fmt2pilotScrambuff[2][5];                      //fmt2导频符号扰码生成缓存
 
 
-ArmToDspPucParam    g_armtodspPucParam  = {0};            /* Pucch armtodsp参数本地buffer */
+PucchPara    g_PucchPara[MAX_CELL_NUM];                   /* Pucch armtodsp参数本地buffer */
 
-ArmPucParam         g_armPucParam       = {0};            /* Pucch 参数本地buffer */ 
+ArmPucParam  g_armPucParam       = {0};                   /* Pucch 参数本地buffer */ 

@@ -52,7 +52,45 @@ typedef struct
     uint8_t  ueGroupNum;                       /* Number of UE Groups included in this message */
 } UlTtiRequestHeadInfo;
 
+typedef struct
+{
+    uint8_t       cbIdx;
+	uint8_t       sizeCrcL;       //每个码块CRC 的L
+	uint8_t       polarEncodeLayerNum;  //Polar译码层数  log2（sizeInput）
+	uint8_t       pathNum;     //译码路径
+	uint8_t       lenQpc;      //校验位的个数  ；定值为3
+	uint8_t       Qpc[3]; 
+	uint16_t      sizeInput;      //每个码块输出的原始bit长度 
+	
+    uint32_t      *cbInputAddr;  //每个码块的取的地址；PBCH:一次加扰之后的输出bit流
+    	
+	uint32_t	  sizeCodingOut;	//编码后bit长度  2^n
+    uint8_t       bitmap[64];   //bitmap 
+		     
+}EncodeCBInfo;
 
+typedef struct
+{
+    uint8_t       pduIdx;
+    uint8_t       cbNum; 
+	//速率匹配
+	uint8_t       typeRM;  //0: repetition 1: punturing 2:shortening  打掉符号的位置
+	uint8_t       interTval;  //PUCCH : 1	 T(T+1)/2 >= E
+	
+	uint8_t       *pBitInputAddr;
+	uint16_t	   sizeRmLenth;	   // PBCH:E= 864
+	EncodeCBInfo   cbinfo[];
+}EncodePduInfo;
+
+typedef struct
+{
+    uint16_t    sfn;
+    uint16_t    slot;
+	uint8_t     cellIdx;
+	uint8_t     pduNum;
+	uint8_t     *pOutBaseAddr;   //数据的首地址；
+	EncodePduInfo  polarPduInfo[];    
+}PhyEncodeHacCfgParam;
 
 uint32_t          g_ulTtiMessageTempBuff[2000] = { 0 };            /* ULTTIMessage 本地buffer */
 UlPduMappingInfo  g_ulPduMappingInfo[MAX_CELL_NUM][200] = { 0 };   /* 暂时假设有200个PDU */
