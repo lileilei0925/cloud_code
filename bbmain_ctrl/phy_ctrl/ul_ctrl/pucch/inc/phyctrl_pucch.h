@@ -153,19 +153,20 @@ typedef struct
 
 typedef struct
 {
-    uint8_t pucchfmt1pdunum;                                		         /* 本小区pucch fmt1的PDU个数 */
-    uint8_t pucchfmt023pdunum;                              		         /* 本小区pucch fmt023的PDU个数 */
+    uint8_t pucchfmtpdunum[PUCCH_FORMAT_BUTT];                               /* 本小区pucch fmt0/1/2/3的PDU个数 */
+    uint8_t pucchfmtpduIdxInner[PUCCH_FORMAT_BUTT][MAX_PUCCH_NUM];           /* 本小区pucch fmt0/1/2/3的PDU内部索引 */
+
     uint8_t pucchNumpersym[SYM_NUM_PER_SLOT];               		         /* 本小区按符号统计的PUCCH个数 */
     
     uint8_t pucchIndex[SYM_NUM_PER_SLOT][MAX_PUCCH_NUM];    		         /* 本小区按符号统计的PUCCH索引 */
 
-    uint8_t pucchpduGroupNum;                                                /* 本小区PUCCH fmt1的组数 */
-    uint8_t rsv;                                              
+    uint8_t pucchNum;  
+    uint8_t pucchpduGroupNum;                                                /* 本小区PUCCH fmt1的组数 */                                            
     uint8_t pucchpduNumPerGroup[MAX_PUCCH_NUM];                              /* 本小区PUCCH fmt1每组PDU个数 */
 
-    uint8_t pucchpduIndexinGroup[MAX_PUCCH_NUM][MAX_USER_NUM_PER_OCC];       /* 本小区PUCCH fmt1各组PDU索引值 */
+    uint8_t pucchpduIndexinGroup[MAX_PUCCH_NUM][MAX_USER_NUM_PER_OCC];       /* 本小区PUCCH fmt1各组内用户对应的PDU索引值 */
 
-    FapiNrMsgPucchPduInfo FapiPucchfmt1PduInfo[MAX_PUCCH_NUM];       	     /* 本小区pucch fmt1的PDU信息 */
+    FapiNrMsgPucchPduInfo FapiPucchPduInfo[MAX_PUCCH_NUM];       	         /* 本小区pucch的PDU信息 */
 }ArmPucParam;
 
 typedef struct

@@ -10,7 +10,7 @@ void PucchNcsandUVCalc(uint8_t SlotIdx, uint16_t PucchHoppingId,uint8_t GroupHop
 
 void UlTtiRequestPucchFmt023Pduparse(FapiNrMsgPucchPduInfo *fapipucchpduInfo, PucParam *pucParam, uint16_t sfnNum, uint16_t slotNum, uint16_t pduIndex, uint8_t cellIndex);
 void UlTtiRequestPucchFmt1Pduparse(PucParam *pucParam, uint8_t pucchpduGroupCnt, uint16_t sfnNum, uint16_t slotNum, uint16_t pduIndex, uint8_t cellIndex);
-void PucchFmt1Grouping(uint8_t cellIndex);
+void PucchFmt1Grouping();
 
 /*
 int main(void)
@@ -130,7 +130,7 @@ void UlTtiRequestPucchFmt023Pduparse(FapiNrMsgPucchPduInfo *fapipucchpduInfo, Pu
 
     formatType      = fapipucchpduInfo->formatType;
     EndSymbolIndex  = fapipucchpduInfo->StartSymbolIndex + fapipucchpduInfo->numSymbols;
-    pucchindex      = g_armPucParam.pucchfmt023pdunum;
+    pucchindex      = g_armPucParam.pucchNum;
     pucchNumpersym  = g_armPucParam.pucchNumpersym[EndSymbolIndex]++;
     g_armPucParam.pucchIndex[EndSymbolIndex][pucchNumpersym] = pucchindex;
 
@@ -268,10 +268,10 @@ void UlTtiRequestPucchFmt1Pduparse(PucParam *pucParam, uint8_t pucchpduGroupCnt,
     PucFmt1UEParam        *fmt1UEParam      = NULL;                     
 
     pucchpduIndex    = g_armPucParam.pucchpduIndexinGroup[pucchpduGroupCnt][0];
-    fapipucchpduInfo = &g_armPucParam.FapiPucchfmt1PduInfo[pucchpduIndex]; 
+    fapipucchpduInfo = &g_armPucParam.FapiPucchPduInfo[pucchpduIndex]; 
 
     EndSymbolIndex   = fapipucchpduInfo->StartSymbolIndex + fapipucchpduInfo->numSymbols;
-    pucchindex       = g_armPucParam.pucchfmt023pdunum + pucchpduGroupCnt;
+    pucchindex       = g_armPucParam.pucchNum + pucchpduGroupCnt;
     
     pucchNumpersym   = g_armPucParam.pucchNumpersym[EndSymbolIndex]++;
     g_armPucParam.pucchIndex[EndSymbolIndex][pucchNumpersym] = pucchindex;
@@ -320,7 +320,7 @@ void UlTtiRequestPucchFmt1Pduparse(PucParam *pucParam, uint8_t pucchpduGroupCnt,
     /* fmt1 UE*/
     for(pucchpduIndex = 0; pucchpduIndex < g_armPucParam.pucchpduNumPerGroup[pucchpduGroupCnt]; pucchpduIndex++)
     {
-        fapipucchpduInfo             = &g_armPucParam.FapiPucchfmt1PduInfo[pucchpduIndex];
+        fapipucchpduInfo             = &g_armPucParam.FapiPucchPduInfo[pucchpduIndex];
         fmt1UEParam                  = &fmt1Param->fmt1UEParam[pucchpduIndex];
         fmt1UEParam->srFlag          = fapipucchpduInfo->srFlag;
         fmt1UEParam->harqBitLength   = fapipucchpduInfo->bitLenHarq;
@@ -336,44 +336,47 @@ void UlTtiRequestPucchFmt1Pduparse(PucParam *pucParam, uint8_t pucchpduGroupCnt,
     }
 }
 
-void PucchFmt1Grouping(uint8_t cellIndex)
+void PucchFmt1Grouping()
 {
     uint8_t  pucchfmt1pduflag[MAX_PUCCH_NUM] = {0};
     uint16_t prbStart1,prbStart2;
     uint8_t  StartSymbolIndex1,StartSymbolIndex2;
     uint8_t  tdOccIdx1,tdOccIdx2;
     uint8_t  pucchpduIndex1,pucchpduIndex2;
-    uint8_t  pucchpduNumcnt;
+    uint8_t  pucchpduNumCnt1,pucchpduNumCnt2;
+    uint8_t  pucchpduNumInGroupcnt;
     uint8_t  pucchpduGroupNum;
     uint8_t  pucchpduGroupCnt;
     uint8_t  groupIndex;
     uint8_t  ueIndex; 
     uint8_t  ueNumPerGroup;
 
-    for(pucchpduIndex1 = 0; pucchpduIndex1 < g_armPucParam.pucchfmt1pdunum; pucchpduIndex1++)
+    for(pucchpduNumCnt1 = 0; pucchpduNumCnt1 < g_armPucParam.pucchfmtpdunum[PUCCH_FORMAT_1]; pucchpduNumCnt1++)
     {
-        if(1 == pucchfmt1pduflag[pucchpduIndex1])
+        if(1 == pucchfmt1pduflag[pucchpduNumCnt1])
         {
             continue;
         }
-        pucchpduGroupNum = g_armPucParam.pucchpduGroupNum;
-        pucchpduNumcnt   = g_armPucParam.pucchpduNumPerGroup[g_armPucParam.pucchpduGroupNum]++;
-        g_armPucParam.pucchpduIndexinGroup[pucchpduGroupNum][pucchpduNumcnt] = pucchpduIndex1;
-        pucchfmt1pduflag[pucchpduIndex1] = 1;
-        for(pucchpduIndex2 = (pucchpduIndex1 + 1); pucchpduIndex2 < g_armPucParam.pucchfmt1pdunum; pucchpduIndex2++)
+        pucchpduGroupNum       = g_armPucParam.pucchpduGroupNum;
+        pucchpduNumInGroupcnt  = g_armPucParam.pucchpduNumPerGroup[g_armPucParam.pucchpduGroupNum]++;
+        g_armPucParam.pucchpduIndexinGroup[pucchpduGroupNum][pucchpduNumInGroupcnt] = pucchpduIndex1;
+        pucchfmt1pduflag[pucchpduNumCnt1] = 1;
+        for(pucchpduNumCnt2 = (pucchpduIndex1 + 1); pucchpduNumCnt2 < g_armPucParam.pucchfmtpdunum[PUCCH_FORMAT_1]; pucchpduNumCnt2++)
         {
-            prbStart1           = g_armPucParam.FapiPucchfmt1PduInfo[pucchpduIndex1].prbStart;
-            prbStart2           = g_armPucParam.FapiPucchfmt1PduInfo[pucchpduIndex2].prbStart;
-            StartSymbolIndex1   = g_armPucParam.FapiPucchfmt1PduInfo[pucchpduIndex1].StartSymbolIndex;
-            StartSymbolIndex2   = g_armPucParam.FapiPucchfmt1PduInfo[pucchpduIndex2].StartSymbolIndex;
-            tdOccIdx1           = g_armPucParam.FapiPucchfmt1PduInfo[pucchpduIndex1].tdOccIdx;
-            tdOccIdx2           = g_armPucParam.FapiPucchfmt1PduInfo[pucchpduIndex2].tdOccIdx;
-            if((0 == pucchfmt1pduflag[pucchpduIndex2]) 
+            pucchpduIndex1      = g_armPucParam.pucchfmtpduIdxInner[PUCCH_FORMAT_1][pucchpduNumCnt1];
+            pucchpduIndex2      = g_armPucParam.pucchfmtpduIdxInner[PUCCH_FORMAT_1][pucchpduNumCnt2];
+            prbStart1           = g_armPucParam.FapiPucchPduInfo[pucchpduIndex1].prbStart;
+            prbStart2           = g_armPucParam.FapiPucchPduInfo[pucchpduIndex2].prbStart;
+            StartSymbolIndex1   = g_armPucParam.FapiPucchPduInfo[pucchpduIndex1].StartSymbolIndex;
+            StartSymbolIndex2   = g_armPucParam.FapiPucchPduInfo[pucchpduIndex2].StartSymbolIndex;
+            tdOccIdx1           = g_armPucParam.FapiPucchPduInfo[pucchpduIndex1].tdOccIdx;
+            tdOccIdx2           = g_armPucParam.FapiPucchPduInfo[pucchpduIndex2].tdOccIdx;
+            if((0 == pucchfmt1pduflag[pucchpduNumCnt2]) 
                 &&(prbStart1 == prbStart2) && (StartSymbolIndex1 == StartSymbolIndex2) && (tdOccIdx1 == tdOccIdx2))
             {
-                pucchpduNumcnt = g_armPucParam.pucchpduNumPerGroup[g_armPucParam.pucchpduGroupNum]++;
-                g_armPucParam.pucchpduIndexinGroup[pucchpduGroupNum][pucchpduNumcnt] = pucchpduIndex2;
-                pucchfmt1pduflag[pucchpduIndex2] = 1;
+                pucchpduNumInGroupcnt = g_armPucParam.pucchpduNumPerGroup[g_armPucParam.pucchpduGroupNum]++;
+                g_armPucParam.pucchpduIndexinGroup[pucchpduGroupNum][pucchpduNumInGroupcnt] = pucchpduIndex2;
+                pucchfmt1pduflag[pucchpduNumCnt2] = 1;
             }
         }
         g_armPucParam.pucchpduGroupNum++;
