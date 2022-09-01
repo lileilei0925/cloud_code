@@ -69,7 +69,7 @@ typedef struct
 
 typedef struct
 {
-    uint8_t PduIdxInner;
+    uint8_t PduIdxInner;			/* DSP不使用，只需透传到对应UE的上报接口 */
     uint8_t pucFormat; 	            /* PUCCH格式，取值0/1/2/3，暂不支持格式 4 */
 
     uint8_t rxAntNum;	            /* 基站接收天线个数，取值2/4 */
@@ -143,8 +143,8 @@ typedef struct
     uint8_t fmt3Num; 
     uint8_t fmt3Idx[MAX_PUCCH_NUM];
     
-    PucFmt0AlgoParam fmt0AlgoParam; 
-    PucFmt1AlgoParam fmt1AlgoParam; 
+    PucFmt0AlgoParam  fmt0AlgoParam; 
+    PucFmt1AlgoParam  fmt1AlgoParam; 
     PucFmt23AlgoParam fmt2AlgoParam;
     PucFmt23AlgoParam fmt3AlgoParam;
 	
