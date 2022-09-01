@@ -111,7 +111,7 @@ typedef struct
 typedef struct 
 {
     uint16_t        numPart2s;               /* Max number of UCI part2 that could be included in the CSI report. Value: 0 -> 100 */
-    Part2ReportInfo part2ReportInfo[];
+    Part2ReportInfo part2ReportInfo[1];
 }UciInfoAddInV3;
 
 typedef struct 
