@@ -39,6 +39,8 @@
 #define PTRS_PORT_NUM                2
 #define MAX_CSI_PART2_REPOET_NUM     4
 
+#define MAX_POLAR_CB_NUM             2
+
 #define _extu(v1, csta, cstb)     (((uint32_t)(v1) << (csta)) >> (cstb))
 
 #endif
