@@ -9,7 +9,7 @@
 void PucchNcsandUVCalc(uint8_t SlotIdx, uint16_t PucchHoppingId,uint8_t GroupHopping);
 
 void UlTtiRequestPucchFmt023Pduparse(FapiNrMsgPucchPduInfo *fapipucchpduInfo, PucParam *pucParam, uint16_t sfnNum, uint16_t slotNum, uint16_t pduIndex, uint8_t cellIndex);
-void UlTtiRequestPucchFmt1Pduparse(PucParam *pucParam, uint8_t pucchpduGroupCnt, uint16_t sfnNum, uint16_t slotNum, uint16_t pduIndex, uint8_t cellIndex);
+void UlTtiRequestPucchFmt1Pduparse(PucParam *pucParam, uint8_t pucchpduGroupCnt, uint16_t sfnNum, uint16_t slotNum, uint8_t cellIndex);
 void PucchFmt1Grouping();
 void UlTtiRequestPucchPduparse(FapiNrMsgPucchPduInfo *fapipucchpduInfo, PucParam *pucParam, uint16_t sfnNum, uint16_t slotNum, uint16_t pduIndex, uint8_t cellIndex);
 
@@ -146,7 +146,6 @@ void UlTtiRequestPucchFmt023Pduparse(FapiNrMsgPucchPduInfo *fapipucchpduInfo, Pu
     pucParam->prbStart              = fapipucchpduInfo->prbStart;
     pucParam->prbSize               = fapipucchpduInfo->prbSize;
     pucParam->intraSlotFreqHopping  = fapipucchpduInfo->intraSlotFreqHopping;
-    //pucParam->secondHopSymIdx     = ;////
     pucParam->secondHopPrb          = fapipucchpduInfo->secondHopPRB;
 
     /* time domain */
@@ -251,10 +250,11 @@ void UlTtiRequestPucchFmt023Pduparse(FapiNrMsgPucchPduInfo *fapipucchpduInfo, Pu
         }
         pucParam->uciSymNum[0] = symNum[0] - pucParam->dmrsSymNum[0];
         pucParam->uciSymNum[1] = symNum[1] - pucParam->dmrsSymNum[1];
+        pucParam->secondHopSymIdx  = (0 == intraSlotFreqHopping) ? 0 : (pucParam->startSymIdx + symNum[0]);
     }
 }
 
-void UlTtiRequestPucchFmt1Pduparse(PucParam *pucParam, uint8_t pucchpduGroupCnt, uint16_t sfnNum, uint16_t slotNum, uint16_t pduIndex, uint8_t cellIndex)
+void UlTtiRequestPucchFmt1Pduparse(PucParam *pucParam, uint8_t pucchpduGroupCnt, uint16_t sfnNum, uint16_t slotNum, uint8_t cellIndex)
 {
     uint8_t  EndSymbolIndex;
     uint8_t  pucchNumpersym;
@@ -262,78 +262,98 @@ void UlTtiRequestPucchFmt1Pduparse(PucParam *pucParam, uint8_t pucchpduGroupCnt,
     uint8_t  pucchpduIndex;
     uint8_t  intraSlotFreqHopping;
     uint8_t  symNum[HOP_NUM];
-    uint8_t  SlotIdx;//待用fapi接口替换
     uint8_t  SymbIdx;
+    uint8_t  OccIdx;
+    uint8_t  OccNumCnt;
+    uint8_t  MinUserOcc;
+    uint8_t  MinUserOccIdx;
+    uint8_t  pucchuserNumPerOcc;
     FapiNrMsgPucchPduInfo *fapipucchpduInfo = NULL;
     PucFmt1Param          *fmt1Param        = NULL;
-    PucFmt1UEParam        *fmt1UEParam      = NULL;                     
+    Fmt1ParamOcc          *fmt1ParamOcc     = NULL;
+    Fmt1UEParam           *fmt1UEParam      = NULL;                     
 
-    pucchpduIndex    = g_armPucParam.pucchpduIndexinGroup[pucchpduGroupCnt][0];
-    fapipucchpduInfo = &g_armPucParam.FapiPucchPduInfo[pucchpduIndex]; 
+    /* fmt1 UE common */
+    fmt1Param                       =  (PucFmt1Param *)((uint8_t *)pucParam  + sizeof(PucParam) - sizeof(PucFmt1Param));
+    PucchNcsandUVCalc(slotNum,fapipucchpduInfo->nIdPucchHopping,fapipucchpduInfo->groupOrSequenceHopping);
+    for (SymbIdx = 0; SymbIdx < SYM_NUM_PER_SLOT; SymbIdx++)
+    {
+        fmt1Param->cyclicShift[SymbIdx]  = (g_NcsValue[SymbIdx]) % SC_NUM_PER_RB;//DSP算法和实现要求，fmt1不需要加初始循环移位m0
+    }
+
+    /* fmt1 UE*/
+    MinUserOcc    = MAX_USER_NUM_PER_OCC;
+    MinUserOccIdx = 0;
+    OccNumCnt     = 0;
+    for(OccIdx = 0; OccIdx < MAX_OCC_NUM_FMT1; OccIdx++)
+    {
+        pucchuserNumPerOcc = g_armPucParam.pucchuserNumPerOcc[pucchpduGroupCnt][OccIdx];
+        if(0 == pucchuserNumPerOcc)
+        {
+            continue;
+        }
+
+        fmt1ParamOcc = &fmt1Param->fmt1ParamOcc[OccNumCnt];
+        memset(fmt1ParamOcc->ueTapBitMap, 0, SYM_NUM_PER_SLOT);
+        for(SymbIdx = 0; SymbIdx < SYM_NUM_PER_SLOT; SymbIdx++)
+        {   
+            fmt1ParamOcc->ueTapBitMap[SymbIdx] |= (1<<(fmt1Param->cyclicShift[SymbIdx]));
+        }
+        fmt1ParamOcc->timeDomainOccIdx  = OccIdx;
+        fmt1ParamOcc->userNumPerOcc     = pucchuserNumPerOcc;
+
+        for(pucchindex = 0; pucchindex < pucchuserNumPerOcc; pucchindex++)
+        {
+            pucchpduIndex    = g_armPucParam.pucchpduIndexinGroup[pucchpduGroupCnt][OccIdx][pucchindex];
+            fapipucchpduInfo = &(g_armPucParam.FapiPucchPduInfo[pucchpduIndex]);
+            fmt1UEParam = &fmt1ParamOcc->fmt1UEParam[pucchindex];
+            fmt1UEParam->m0            = fapipucchpduInfo->initCyclicShift;
+            fmt1UEParam->srFlag        = fapipucchpduInfo->srFlag;
+            fmt1UEParam->harqBitLength = fapipucchpduInfo->bitLenHarq;
+            fmt1UEParam->rnti          = fapipucchpduInfo->ueRnti;   
+        }
+
+        if(MinUserOcc > pucchuserNumPerOcc)
+        {
+            MinUserOcc     = pucchuserNumPerOcc;
+            MinUserOccIdx  = OccNumCnt;
+        }
+        OccNumCnt++;
+    }
+    fmt1Param->occNum        = OccNumCnt;
+    fmt1Param->MinUserOccIdx = MinUserOccIdx;
 
     EndSymbolIndex   = fapipucchpduInfo->StartSymbolIndex + fapipucchpduInfo->numSymbols;
-    pucchindex       = g_armPucParam.pucchNum + pucchpduGroupCnt;
-    
     pucchNumpersym   = g_armPucParam.pucchNumpersym[EndSymbolIndex]++;
-    g_armPucParam.pucchIndex[EndSymbolIndex][pucchNumpersym] = pucchindex;
+    g_armPucParam.pucchIndex[EndSymbolIndex][pucchNumpersym] = g_armPucParam.pucchNum;
 
     intraSlotFreqHopping = fapipucchpduInfo->intraSlotFreqHopping;
-
     /* 所在小区的小区级参数 */
-    pucParam->PduIdxInner  = pduIndex;
+    //pucParam->PduIdxInner  = pduIndex;需要修改，塞到各种格式下
     pucParam->pucFormat    = fapipucchpduInfo->formatType;
     pucParam->rxAntNum     = g_cellConfigPara[cellIndex].rxAntNum;
-
     /* frequency domain */
     pucParam->prbStart              = fapipucchpduInfo->prbStart;
     pucParam->prbSize               = fapipucchpduInfo->prbSize;
-    pucParam->intraSlotFreqHopping  = fapipucchpduInfo->intraSlotFreqHopping;
-    //pucParam->secondHopSymIdx     = ;////
+    pucParam->intraSlotFreqHopping  = intraSlotFreqHopping;
     pucParam->secondHopPrb          = fapipucchpduInfo->secondHopPRB;
-
     /* time domain */
     pucParam->startSymIdx = fapipucchpduInfo->StartSymbolIndex;
     pucParam->symNum      = fapipucchpduInfo->numSymbols;
-
+    symNum[0]                 = (0 == intraSlotFreqHopping) ? (pucParam->symNum) : ((pucParam->symNum)>>1);
+    symNum[1]                 = pucParam->symNum - symNum[0];
+    pucParam->uciSymNum[0]    = (0 == intraSlotFreqHopping) ? ((pucParam->symNum)>>1) : ((pucParam->symNum)>>2);
+    pucParam->uciSymNum[1]    = (0 == intraSlotFreqHopping) ? 0 : ((pucParam->symNum + 2)>>2);
+    pucParam->dmrsSymNum[0]   = symNum[0] - pucParam->uciSymNum[0];
+    pucParam->dmrsSymNum[1]   = symNum[1] - pucParam->uciSymNum[1];
+    pucParam->secondHopSymIdx = (0 == intraSlotFreqHopping) ? 0 : (pucParam->startSymIdx + symNum[0]);
     /* PUC data在DDR中的存放地址 */
     //uint32_t *dataStartAddr[HOP_NUM];  
-    
+
     /* ZC基序列或PN序列在DDR中的存放地址:
        fmt0数据/fmt1数据和导频/fmt3导频使用ZC序列,某hop内,各符号天线上的ZC基序列相同;
        fmt2导频使用PN序列,数组的2个元素分别为2个符号的PN序列的地址 */
     //uint32_t *baseSeqAddr[HOP_NUM]; 
-
-    symNum[0]                       = (0 == intraSlotFreqHopping) ? (pucParam->symNum) : ((pucParam->symNum)>>1);
-    symNum[1]                       = pucParam->symNum - symNum[0];
-    pucParam->uciSymNum[0]          = (0 == intraSlotFreqHopping) ? ((pucParam->symNum)>>1) : ((pucParam->symNum)>>2);
-    pucParam->uciSymNum[1]          = (0 == intraSlotFreqHopping) ? 0 : ((pucParam->symNum + 2)>>2);
-    pucParam->dmrsSymNum[0]         = symNum[0] - pucParam->uciSymNum[0];
-    pucParam->dmrsSymNum[1]         = symNum[1] - pucParam->uciSymNum[1];
-
-    /* fmt1 UE common */
-    fmt1Param                       =  (PucFmt1Param *)((uint8_t *)pucParam  + sizeof(PucParam) - sizeof(PucFmt1Param));
-    //fmt1Param->ueTapBitMap[NR_SYM_NUM_PER_SLOT];  /* 所有ue在某OFDM符号上的cycle shift(0-11)值的bitmap，如cycle shift为3，那么bit3设为1;NR_SYM_NUM_PER_SLOT为PUCCH所占符号的索引 */
-    fmt1Param->timeDomainOccIdx     = fapipucchpduInfo->tdOccIdx;
-    fmt1Param->userNumPerOcc        = g_armPucParam.pucchpduNumPerGroup[pucchpduGroupCnt];
-
-    memset(fmt1Param->ueTapBitMap, 0, SYM_NUM_PER_SLOT);
-
-    /* fmt1 UE*/
-    for(pucchpduIndex = 0; pucchpduIndex < g_armPucParam.pucchpduNumPerGroup[pucchpduGroupCnt]; pucchpduIndex++)
-    {
-        fapipucchpduInfo             = &g_armPucParam.FapiPucchPduInfo[pucchpduIndex];
-        fmt1UEParam                  = &fmt1Param->fmt1UEParam[pucchpduIndex];
-        fmt1UEParam->srFlag          = fapipucchpduInfo->srFlag;
-        fmt1UEParam->harqBitLength   = fapipucchpduInfo->bitLenHarq;
-        
-        PucchNcsandUVCalc(SlotIdx,fapipucchpduInfo->nIdPucchHopping,fapipucchpduInfo->groupOrSequenceHopping);
-        for (SymbIdx = 0; SymbIdx < SYM_NUM_PER_SLOT; SymbIdx++)
-        {
-            fmt1UEParam->cyclicShift[SymbIdx]  = (fapipucchpduInfo->initCyclicShift + g_NcsValue[SymbIdx]) % SC_NUM_PER_RB;
-            fmt1Param->ueTapBitMap[SymbIdx]   |=  (1<<(fmt1UEParam->cyclicShift[SymbIdx]));
-        }
-        fmt1UEParam->rnti  = fapipucchpduInfo->ueRnti;
-    }
 }
 
 void PucchFmt1Grouping()
@@ -344,7 +364,7 @@ void PucchFmt1Grouping()
     uint8_t  tdOccIdx1,tdOccIdx2;
     uint8_t  pucchpduIndex1,pucchpduIndex2;
     uint8_t  pucchpduNumCnt1,pucchpduNumCnt2;
-    uint8_t  pucchpduNumInGroupcnt;
+    uint8_t  pucchueidxInOcc;
     uint8_t  pucchpduGroupNum;
     uint8_t  pucchpduGroupCnt;
     uint8_t  groupIndex;
@@ -357,25 +377,28 @@ void PucchFmt1Grouping()
         {
             continue;
         }
-        pucchpduGroupNum       = g_armPucParam.pucchpduGroupNum;
-        pucchpduNumInGroupcnt  = g_armPucParam.pucchpduNumPerGroup[g_armPucParam.pucchpduGroupNum]++;
-        g_armPucParam.pucchpduIndexinGroup[pucchpduGroupNum][pucchpduNumInGroupcnt] = pucchpduIndex1;
+        pucchpduIndex1      = g_armPucParam.pucchfmtpduIdxInner[PUCCH_FORMAT_1][pucchpduNumCnt1];
+        prbStart1           = g_armPucParam.FapiPucchPduInfo[pucchpduIndex1].prbStart;
+        StartSymbolIndex1   = g_armPucParam.FapiPucchPduInfo[pucchpduIndex1].StartSymbolIndex;
+        tdOccIdx1           = g_armPucParam.FapiPucchPduInfo[pucchpduIndex1].tdOccIdx;
+
+        pucchpduGroupNum    = g_armPucParam.pucchpduGroupNum;
+        pucchueidxInOcc     = g_armPucParam.pucchuserNumPerOcc[pucchpduGroupNum][tdOccIdx1]++;
+        g_armPucParam.pucchpduIndexinGroup[pucchpduGroupNum][tdOccIdx1][pucchueidxInOcc] = pucchpduIndex1;
+        g_armPucParam.pucchpduNumPerGroup[pucchpduGroupNum]++;
+
         pucchfmt1pduflag[pucchpduNumCnt1] = 1;
         for(pucchpduNumCnt2 = (pucchpduIndex1 + 1); pucchpduNumCnt2 < g_armPucParam.pucchfmtpdunum[PUCCH_FORMAT_1]; pucchpduNumCnt2++)
         {
-            pucchpduIndex1      = g_armPucParam.pucchfmtpduIdxInner[PUCCH_FORMAT_1][pucchpduNumCnt1];
             pucchpduIndex2      = g_armPucParam.pucchfmtpduIdxInner[PUCCH_FORMAT_1][pucchpduNumCnt2];
-            prbStart1           = g_armPucParam.FapiPucchPduInfo[pucchpduIndex1].prbStart;
             prbStart2           = g_armPucParam.FapiPucchPduInfo[pucchpduIndex2].prbStart;
-            StartSymbolIndex1   = g_armPucParam.FapiPucchPduInfo[pucchpduIndex1].StartSymbolIndex;
             StartSymbolIndex2   = g_armPucParam.FapiPucchPduInfo[pucchpduIndex2].StartSymbolIndex;
-            tdOccIdx1           = g_armPucParam.FapiPucchPduInfo[pucchpduIndex1].tdOccIdx;
             tdOccIdx2           = g_armPucParam.FapiPucchPduInfo[pucchpduIndex2].tdOccIdx;
-            if((0 == pucchfmt1pduflag[pucchpduNumCnt2]) 
-                &&(prbStart1 == prbStart2) && (StartSymbolIndex1 == StartSymbolIndex2) && (tdOccIdx1 == tdOccIdx2))
+            if((0 == pucchfmt1pduflag[pucchpduNumCnt2]) && (prbStart1 == prbStart2) && (StartSymbolIndex1 == StartSymbolIndex2))
             {
-                pucchpduNumInGroupcnt = g_armPucParam.pucchpduNumPerGroup[g_armPucParam.pucchpduGroupNum]++;
-                g_armPucParam.pucchpduIndexinGroup[pucchpduGroupNum][pucchpduNumInGroupcnt] = pucchpduIndex2;
+                g_armPucParam.pucchpduNumPerGroup[pucchpduGroupNum]++;
+                pucchueidxInOcc = g_armPucParam.pucchuserNumPerOcc[pucchpduGroupNum][tdOccIdx2]++;
+                g_armPucParam.pucchpduIndexinGroup[pucchpduGroupNum][tdOccIdx2][pucchueidxInOcc] = pucchpduIndex2;
                 pucchfmt1pduflag[pucchpduNumCnt2] = 1;
             }
         }
@@ -428,8 +451,7 @@ void UlTtiRequestPucchPduparse(FapiNrMsgPucchPduInfo *fapipucchpduInfo, PucParam
         for(pucchpduGroupCnt = 0; pucchpduGroupCnt < g_armPucParam.pucchpduGroupNum; pucchpduGroupCnt++)
         {
             pucParam = (g_PucchPara[cellIndex].pucParam + g_armPucParam.pucchNum);
-            pduIndex = g_armPucParam.pucchfmtpduIdxInner[PUCCH_FORMAT_1][pduNumCnt];
-            UlTtiRequestPucchFmt1Pduparse(pucParam, pucchpduGroupCnt, sfnNum, slotNum, pduIndex, cellIndex);
+            UlTtiRequestPucchFmt1Pduparse(pucParam, pucchpduGroupCnt, sfnNum, slotNum, cellIndex);
             g_armPucParam.pucchNum++;
         }
     }

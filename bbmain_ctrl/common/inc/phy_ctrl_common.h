@@ -52,45 +52,70 @@ typedef struct
     uint8_t  ueGroupNum;                       /* Number of UE Groups included in this message */
 } UlTtiRequestHeadInfo;
 
+
 typedef struct
-{
-    uint8_t       cbIdx;
-	uint8_t       sizeCrcL;       //每个码块CRC 的L
-	uint8_t       polarEncodeLayerNum;  //Polar译码层数  log2（sizeInput）
-	uint8_t       pathNum;     //译码路径
-	uint8_t       lenQpc;      //校验位的个数  ；定值为3
-	uint8_t       Qpc[3]; 
-	uint16_t      sizeInput;      //每个码块输出的原始bit长度 
+{	
+    uint8_t       sizeCrcL;            //每个码块CRC比特长度L，取值6或11
+    uint8_t       lenQpc;              //PC比特个数，取值0或3
+	uint8_t       typeRM;              //速率匹配的类型，0: repetition 1: punturing 2:shortening  
+	uint8_t       interTval;           //信道交织使用的T值，满足T(T+1)/2>=E的最小整数
+
+    uint16_t      sizeInput;           //每个码块对应的原始bit长度K 
+	uint16_t	  sizeRmLenth;	       //速率匹配后每个码块的比特值E
+
+    uint8_t       pathNum;             //译码路径   算法参数,待算法确认
+    uint8_t       CrcOut;	           //译码的CRC结果，bit0有效，0：错误，1：正确
+    uint8_t       rsvd[2];
 	
-    uint32_t      *cbInputAddr;  //每个码块的取的地址；PBCH:一次加扰之后的输出bit流
-    	
-	uint32_t	  sizeCodingOut;	//编码后bit长度  2^n
-    uint8_t       bitmap[64];   //bitmap 
-		     
-}EncodeCBInfo;
+	uint16_t      Qpc[3];              //PC比特位置索引，取值范围[0,1023]
+	uint16_t      sizeOutput;           //译码输出bit长度K 
+		
+	uint32_t	  sizeCodingOut;	   //译码输入比特长度N=2^n，n的取值范围[5,10]
+
+    uint32_t      bitmap[32];          //比特位指示bitmap，最多2^10比特需要指示，冻结比特位取0，信息比特位取1 
+}PolarDecodePduInfo;
 
 typedef struct
 {
-    uint8_t       pduIdx;
-    uint8_t       cbNum; 
-	//速率匹配
-	uint8_t       typeRM;  //0: repetition 1: punturing 2:shortening  打掉符号的位置
-	uint8_t       interTval;  //PUCCH : 1	 T(T+1)/2 >= E
-	
-	uint8_t       *pBitInputAddr;
-	uint16_t	   sizeRmLenth;	   // PBCH:E= 864
-	EncodeCBInfo   cbinfo[];
-}EncodePduInfo;
+    uint16_t   sfn;             //系统帧号，取值范围[0,1023]
+    uint16_t   slot;            //时隙，取值范围[0,19]
+
+	uint8_t    cellIdx;         //小区索引，取值范围[0,3]
+	uint8_t    pduNum;          //配置个数，取值范围[1,]
+    uint8_t    rsvd[2];    
+
+    uint8_t    *pBitInputAddr;  //输入数据的首地址
+	uint8_t    *pOutBaseAddr;   //输出数据的首地址
+	PolarDecodePduInfo  polarPduInfo[];    
+}PolarDecodeHacCfgPara;
 
 typedef struct
 {
-    uint16_t    sfn;
-    uint16_t    slot;
-	uint8_t     cellIdx;
-	uint8_t     pduNum;
-	uint8_t     *pOutBaseAddr;   //数据的首地址；
-	EncodePduInfo  polarPduInfo[];    
-}PhyEncodeHacCfgParam;
+    uint8_t            pduIdx;           //配置索引，取值范围[0,pduNum-1]
+    uint8_t            UciBitNum;        //译码输出比特长度，取值范围[3,11],LTE扩展CP PUCCH fmt2a/2b可取值12和13                                   
+    uint8_t            LlrNum;           //取值20,24或32。20对应LTE PUCCH的（20，A）编码，24对应LTE PUCCH的（24，O）编码，32对应NR PUCCH&PUSCH的（32，K）或LTE PUSCH的（32，O）编码
+    uint8_t            rsvd;
+
+    uint16_t	       RateMatchBitLen;	 //RM译码解速率匹配前的比特数。LTE PUCCH取值20或48，LTE PUSCH取值范围[？];NR PUCCH取值范围[6,4608],NR PUSCH取值范围[？]
+    uint16_t           RmDecodeOut;      //RM译码结果，bit0-bit10有效，LTE扩展CP PUCCH fmt2a/2b对应bit0-bit12有效
+    
+    uint16_t           RmDecodeMaxDtx;   //RM最大打分值得DTX检测结果，取值范围[]
+    uint16_t           RmDecodeSubDtx;   //RM次大打分值得DTX检测结果，取值范围[]
+
+    uint8_t            *pBitInputAddr;   //输入数据存放起始地址
+}RMDecodePduInfo;
+
+typedef struct
+{
+    uint16_t            sfn;
+    uint16_t            slot;
+
+	uint8_t             cellIdx;
+	uint8_t             pduNum;
+    uint8_t             rsvd[2];
+
+	RMDecodePduInfo     rmPduInfo[];    
+}RMDecodeHacCfgPara;
 
 uint32_t          g_ulTtiMessageTempBuff[2000] = { 0 };            /* ULTTIMessage 本地buffer */
 UlPduMappingInfo  g_ulPduMappingInfo[MAX_CELL_NUM][200] = { 0 };   /* 暂时假设有200个PDU */
