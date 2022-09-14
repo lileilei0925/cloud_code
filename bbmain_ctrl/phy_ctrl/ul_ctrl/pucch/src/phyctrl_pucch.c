@@ -456,3 +456,38 @@ void UlTtiRequestPucchPduparse(FapiNrMsgPucchPduInfo *fapipucchpduInfo, PucParam
         }
     }
 }
+
+uint16_t CalcPucchCsipart2Size(FapiNrMsgPucchPduInfo *fapipucchpduInfo, uint8_t *CsiPart1Payload, uint8_t *sizesPart1Params, uint16_t *map ,uint8_t numPart1Params)
+{
+    Part2ReportInfo *part2ReportInfo = NULL;
+    uint16_t csiPart1BitLength;
+    uint16_t numPart2s;
+    uint8_t  Part1ParamsIdx;
+    uint16_t paramOffsets;
+    uint8_t  paramSizes;
+    uint16_t ParamValue;
+    uint8_t  bitNum;
+    uint16_t mapIndex;
+     
+    csiPart1BitLength = fapipucchpduInfo->csiPart1BitLength;
+
+    numPart2s         = 1;//fapipucchpduInfo->uciInfoAddInV3.numPart2s;暂时只支持1个CSI report
+    part2ReportInfo   = fapipucchpduInfo->uciInfoAddInV3.part2ReportInfo;
+    if(numPart1Params != part2ReportInfo->numPart1Params)
+    {
+        return 0;
+    }
+
+    mapIndex = 0;
+    for(Part1ParamsIdx = 0; Part1ParamsIdx < numPart1Params; Part1ParamsIdx++)
+    {
+        paramOffsets = part2ReportInfo->paramOffsets[Part1ParamsIdx];
+        paramSizes   = part2ReportInfo->paramSizes[Part1ParamsIdx];  
+        ParamValue   = InterceptData(CsiPart1Payload, paramOffsets, paramSizes);//CsiPart1Payload,paramOffsets,paramSizes?从CsiPart1Payload截取值
+        bitNum       = sizesPart1Params[Part1ParamsIdx];
+        ParamValue   = ParamValue&genbitmask(bitNum);//二次截取
+        mapIndex     = (mapIndex<<bitNum) + ParamValue;
+    }
+
+    return map[mapIndex];
+}

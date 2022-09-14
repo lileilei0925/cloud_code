@@ -167,3 +167,68 @@ void count_bit1_and_index(uint16_t inputData, uint8_t *bit1Num, uint8_t *bit1Ind
 	}
 	*bit1Num = count0;
 }
+
+/*******************************************************************************
+* 函数名称: genbitmask
+* 函数功能: 从低位到高位，根据输入比特个数，生成比特掩码
+* 相关文档: 
+* 函数参数:
+* 参数名称:     类型      输入/输出   描述
+*
+* inputbitNum  uint8_t   in        输入比特个数
+* bitmask      uint16_t  out       输出比特掩码    
+*
+* 返回值:   无
+* 函数类型: <回调、中断、可重入（阻塞、非阻塞）等函数必须说明类型及注意事项>
+* 函数说明:（以下述列表的方式说明本函数对全局变量的使用和修改情况，以及本函数
+*
+*******************************************************************************/
+uint16_t genbitmask(uint8_t bitNum)
+{
+	uint8_t bitmask = 0;
+
+	while (bitNum)
+	{
+		bitmask += (1<<(bitNum-1)); 
+		bitNum--;
+	}
+	return bitmask;
+}
+
+
+/*******************************************************************************
+* 函数名称: InterceptData
+* 函数功能: 从低位到高位，根据输入比特个数，生成比特掩码
+* 相关文档: 
+* 函数参数:
+* 参数名称:       类型   输入/输出   描述
+*
+* DataIn         uint8_t*   in     输入数据起始地址
+* paramOffsets   uint16_t   in     输入参数偏移
+* paramSizes     uint8_t    in     输入参数长度 
+*                uint16_t   out    输出数据       
+*
+* 返回值:   无
+* 函数类型: <回调、中断、可重入（阻塞、非阻塞）等函数必须说明类型及注意事项>
+* 函数说明:（以下述列表的方式说明本函数对全局变量的使用和修改情况，以及本函数
+*
+*******************************************************************************/
+uint16_t InterceptData(uint8_t *DataIn , uint16_t paramOffsets, uint8_t paramSizes)
+{
+	uint8_t StartIdx,EndIdx;
+	uint16_t bitmask;
+
+	StartIdx = (paramOffsets >> 8);
+	EndIdx   = ((paramOffsets + paramSizes) >>8 );
+//paramSize是否会超过8？
+	bitmask  = genbitmask(paramSizes);
+	if(EndIdx = (StartIdx + 1))
+	{
+		return ((((*(DataIn + StartIdx)) << 4) + *(DataIn + EndIdx)) >> (8 - (paramOffsets&0x7)) & bitmask);
+	}
+	else
+	{
+		return (((*(DataIn + EndIdx)) >> (8 - (paramOffsets&0x7))) & bitmask);
+	}
+	
+}
