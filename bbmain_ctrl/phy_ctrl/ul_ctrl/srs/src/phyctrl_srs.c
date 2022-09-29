@@ -5,5 +5,13 @@
 #include "../inc/phyctrl_srs.h"
 #include "../inc/srs_variable.h"
 
+void UlTtiRequestSrsPduparse(FapiNrMsgSrsPduInfo *fapisrspduInfo, SrsPara *srsParam, uint16_t sfnNum, uint16_t slotNum, uint16_t pduIndex, uint8_t cellIndex);
 
+void UlTtiRequestSrsPduparse(FapiNrMsgSrsPduInfo *fapisrspduInfo, SrsPara *srsParam, uint16_t sfnNum, uint16_t slotNum, uint16_t pduIndex, uint8_t cellIndex)
+{
+    ;
+
+
+
+}
 

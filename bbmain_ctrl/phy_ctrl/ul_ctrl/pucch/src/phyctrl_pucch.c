@@ -417,7 +417,7 @@ void UlTtiRequestPucchPduparse(FapiNrMsgPucchPduInfo *fapipucchpduInfo, PucParam
         {
             pucParam = (g_PucchPara[cellIndex].pucParam + g_armPucParam.pucchNum);
             pduIndex = g_armPucParam.pucchfmtpduIdxInner[PUCCH_FORMAT_2][pduNumCnt];
-            UlTtiRequestPucchFmt023Pduparse(fapipucchpduInfo, pucParam, sfnNum, slotNum, pduIndex, cellIndex); 
+            UlTtiRequestPucchFmt023Pduparse(fapipucchpduInfo + pduIndex, pucParam, sfnNum, slotNum, pduIndex, cellIndex); 
             g_armPucParam.pucchNum++;
         }
     }
@@ -428,7 +428,7 @@ void UlTtiRequestPucchPduparse(FapiNrMsgPucchPduInfo *fapipucchpduInfo, PucParam
         {
             pucParam = (g_PucchPara[cellIndex].pucParam + g_armPucParam.pucchNum);
             pduIndex = g_armPucParam.pucchfmtpduIdxInner[PUCCH_FORMAT_3][pduNumCnt];
-            UlTtiRequestPucchFmt023Pduparse(fapipucchpduInfo, pucParam, sfnNum, slotNum, pduIndex, cellIndex); 
+            UlTtiRequestPucchFmt023Pduparse(fapipucchpduInfo + pduIndex, pucParam, sfnNum, slotNum, pduIndex, cellIndex); 
             g_armPucParam.pucchNum++; 
         }
     }
@@ -439,7 +439,7 @@ void UlTtiRequestPucchPduparse(FapiNrMsgPucchPduInfo *fapipucchpduInfo, PucParam
         {
             pucParam = (g_PucchPara[cellIndex].pucParam + g_armPucParam.pucchNum);
             pduIndex = g_armPucParam.pucchfmtpduIdxInner[PUCCH_FORMAT_0][pduNumCnt];
-            UlTtiRequestPucchFmt023Pduparse(fapipucchpduInfo, pucParam, sfnNum, slotNum, pduIndex, cellIndex); 
+            UlTtiRequestPucchFmt023Pduparse(fapipucchpduInfo + pduIndex, pucParam, sfnNum, slotNum, pduIndex, cellIndex); 
             g_armPucParam.pucchNum++;
         }
     }
