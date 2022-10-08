@@ -1,6 +1,7 @@
 #include "../prach/src/phyctrl_prach.c"
 #include "../pusch/src/phyctrl_pusch.c"
 #include "../pucch/src/phyctrl_pucch.c"
+#include "../srs/src/phyctrl_srs.c"
 
 uint32_t MessageUlTtiRequestParse(uint8_t cellIndex, uint8_t *srcUlSlotMesagesBuff);
 uint32_t UlTtiRequestMessageSizeCalc (uint8_t *srcUlSlotMesagesBuff);
@@ -12,7 +13,12 @@ int main(void)
 {
   uint16_t a = 16;
   uint16_t b = 16;
-  uint32_t c = sizeof(PucFmtRpt);
+  //uint32_t c = sizeof(FapiNrMsgSrsPduInfo);//44
+  //uint32_t c = sizeof(SrsPara);//3520
+  //uint32_t c = sizeof(SrsRpt);//8742
+  uint32_t c = sizeof(ArmSrsRpt);//8872
+  
+  
 
   printf("c = %d;\n",c);
   printf("___Hello World___;\n");
@@ -25,13 +31,16 @@ int main(void)
 /* UL_TTI.request slot messages parsing */
 uint32_t MessageUlTtiRequestParse(uint8_t cellIndex, uint8_t *srcUlSlotMesagesBuff)
 {
-    FapiNrMsgPrachPduInfo *fapiPrachPduParaIn = NULL;
-    FapiNrMsgPuschPduInfo *fapiPuschPduParaIn = NULL;
+    FapiNrMsgPrachPduInfo *fapiPrachPduParaIn  = NULL;
+    FapiNrMsgPuschPduInfo *fapiPuschPduParaIn  = NULL;
     FapiNrMsgPucchPduInfo *fapipucchPduParaIn  = NULL;
-    FapiNrMsgPucchPduInfo *fapipucchpduInfo   = NULL;
+    FapiNrMsgSrsPduInfo   *fapisrsPduParaIn    = NULL;
+    FapiNrMsgPucchPduInfo *fapipucchpduInfo    = NULL;
+    FapiNrMsgSrsPduInfo   *fapisrspduInfo      = NULL;
     L1PrachPduInfo        *l1PrachPduInfo      = NULL;
     L1PuschPduInfo        *l1PuschPduInfo      = NULL;
     PucParam              *pucParam            = NULL;
+    PucParam              *srsParam            = NULL;
 
     uint16_t sfnNum,slotNum,ulPduNum;
     uint16_t pduNumPerType[MAX_UL_PDU_TYPES] = { 0 };
@@ -106,6 +115,9 @@ uint32_t MessageUlTtiRequestParse(uint8_t cellIndex, uint8_t *srcUlSlotMesagesBu
         
                 case UL_PDU_TYPE_SRS:
                     /* code */
+                    fapisrsPduParaIn = (FapiNrMsgSrsPduInfo *)((uint8_t *)pduHead + sizeof(PduHeadInfo));
+                    fapisrspduInfo   = g_armSrsParam.fapiSrsPduInfo + pduCntPerType[3];
+                    memcpy(fapisrspduInfo, fapisrsPduParaIn, sizeof(FapiNrMsgSrsPduInfo));
                     pduCntPerType[3]++;
                     break;
 
@@ -121,7 +133,9 @@ uint32_t MessageUlTtiRequestParse(uint8_t cellIndex, uint8_t *srcUlSlotMesagesBu
         //l1PucchParaInfoOut->puschPduNum = pduCntPerType[2];
         //l1SrsParaInfoOut->puschPduNum   = pduCntPerType[3];
 
-        UlTtiRequestPucchPduparse(fapipucchPduParaIn, pucParam, sfnNum, slotNum, pduIndex, cellIndex); 
+        UlTtiRequestPucchPduparse(fapipucchpduInfo, pucParam, sfnNum, slotNum, pduIndex, cellIndex); 
+
+        UlTtiRequestSrsPduparse(fapisrspduInfo, srsParam, sfnNum, slotNum, pduIndex, cellIndex); 
 
         /************** pduIndex mapping relation with UE **************/
         UlueGoupNumInfo  *ulUeGoupNumInfo = (UlueGoupNumInfo *)((uint8_t *)pduHead); /* sizeof(uint8_t) * (ulUeGoupNumInfo->ueNum + 1) per Group */
