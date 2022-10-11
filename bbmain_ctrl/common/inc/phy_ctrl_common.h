@@ -54,6 +54,17 @@ typedef struct
 
 
 typedef struct
+{
+    uint16_t            sfn;
+    uint16_t            slot;
+
+	uint8_t             cellIdx;
+	uint8_t             pduNum;
+    uint8_t             msgType;         //区分PUCCH还是PUSCH的消息,0:PUCCH,1:PUSCH
+    uint8_t             rsvd;
+}HacCfgHead;
+
+typedef struct
 {	
     uint8_t       sizeCrcL;            //每个码块CRC比特长度L，取值6或11
     uint8_t       lenQpc;              //PC比特个数，取值0或3
@@ -68,24 +79,21 @@ typedef struct
     uint8_t       rsvd[2];
 	
 	uint16_t      Qpc[3];              //PC比特位置索引，取值范围[0,1023]
-	uint16_t      sizeOutput;           //译码输出bit长度K 
+	uint16_t      sizeOutput;          //译码输出bit长度K 
+
+    uint32_t      BitInputAddrOffset;  //输入数据地址相对首地址的偏移
+	uint32_t      OutAddrOffset;       //输出数据地址相对首地址的偏移
 		
 	uint32_t	  sizeCodingOut;	   //译码输入比特长度N=2^n，n的取值范围[5,10]
-
-    uint32_t      bitmap[32];          //比特位指示bitmap，最多2^10比特需要指示，冻结比特位取0，信息比特位取1 
 }PolarDecodePduInfo;
 
 typedef struct
 {
-    uint16_t   sfn;             //系统帧号，取值范围[0,1023]
-    uint16_t   slot;            //时隙，取值范围[0,19]
+    HacCfgHead  hacCfgHead;
 
-	uint8_t    cellIdx;         //小区索引，取值范围[0,3]
-	uint8_t    pduNum;          //配置个数，取值范围[1,]
-    uint8_t    rsvd[2];    
+    uint8_t    *BitInputAddr;   //输入数据的首地址
+	uint8_t    *OutBaseAddr;    //输出数据的首地址
 
-    uint8_t    *pBitInputAddr;  //输入数据的首地址
-	uint8_t    *pOutBaseAddr;   //输出数据的首地址
 	PolarDecodePduInfo  polarPduInfo[];    
 }PolarDecodeHacCfgPara;
 
@@ -99,20 +107,15 @@ typedef struct
     uint16_t	       RateMatchBitLen;	 //RM译码解速率匹配前的比特数。LTE PUCCH取值20或48，LTE PUSCH取值范围[？];NR PUCCH取值范围[6,4608],NR PUSCH取值范围[？]
     uint16_t           RmDecodeOut;      //RM译码结果，bit0-bit10有效，LTE扩展CP PUCCH fmt2a/2b对应bit0-bit12有效
     
-    uint16_t           RmDecodeMaxDtx;   //RM最大打分值得DTX检测结果，取值范围[]
-    uint16_t           RmDecodeSubDtx;   //RM次大打分值得DTX检测结果，取值范围[]
+    uint16_t           RmDecodeMaxDtx;   //RM最大打分值的DTX检测结果，取值范围[]
+    uint16_t           RmDecodeSubDtx;   //RM次大打分值的DTX检测结果，取值范围[]
 
     uint8_t            *pBitInputAddr;   //输入数据存放起始地址
 }RMDecodePduInfo;
 
 typedef struct
 {
-    uint16_t            sfn;
-    uint16_t            slot;
-
-	uint8_t             cellIdx;
-	uint8_t             pduNum;
-    uint8_t             rsvd[2];
+    HacCfgHead          hacCfgHead;
 
 	RMDecodePduInfo     rmPduInfo[];    
 }RMDecodeHacCfgPara;

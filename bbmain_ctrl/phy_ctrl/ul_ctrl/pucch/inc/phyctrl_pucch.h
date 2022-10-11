@@ -65,14 +65,29 @@ typedef struct
 
 typedef struct
 {
+	uint16_t LlrStart;     /* UCI起始RE位置，取值[0,] */
+    uint16_t LlrDuration;  /* UCI占用的RE数，取值[0,192] */
+}Fmt3UciLlrBitmap;
+
+typedef struct
+{
 	uint8_t pi2bpsk;		    /* pi/2-BPSK是否使能标志，取值0:不使能，使用QPSK，1:使能，使用pi/2-BPSK */
 	uint8_t addDmrsFlag;	    /* 附加导频是否使能标志，取值0:不使能，1:使能 */
-    uint8_t rsvd;
+    uint8_t part2Exist;         /* CSI part2是否存在标志，0：不存在，1：存在 */
 	uint8_t srBitLen;           /* SR比特数，取值[0,4] */
-	uint16_t harqBitLength;	    /* HARQ的payload,取值[0,1706]除了1 */
+	
+    uint16_t harqBitLength;	    /* HARQ的payload,取值[0,1706]除了1 */
     uint16_t csiPart1BitLength; /* CSI part1的payload,取值[0,1706] */
-	uint16_t rnti;		        /* UE唯一标识，取值[1,65535] */
+	
+    uint16_t rnti;		        /* UE唯一标识，取值[1,65535] */
 	uint8_t  cyclicShift[SYM_NUM_PER_SLOT]; 	/* 38.211协议 6.3.2.2.2计算得到的各符号α值 */
+    
+    uint16_t part1SymBitmap;    /* UCI part1占用符号的比特位图，bit0到bit13有效 */
+    uint16_t part2SymBitmap;    /* UCI part2占用符号的比特位图，bit0到bit13有效 */
+
+    Fmt3UciLlrBitmap  part1LlrBitmap[SYM_NUM_PER_SLOT];
+    Fmt3UciLlrBitmap  part2LlrBitmap[SYM_NUM_PER_SLOT];
+
     uint32_t *scrambSeqAddr[HOP_NUM];           /* 加扰序列在DDR中的存放地址，TODO:根据HAC存放确定是否需要2个hop的首地址 */
 }PucFmt3Param;
 
