@@ -8,6 +8,7 @@ uint32_t g_NghNvNcsBuff[6];  /*组跳频，序列跳，循环移位扰码计算�
 uint8_t g_NuValue[HOP_NUM];                               //2hop
 uint8_t g_NvValue[HOP_NUM];                               //2hop
 uint8_t g_NcsValue[SYM_NUM_PER_SLOT];                     //14symbol
+uint8_t g_part1ReNum[SYM_NUM_PER_SLOT];                   //14symbol
 
 uint32_t g_fmt23dataScrambuff[144];                       //fmt23数据符号扰码生成缓存
 uint32_t g_fmt2pilotScrambuff[2][5];                      //fmt2导频符号扰码生成缓存
