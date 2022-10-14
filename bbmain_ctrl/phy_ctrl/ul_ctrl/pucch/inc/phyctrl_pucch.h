@@ -38,7 +38,7 @@ typedef struct
 
 typedef struct
 {
-    uint16_t ueTapBitMap[SYM_NUM_PER_SLOT];    /* （TODO:不一定需要）所有ue在某OFDM符号上的cycle shift(0-11)值的bitmap，如cycle shift为3，那么bit3设为1;NR_SYM_NUM_PER_SLOT为PUCCH所占符号的索引 */
+    uint16_t ueTapBitMap[SYM_NUM_PER_SLOT];    /* 当前OCC所有ue在某OFDM符号上的alpha值的bitmap，如alpha值为3，那么bit3设为1;alpha等于(N_SC_PER_PRB - m0)mod(N_SC_PER_PRB) */
     uint8_t rsvd[2];
     uint8_t timeDomainOccIdx;                     /* 时域OCC的索引值，取值[0,6] */
     uint8_t userNumPerOcc;                        /* 每个OCC上复用的用户数，协议规定最多12个，实际最多6个，取值[1,6] */

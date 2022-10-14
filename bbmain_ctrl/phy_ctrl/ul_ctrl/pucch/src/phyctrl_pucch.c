@@ -707,10 +707,6 @@ void UlTtiRequestPucchFmt1Pduparse(PucParam *pucParam, uint8_t pucchpduGroupCnt,
 
         fmt1ParamOcc = &fmt1Param->fmt1ParamOcc[OccNumCnt];
         memset(fmt1ParamOcc->ueTapBitMap, 0, SYM_NUM_PER_SLOT);
-        for(SymbIdx = 0; SymbIdx < SYM_NUM_PER_SLOT; SymbIdx++)
-        {   
-            fmt1ParamOcc->ueTapBitMap[SymbIdx] |= (1<<(fmt1Param->cyclicShift[SymbIdx]));
-        }
         fmt1ParamOcc->timeDomainOccIdx  = OccIdx;
         fmt1ParamOcc->userNumPerOcc     = pucchuserNumPerOcc;
 
@@ -718,6 +714,12 @@ void UlTtiRequestPucchFmt1Pduparse(PucParam *pucParam, uint8_t pucchpduGroupCnt,
         {
             pucchpduIndex    = g_armPucParam.pucchpduIndexinGroup[pucchpduGroupCnt][OccIdx][pucchindex];
             fapipucchpduInfo = &(g_armPucParam.FapiPucchPduInfo[pucchpduIndex]);
+
+            for(SymbIdx = (fapipucchpduInfo->StartSymbolIndex); SymbIdx < ((fapipucchpduInfo->StartSymbolIndex) + (fapipucchpduInfo->numSymbols)); SymbIdx++)
+            {   
+                fmt1ParamOcc->ueTapBitMap[SymbIdx] |= (1<<((N_SC_PER_PRB - (fapipucchpduInfo->initCyclicShift)) % N_SC_PER_PRB));
+            }
+
             fmt1UEParam = &fmt1ParamOcc->fmt1UEParam[pucchindex];
             fmt1UEParam->m0            = fapipucchpduInfo->initCyclicShift;
             fmt1UEParam->srFlag        = fapipucchpduInfo->srFlag;
