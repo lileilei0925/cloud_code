@@ -67,6 +67,8 @@ uint32_t MessageUlTtiRequestParse(uint8_t cellIndex, uint8_t *srcUlSlotMesagesBu
 		
 		/* 本小区pucch相关变量初始化 */
         memset(&g_armPucParam, 0, sizeof(ArmPucParam));
+        memset(&(g_rmDecodeHacCfgPara[cellIndex]), 0, sizeof(RMDecodeHacCfgPara));
+        memset(&(g_polarDecodeHacCfgPara[cellIndex]), 0, sizeof(PolarDecodeHacCfgPara));
     
         /******************** Slot Messages Ul_TTI.request信息 parsing *******************/
         UlTtiRequestHeadInfo *ulRequestHead = (UlTtiRequestHeadInfo *)g_ulTtiMessageTempBuff;

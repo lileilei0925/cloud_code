@@ -13,6 +13,24 @@
 #define UL_PDU_TYPE_PUCCH            2
 #define UL_PDU_TYPE_SRS              3
 
+enum UCI_TYPE
+{
+    PUCCH_UCI_PART1    =  0,
+    PUCCH_CSI_PART2    =  1,      
+    PUSCH_ACK          =  2,
+    PUSCH_CSI_PART1    =  3, 
+    PUSCH_CSI_PART2    =  4,    
+    UCI_TYPE_NUM
+ };
+
+enum RM_TYPE
+{
+    REPETITION   =  0,
+    PUNTURING    =  1,      
+    SHORTENING   =  2,
+    RM_TYPE_NUM
+ };
+
 #define FRAME_DUPLEX_TYPE_FDD        0
 #define FRAME_DUPLEX_TYPE_TDD        1
 

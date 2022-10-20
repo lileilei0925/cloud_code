@@ -60,7 +60,7 @@ typedef struct
 
 	uint8_t             cellIdx;
 	uint8_t             pduNum;
-    uint8_t             msgType;         //区分PUCCH还是PUSCH的消息,0:PUCCH,1:PUSCH
+    uint8_t             msgType;       //消息类型,0:PUCCH UCI part1,1:PUCCH CSI part2,2:PUSCH ACK,3:PUSCH CSI part1,4:PUSCH CSI part2
     uint8_t             rsvd;
 }HacCfgHead;
 
@@ -71,20 +71,18 @@ typedef struct
 	uint8_t       typeRM;              //速率匹配的类型，0: repetition 1: punturing 2:shortening  
 	uint8_t       interTval;           //信道交织使用的T值，满足T(T+1)/2>=E的最小整数
 
-    uint16_t      sizeInput;           //每个码块对应的原始bit长度K 
 	uint16_t	  sizeRmLenth;	       //速率匹配后每个码块的比特值E
-
+    uint16_t      sizeOutput;          //译码输出bit长度A 
+    
     uint8_t       pathNum;             //译码路径   算法参数,待算法确认
     uint8_t       CrcOut;	           //译码的CRC结果，bit0有效，0：错误，1：正确
-    uint8_t       rsvd[2];
-	
-	uint16_t      Qpc[3];              //PC比特位置索引，取值范围[0,1023]
-	uint16_t      sizeOutput;          //译码输出bit长度K 
+	uint8_t       rsvd[2];
 
     uint32_t      BitInputAddrOffset;  //输入数据地址相对首地址的偏移
+
 	uint32_t      OutAddrOffset;       //输出数据地址相对首地址的偏移
 		
-	uint32_t	  sizeCodingOut;	   //译码输入比特长度N=2^n，n的取值范围[5,10]
+	uint32_t	  sizeDecodingIn;	   //译码输入比特长度N=2^n，n的取值范围[5,10]
 }PolarDecodePduInfo;
 
 typedef struct
