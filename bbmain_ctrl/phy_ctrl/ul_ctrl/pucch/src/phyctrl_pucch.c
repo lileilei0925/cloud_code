@@ -136,6 +136,10 @@ void PucchFmt0Pduparse(PucParam *pucParam, FapiNrMsgPucchPduInfo *fapipucchpduIn
 void RMDecodeHacCfg(FapiNrMsgPucchPduInfo *fapipucchpduInfo, uint16_t uciLen ,uint8_t PduIdxInner, uint16_t sfnNum, uint8_t slotNum, uint8_t cellIndex)
 {
     uint8_t  pduNum;
+    uint8_t  totBit;
+    uint8_t  part1Bit;
+    uint8_t  maxCodeRate;
+    uint8_t  valQm;
     HacCfgHead      *hacHead;
     RMDecodePduInfo *rmInfo;
 
@@ -157,7 +161,18 @@ void RMDecodeHacCfg(FapiNrMsgPucchPduInfo *fapipucchpduInfo, uint16_t uciLen ,ui
     }
     else if(PUCCH_FORMAT_3 == (fapipucchpduInfo->formatType))
     {
-        rmInfo->RateMatchBitLen = 12 * (2 - (fapipucchpduInfo->pi2BpskFlag)) * (fapipucchpduInfo->numSymbols) * (fapipucchpduInfo->prbSize);
+        totBit = 12 * (2 - (fapipucchpduInfo->pi2BpskFlag)) * (fapipucchpduInfo->numSymbols) * (fapipucchpduInfo->prbSize);
+        if(!(fapipucchpduInfo->uciInfoAddInV3.numPart2s))
+        {
+            rmInfo->RateMatchBitLen = totBit;
+        }
+        else
+        {
+            maxCodeRate = fapipucchpduInfo->pucchParaAddInV3.maxCodeRate;
+            valQm       = (2 - fapipucchpduInfo->pi2BpskFlag);
+            part1Bit    = ((uint16_t)((totBit - 1) / ((maxCodeRateTab[maxCodeRate]) * valQm)) + 1)*valQm;
+            rmInfo->RateMatchBitLen = (totBit < part1Bit) ? totBit:part1Bit;
+        }
     }
     //rmInfo->pBitInputAddr  = ;  
 }
@@ -165,6 +180,10 @@ void RMDecodeHacCfg(FapiNrMsgPucchPduInfo *fapipucchpduInfo, uint16_t uciLen ,ui
 void PolarDecodeHacCfg(FapiNrMsgPucchPduInfo *fapipucchpduInfo, uint16_t uciLen ,uint8_t PduIdxInner, uint16_t sfnNum, uint8_t slotNum, uint8_t cellIndex)
 {
     uint8_t  pduNum;
+    uint8_t  totBit;
+    uint8_t  part1Bit;
+    uint8_t  maxCodeRate;
+    uint8_t  valQm;
     uint16_t K;
     uint16_t n;
     uint16_t n1;
@@ -199,14 +218,25 @@ void PolarDecodeHacCfg(FapiNrMsgPucchPduInfo *fapipucchpduInfo, uint16_t uciLen 
     K = (polarInfo->sizeCrcL) + uciLen;
     if(PUCCH_FORMAT_2 == (fapipucchpduInfo->formatType))
     {
-        polarInfo->sizeRmLenth = 16 * (fapipucchpduInfo->numSymbols) * (fapipucchpduInfo->prbSize);
+         polarInfo->sizeRmLenth = 16 * (fapipucchpduInfo->numSymbols) * (fapipucchpduInfo->prbSize);
     }
     else if(PUCCH_FORMAT_3 == (fapipucchpduInfo->formatType))
     {
-        polarInfo->sizeRmLenth = 12 * (2 - (fapipucchpduInfo->pi2BpskFlag)) * (fapipucchpduInfo->numSymbols) * (fapipucchpduInfo->prbSize);
+        totBit = 12 * (2 - (fapipucchpduInfo->pi2BpskFlag)) * (fapipucchpduInfo->numSymbols) * (fapipucchpduInfo->prbSize);
+        if(!(fapipucchpduInfo->uciInfoAddInV3.numPart2s))
+        {
+            polarInfo->sizeRmLenth = totBit;
+        }
+        else
+        {
+            maxCodeRate = fapipucchpduInfo->pucchParaAddInV3.maxCodeRate;
+            valQm       = (2 - fapipucchpduInfo->pi2BpskFlag);
+            part1Bit    = ((uint16_t)((totBit - 1) / ((maxCodeRateTab[maxCodeRate]) * valQm)) + 1)*valQm;
+            polarInfo->sizeRmLenth = (totBit < part1Bit) ? totBit:part1Bit;
+        }
     }
 
-    if((8 * (polarInfo->sizeRmLenth)) <= (9 * (2>>(log2Ceiling(polarInfo->sizeRmLenth) - 1)))
+    if(((8 * (polarInfo->sizeRmLenth)) <= (9 * (2>>(log2Ceiling(polarInfo->sizeRmLenth) - 1))))
         && ((16 * K) < (9 * (polarInfo->sizeRmLenth))))//E<=(9/8)*2^(Ceil(log2E)-1) and K/E<9/16
     {
         n1 = log2Ceiling(polarInfo->sizeRmLenth) - 1;
@@ -215,11 +245,11 @@ void PolarDecodeHacCfg(FapiNrMsgPucchPduInfo *fapipucchpduInfo, uint16_t uciLen 
     {
         n1 = log2Ceiling(polarInfo->sizeRmLenth);
     }
-    n2 = log2Ceiling(8 * K);
+    n2 = log2Ceiling(8 * K);//
     n = (n1 < n2) ? n1:n2;
     n = (n < 10) ? n:10;
     n = (n < 5) ? 5:n;
-    polarInfo->sizeDecodingIn = (2>>n);
+    polarInfo->sizeDecodingIn = (1<<n);
 
     if((polarInfo->sizeRmLenth) >= (polarInfo->sizeDecodingIn))
     {
@@ -236,8 +266,7 @@ void PolarDecodeHacCfg(FapiNrMsgPucchPduInfo *fapipucchpduInfo, uint16_t uciLen 
             polarInfo->typeRM = SHORTENING;
         }
     }
-
-    polarInfo->interTval = ceil((sqrt(8 * (polarInfo->sizeRmLenth) + 1) -1 ) /2);
+    polarInfo->interTval = ceil((sqrt(8 * (polarInfo->sizeRmLenth) + 1) - 1)/2);
 }
 
 void PucchFmt2Pduparse(PucParam *pucParam, FapiNrMsgPucchPduInfo *fapipucchpduInfo, uint8_t intraSlotFreqHopping, uint16_t sfnNum, uint8_t slotNum, uint8_t cellIndex)
@@ -308,7 +337,6 @@ void CalcPart1ReNum(PucParam *pucParam, PucFmt3Param *fmt3Param, uint8_t intraSl
     uint16_t totE;
     uint16_t valG1;
     uint16_t valG2;
-    float maxCodeRateTab[8] = {0.08, 0.15, 0.25, 0.35, 0.45, 0.60, 0.80, 0.80};
 
     valQm       = 2 - (fmt3Param->pi2bpsk);
     uciBitNum   = (fmt3Param->srBitLen) + (fmt3Param->harqBitLength) + (fmt3Param->csiPart1BitLength);

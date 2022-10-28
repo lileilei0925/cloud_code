@@ -13,6 +13,7 @@ uint8_t g_part1ReNum[SYM_NUM_PER_SLOT];                   //14symbol
 uint32_t g_fmt23dataScrambuff[144];                       //fmt23数据符号扰码生成缓存
 uint32_t g_fmt2pilotScrambuff[2][5];                      //fmt2导频符号扰码生成缓存
 
+float maxCodeRateTab[8] = {0.08, 0.15, 0.25, 0.35, 0.45, 0.60, 0.80, 0.80};
 
 PucchPara    g_PucchPara[MAX_CELL_NUM];                      /* Pucch armtodsp参数本地buffer */
 
