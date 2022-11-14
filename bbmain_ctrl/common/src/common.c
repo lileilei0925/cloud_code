@@ -3,7 +3,7 @@
 #include <string.h>
 #include "../inc/common_typedef.h"
 #include "../inc/common_macro.h"
-
+#include "../../phy_ctrl/ul_ctrl/pusch/inc/phyctrl_pusch.h"
 /*******************************************************************************
 * 函数名称: do_brev
 * 函数功能: 完成对一个Uint 32位数bit位反转存储
@@ -257,4 +257,112 @@ uint16_t log2Ceiling(uint16_t dataIn)
     cnt++; 
   }
   return (dataIn > (1<<(cnt - 1))) ? cnt:(cnt - 1); //如果入参为0，返回无效值0xffff
+}
+
+/*******************************************************************************
+* 函数名称: ceil_div
+* 函数功能: 实现向上取整的除法
+* 相关文档: 
+* 函数参数:
+* 参数名称:   类型   输入/输出   描述
+*
+* a        uint16_t   in       被除数 
+* b        uint16_t   in       除数 
+*
+* 返回值:   c 
+* 函数类型: <回调、中断、可重入（阻塞、非阻塞）等函数必须说明类型及注意事项>
+* 函数说明:（以下述列表的方式说明本函数对全局变量的使用和修改情况，以及本函数
+*
+*******************************************************************************/
+uint16_t ceilDiv (uint16_t a, uint16_t b)
+{
+	uint16_t c = a / b;
+
+	if (a > b * c){
+		return (c + 1);
+	}
+	else{
+		return c;
+	}
+}
+
+/*******************************************************************************
+* 函数名称: findBit1NumAndIndex
+* 函数功能: 对输入数据以二进制从低位到高位统计bit1的个数和对应的位置索引
+* 相关文档: 
+* 函数参数:
+* 参数名称:   类型   输入/输出   描述
+*
+* inputData  uint16_t   in      输入数据
+* bit1Num    uint16_t*  out     输出inputData中1的bit数量      
+* bit1Index  uint16_t*  out     输出inputData中1对应的bit索引   
+*
+* 返回值:   无
+* 函数类型: <回调、中断、可重入（阻塞、非阻塞）等函数必须说明类型及注意事项>
+* 函数说明:（以下述列表的方式说明本函数对全局变量的使用和修改情况，以及本函数
+*
+*******************************************************************************/
+void findBit1NumAndIndex (uint16_t inputData, uint16_t *bit1Num, uint16_t *bit1Index)
+{
+	uint8_t count0 = 0;
+	uint8_t count1 = 0;
+
+	while (inputData)
+	{
+		if((inputData % 2) == 1){
+            bit1Index[count0] = count1;
+			count0++;
+		}
+		inputData = inputData >> 1;
+		count1++;
+	}
+	*bit1Num = count0;
+}
+
+/*******************************************************************************
+* 函数名称: findRbgNumAndSize
+* 函数功能: 对输入数据以二进制从低位到高位统计连续1的个数，每组连续的1认为是一个RBG，并返回RBG的数量，和每个RBG的起始RB和RB数
+* 相关文档: 
+* 函数参数:
+* 参数名称:   类型   输入/输出   描述
+*
+* inputData        uint8_t*   in           输入数据地址，uint8_t*格式输入
+* dataNum          uint8_t    in           输入数量的个数,总数据量为sizeof(uint8_t)*dataNum
+* rbgNum           uint8_t*   out          输出inputData中连续1的组数      
+* rbgStartAndsize  NrPuschCePara*  out     输出inputData中每组RBG的起始RB和RB数   
+*
+* 返回值:   无
+* 函数类型: <回调、中断、可重入（阻塞、非阻塞）等函数必须说明类型及注意事项>
+* 函数说明:（以下述列表的方式说明本函数对全局变量的使用和修改情况，以及本函数
+*
+*******************************************************************************/
+void findRbgNumAndSize (uint8_t *inputData, uint8_t dataNum, uint8_t *rbgNum, NrPuschCePara *rbgStartAndsize)
+{
+    uint8_t loopIndex0, loopIndex1;
+    uint8_t tempData ;
+    uint8_t bitOneCnt, allBitCnt, rbgCnt;
+
+    rbgCnt    = 0; 
+    bitOneCnt = 0;
+    allBitCnt = 0;
+    for (loopIndex0 = 0; loopIndex0 < dataNum; loopIndex0++){
+        tempData = inputData[loopIndex0];
+        for (loopIndex1 = 0; loopIndex1 < 8; loopIndex1++){   
+            if ((tempData & 0x1) == 1){
+                bitOneCnt++;      //记录连续1的个数，即当前rbg簇的大小
+            }
+            else{
+                if(bitOneCnt > 0){ // 如果出现0且bitCnt大于0，则认为连续的1中断，记录本次的rbg大小，和rbg起始，且连续rbg计数自加
+                    rbgStartAndsize->rbStart = allBitCnt - bitOneCnt;  //起始
+                    rbgStartAndsize->rbNum   = bitOneCnt;              //大小
+                    rbgStartAndsize++;  
+                    bitOneCnt = 0;
+                    rbgCnt++;
+                }
+            }
+            tempData = tempData >> 1;
+            allBitCnt++;
+        }
+    }
+    *rbgNum = rbgCnt;
 }

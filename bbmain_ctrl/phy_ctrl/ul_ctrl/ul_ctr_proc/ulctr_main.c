@@ -62,9 +62,14 @@ uint32_t MessageUlTtiRequestParse(uint8_t cellIndex, uint8_t *srcUlSlotMesagesBu
     
     if (srcUlSlotMesagesBuff != NULL){
         /******************** UL_TTI.request Slot Message 的总大小计算 ********************/
-        ulTtirequestMessageSize = UlTtiRequestMessageSizeCalc (srcUlSlotMesagesBuff);
-        memcpy(&g_ulTtiMessageTempBuff[0], srcUlSlotMesagesBuff, ulTtirequestMessageSize); /* Slot Messages Ul_TTI.request信息从共享DDR copy到Arm核内,后期改DMA搬移 */
-		
+        ulTtirequestMessageSize = UlTtiRequestMessageSizeCalc (srcUlSlotMesagesBuff);/* UL_TTI.request Slot Message 的总大小计算 */
+        if (ulTtirequestMessageSize > 0){
+            memcpy(&g_ulTtiMessageTempBuff[0], srcUlSlotMesagesBuff, ulTtirequestMessageSize); /* Slot Messages Ul_TTI.request信息从共享DDR copy到Arm核内*/
+        }
+        else{
+            return 0;
+        }
+        
 		/* 本小区pucch相关变量初始化 */
         memset(&g_armPucParam, 0, sizeof(ArmPucParam));
         memset(&(g_rmDecodeHacCfgPara[cellIndex]), 0, sizeof(RMDecodeHacCfgPara));
@@ -72,16 +77,19 @@ uint32_t MessageUlTtiRequestParse(uint8_t cellIndex, uint8_t *srcUlSlotMesagesBu
     
         /******************** Slot Messages Ul_TTI.request信息 parsing *******************/
         UlTtiRequestHeadInfo *ulRequestHead = (UlTtiRequestHeadInfo *)g_ulTtiMessageTempBuff;
-        sfnNum     = ulRequestHead->sfnNum;
-        slotNum    = ulRequestHead->slotNum;
+        sfnIndex     = ulRequestHead->sfnIndex;
+        slotIndex    = ulRequestHead->slotIndex;
         ulPduNum   = ulRequestHead->pduNum;
         ulPduTypes = ulRequestHead->ulPduTypes;
         ueGroupNum = ulRequestHead->ueGroupNum;
         memcpy(&pduNumPerType[0], &ulRequestHead->pduNumPerType[0], sizeof(uint16_t) * MAX_UL_PDU_TYPES);
 
-        L1PrachParaPduInfo  *l1prachParaPduInfoOut = &g_prachParaInfoOut[cellIndex];
-        l1prachParaPduInfoOut->sfnNum  = sfnNum;
-        l1prachParaPduInfoOut->slotNum = slotNum;
+        L1PrachParaPduInfo  *l1PrachParaPduInfoOut = &g_prachParaInfoOut[cellIndex];
+        l1PrachParaPduInfoOut->sfnIndex  = sfnIndex;
+        l1PrachParaPduInfoOut->slotIndex = slotIndex;
+        L1PuschParaPduInfo  *l1PuschParaPduInfoOut = &g_puschParaInfoOut[cellIndex];
+        l1PuschParaPduInfoOut->sfnIndex  = sfnIndex;
+        l1PuschParaPduInfoOut->slotIndex = slotIndex;
 
         PduHeadInfo *pduHead = (PduHeadInfo *)((uint8_t *)&g_ulTtiMessageTempBuff[0] + sizeof(UlTtiRequestHeadInfo));
         for (pduIndex = 0; pduIndex < ulPduNum; pduIndex++){
@@ -90,15 +98,14 @@ uint32_t MessageUlTtiRequestParse(uint8_t cellIndex, uint8_t *srcUlSlotMesagesBu
             {
                 case UL_PDU_TYPE_PRACH:
                     fapiPrachPduParaIn = (FapiNrMsgPrachPduInfo *)((uint8_t *)pduHead + sizeof(PduHeadInfo));
-                    l1PrachPduInfo     =  &g_prachParaInfoOut[cellIndex].l1PrachPduInfo[pduCntPerType[0]];
+                    l1PrachPduInfo     =  &l1PrachParaPduInfoOut->l1PrachPduInfo[pduCntPerType[0]];
                     UlTtiRequestPrachPduparse (fapiPrachPduParaIn, l1PrachPduInfo, pduIndex);
                     pduCntPerType[0]++;
                     break;
 
                 case UL_PDU_TYPE_PUSCH:
-                    /* code */
                     fapiPuschPduParaIn = (FapiNrMsgPuschPduInfo *)((uint8_t *)pduHead + sizeof(PduHeadInfo));
-                    l1PuschPduInfo     =  &g_puschParaInfoOut[cellIndex].l1PuschPduInfo[pduCntPerType[1]];
+                    l1PuschPduInfo     =  &l1PuschParaPduInfoOut->l1PuschPduInfo[pduCntPerType[1]];
                     UlTtiRequestPuschPduparse(fapiPuschPduParaIn, l1PuschPduInfo, pduIndex);
                     pduCntPerType[1]++;
                     break;
@@ -130,8 +137,8 @@ uint32_t MessageUlTtiRequestParse(uint8_t cellIndex, uint8_t *srcUlSlotMesagesBu
             pduHead = (PduHeadInfo *)((uint8_t *)pduHead + pduSize);
         }
 
-        l1prachParaPduInfoOut->prachPduNum = pduCntPerType[0]; /* 记录每个上行信道的 PDU Number*/
-        //l1PuschParaInfoOut->puschPduNum = pduCntPerType[1];
+        l1PrachParaPduInfoOut->prachPduNum = pduCntPerType[0]; /* 记录每个PRACH信道的 PDU Number */
+        l1PuschParaPduInfoOut->puschPduNum = pduCntPerType[1]; /* 记录每个PUSCH信道的 PDU Number */
         //l1PucchParaInfoOut->puschPduNum = pduCntPerType[2];
         //l1SrsParaInfoOut->puschPduNum   = pduCntPerType[3];
 
@@ -167,8 +174,7 @@ uint32_t UlTtiRequestMessageSizeCalc (uint8_t *srcUlSlotMesagesBuff)
     ueGroupNum = ulRequestHead->ueGroupNum;
     ulTtirequestMessageSize = sizeof(UlTtiRequestHeadInfo);/* Add Head length */
     
-    if(ulPduNum == 0)
-    {
+    if (ulPduNum == 0){
         return 0;  //Add errCode ;
     }
 
@@ -176,14 +182,14 @@ uint32_t UlTtiRequestMessageSizeCalc (uint8_t *srcUlSlotMesagesBuff)
     for (pudIndex = 0; pudIndex < ulPduNum; pudIndex++){
         pduSize = pduHead->pduSize;
         pduHead = (PduHeadInfo *)((uint8_t *)pduHead + pduSize);
-        ulTtirequestMessageSize = ulTtirequestMessageSize + pduSize;/* Add PDU length */
+        ulTtirequestMessageSize += pduSize;/* Add PDU length */
     }
 
     UlueGoupNumInfo *ulUeGoupNumInfo = (UlueGoupNumInfo *)((uint8_t *)&srcUlSlotMesagesBuff + ulTtirequestMessageSize);
     for (groupIndex = 0; groupIndex < ueGroupNum; groupIndex++){
         ueNumInGroup    = ulUeGoupNumInfo->ueNum;
         ulUeGoupNumInfo = ulUeGoupNumInfo + (sizeof(uint8_t) * (ueNumInGroup + 1));
-        ulTtirequestMessageSize = ulTtirequestMessageSize + sizeof(uint8_t) * (ueNumInGroup + 1);/* Add ueGroup length */
+        ulTtirequestMessageSize += sizeof(uint8_t) * (ueNumInGroup + 1);/* Add ueGroup length */
     }
 
     return ulTtirequestMessageSize;
@@ -197,21 +203,21 @@ uint32_t UlTtiRequestPrachPduparse(FapiNrMsgPrachPduInfo *fapiPrachPduInfoIn, L1
 
     l1PrachPduOut->pduIndex           = pudIndex;
     l1PrachPduOut->phyCellID          = fapiPrachPduInfoIn->physCellID;
-    l1PrachPduOut->prachTdOcasNum     = fapiPrachPduInfoIn->numPrachOcas;
+    l1PrachPduOut->prachTdOcasNum     = fapiPrachPduInfoIn->prachOcasNum;
     l1PrachPduOut->prachFormat        = fapiPrachPduInfoIn->prachFormat;
     l1PrachPduOut->PrachFdmIndex      = fapiPrachPduInfoIn->indexFdRa;
     l1PrachPduOut->prachStartSymb     = fapiPrachPduInfoIn->prachStartSymbol;
-    l1PrachPduOut->ncsValue           = fapiPrachPduInfoIn->numCs;
+    l1PrachPduOut->ncsValue           = fapiPrachPduInfoIn->csNum;
 
     l1PrachPduOut->handle             = fapiPrachPduInfoIn->prachParaInV3.handle;
     l1PrachPduOut->prachCfgScope      = fapiPrachPduInfoIn->prachParaInV3.prachCfgScope;
     l1PrachPduOut->prachResCfgIndex   = fapiPrachPduInfoIn->prachParaInV3.prachResCfgIndex;
-    l1PrachPduOut->prachFdmNum        = fapiPrachPduInfoIn->prachParaInV3.numFdRa;
+    l1PrachPduOut->prachFdmNum        = fapiPrachPduInfoIn->prachParaInV3.fdRaNum;
     l1PrachPduOut->startPreambleIndex = fapiPrachPduInfoIn->prachParaInV3.startPreambleIndex;
-    l1PrachPduOut->preambleIndicesNum = fapiPrachPduInfoIn->prachParaInV3.numPreambleIndices;
+    l1PrachPduOut->preambleIndicesNum = fapiPrachPduInfoIn->prachParaInV3.preambleIndicesNum;
 
     l1PrachPduOut->trpScheme          = fapiPrachPduInfoIn->rxBeamFormingInfo.trpScheme;
-    l1PrachPduOut->prgNum             = fapiPrachPduInfoIn->rxBeamFormingInfo.numPRGs;
+    l1PrachPduOut->prgNum             = fapiPrachPduInfoIn->rxBeamFormingInfo.prgsNum;
     l1PrachPduOut->prgSize            = fapiPrachPduInfoIn->rxBeamFormingInfo.prgSize;
     l1PrachPduOut->digitalBfNum       = fapiPrachPduInfoIn->rxBeamFormingInfo.digBfInterface;
 
@@ -230,7 +236,7 @@ uint32_t UlTtiRequestPrachPduparse(FapiNrMsgPrachPduInfo *fapiPrachPduInfoIn, L1
 uint32_t UlTtiRequestPuschPduparse(FapiNrMsgPuschPduInfo *fapiPuschPduInfoIn, L1PuschPduInfo *l1PuschPduOut, uint16_t pudIndex)
 {
     uint8_t digitalBfNum, digitalBfIndex, prgIndex;
-    uint8_t cbPresentNum, part2Idx, numPart1Params, part1ParaIdx;
+    uint8_t cbPresentNum, part2Idx, part1ParamsNum, part1ParaIdx;
     uint8_t           *dataTempPtr0      = NULL;
     uint16_t          *dataTempPtr1      = NULL;
     uint16_t          *beamIndex         = NULL;
@@ -264,8 +270,8 @@ uint32_t UlTtiRequestPuschPduparse(FapiNrMsgPuschPduInfo *fapiPuschPduInfoIn, L1
     l1PuschPduOut->dmrsScrambleId     = fapiPuschPduInfoIn->dmrsScrambleId;
     l1PuschPduOut->puschDmrsId        = fapiPuschPduInfoIn->puschDmrsId;
     l1PuschPduOut->nSCID              = fapiPuschPduInfoIn->nSCID;
-    l1PuschPduOut->numCdmGrpsNoData   = fapiPuschPduInfoIn->numDmrsCdmGrpsNoData;
-    l1PuschPduOut->dmrsPort           = fapiPuschPduInfoIn->dmrsPort;
+    l1PuschPduOut->numCdmGrpsNoData   = fapiPuschPduInfoIn->dmrsCdmGrpsNoDataNum;
+    l1PuschPduOut->dmrsPorts          = fapiPuschPduInfoIn->dmrsPorts;
     /*Pusch Allocation in frequency domain*/
     l1PuschPduOut->resourceAlloc      = fapiPuschPduInfoIn->resourceAlloc;
     memcpy(&l1PuschPduOut->rbBitmap[0], &fapiPuschPduInfoIn->rbBitmap[0], sizeof(uint8_t)*36);
@@ -281,12 +287,12 @@ uint32_t UlTtiRequestPuschPduparse(FapiNrMsgPuschPduInfo *fapiPuschPduInfoIn, L1
     
     puschUciInfo = (PuschUciInfo *)((uint8_t *)&fapiPuschPduInfoIn->nrOfSymbols + 1);
     memset(&l1PuschPduOut->puschDataPara.rvIndex, 0, sizeof(PuschDataPara));        /* 清零 puschData 参数 */
-    if(((l1PuschPduOut->pduBitMap >> 0) & 0x0001) == 1){
+    if(((l1PuschPduOut->pduBitMap) & 0x0001) == 1){
         l1PuschPduOut->puschDataPara.rvIndex       = fapiPuschPduInfoIn->puschDataInfo.rvIndex;
         l1PuschPduOut->puschDataPara.harqProcessId = fapiPuschPduInfoIn->puschDataInfo.harqProcessId;
         l1PuschPduOut->puschDataPara.newData       = fapiPuschPduInfoIn->puschDataInfo.newData;
-        l1PuschPduOut->puschDataPara.numCb         = fapiPuschPduInfoIn->puschDataInfo.numCb;
-        cbPresentNum = ceil_div(l1PuschPduOut->puschDataPara.numCb, 8);
+        l1PuschPduOut->puschDataPara.cbNum         = fapiPuschPduInfoIn->puschDataInfo.cbNum;
+        cbPresentNum = ceil_div(l1PuschPduOut->puschDataPara.cbNum, 8);
         memcpy(&l1PuschPduOut->puschDataPara.cbPresentAndPos[0], &fapiPuschPduInfoIn->puschDataInfo.cbPresentAndPose[0], sizeof(uint8_t)*cbPresentNum);
         puschUciInfo = (PuschUciInfo *)((uint8_t *)&fapiPuschPduInfoIn->puschDataInfo.cbPresentAndPose[0] + sizeof(uint8_t)*cbPresentNum);
     }
@@ -305,11 +311,11 @@ uint32_t UlTtiRequestPuschPduparse(FapiNrMsgPuschPduInfo *fapiPuschPduInfoIn, L1
     }
     
     puschDftOfdmInfo = (PuschDftOfdmInfo *)puschPtrsInfo;
-    memset(&l1PuschPduOut->puschPtrsPara.numPtrsPorts, 0, sizeof(PuschPtrsPara)); /* 清零 puschPtrs 参数 */
+    memset(&l1PuschPduOut->puschPtrsPara.ptrsPortsNum, 0, sizeof(PuschPtrsPara)); /* 清零 puschPtrs 参数 */
     if(((l1PuschPduOut->pduBitMap >> 2) & 0x0001) == 1){
-        l1PuschPduOut->puschPtrsPara.numPtrsPorts    = puschPtrsInfo->numPtrsPorts;
-        memcpy(&l1PuschPduOut->puschPtrsPara.ptrsPortInfo[0], &puschPtrsInfo->ptrsPortInfo[0], sizeof(PtrsPortPara)*puschPtrsInfo->numPtrsPorts);
-        puschPtrsInfo = (PuschPtrsInfo *) ((uint8_t *)puschPtrsInfo + sizeof(PtrsPortPara)*puschPtrsInfo->numPtrsPorts);
+        l1PuschPduOut->puschPtrsPara.ptrsPortsNum    = puschPtrsInfo->ptrsPortsNum;
+        memcpy(&l1PuschPduOut->puschPtrsPara.ptrsPortInfo[0], &puschPtrsInfo->ptrsPortInfo[0], sizeof(PtrsPortPara)*puschPtrsInfo->ptrsPortsNum);
+        puschPtrsInfo = (PuschPtrsInfo *) ((uint8_t *)puschPtrsInfo + sizeof(PtrsPortPara)*puschPtrsInfo->ptrsPortsNum);
         l1PuschPduOut->puschPtrsPara.ptrsTimeDensity = puschPtrsInfo->ptrsTimeDensity;
         l1PuschPduOut->puschPtrsPara.ptrsFreqDensity = puschPtrsInfo->ptrsFreqDensity;
         l1PuschPduOut->puschPtrsPara.ulPtrsPower     = puschPtrsInfo->ulPtrsPower;
@@ -328,7 +334,7 @@ uint32_t UlTtiRequestPuschPduparse(FapiNrMsgPuschPduInfo *fapiPuschPduInfoIn, L1
     }
 
     l1PuschPduOut->trpScheme          = rxBeamformingInfo->trpScheme;
-    l1PuschPduOut->prgNum             = rxBeamformingInfo->numPRGs;
+    l1PuschPduOut->prgNum             = rxBeamformingInfo->prgsNum;
     l1PuschPduOut->prgSize            = rxBeamformingInfo->prgSize;
     l1PuschPduOut->digitalBfNum       = rxBeamformingInfo->digBfInterface;
     digitalBfNum = l1PuschPduOut->digitalBfNum;
@@ -350,19 +356,19 @@ uint32_t UlTtiRequestPuschPduparse(FapiNrMsgPuschPduInfo *fapiPuschPduInfoIn, L1
     l1PuschPduOut->tbSizeLbrmBytes        = puschParaAddInV3->tbSizeLbrmBytes;
 
     uciInfoAddInV3 = (UciInfoAddInV3 *)((uint8_t *)&puschParaAddInV3->tbSizeLbrmBytes + sizeof(uint32_t)); 
-    memset(&l1PuschPduOut->part2InfoAddInV3.numPart2s, 0, sizeof(Part2InfoAddInV3)); /* 清零 Part2InfoAddInV3 参数 */
+    memset(&l1PuschPduOut->part2InfoAddInV3.part2sNum, 0, sizeof(Part2InfoAddInV3)); /* 清零 Part2InfoAddInV3 参数 */
     if(((l1PuschPduOut->pduBitMap >> 1) & 0x0001) == 1)
     {
-        l1PuschPduOut->part2InfoAddInV3.numPart2s = uciInfoAddInV3->numPart2s;
-        for(part2Idx = 0; part2Idx < uciInfoAddInV3->numPart2s; part2Idx++)
+        l1PuschPduOut->part2InfoAddInV3.part2sNum = uciInfoAddInV3->part2sNum;
+        for(part2Idx = 0; part2Idx < uciInfoAddInV3->part2sNum; part2Idx++)
         {
             l1PuschPduOut->part2InfoAddInV3.part2ReportPara[part2Idx].priority       = uciInfoAddInV3->part2ReportInfo[part2Idx].priority;
-            numPart1Params  = uciInfoAddInV3->part2ReportInfo[part2Idx].numPart1Params;
-            l1PuschPduOut->part2InfoAddInV3.part2ReportPara[part2Idx].numPart1Params = numPart1Params;
-            memcpy(&l1PuschPduOut->part2InfoAddInV3.part2ReportPara[part2Idx].paramOffsets[0], &uciInfoAddInV3->part2ReportInfo[part2Idx].paramOffsets[0], sizeof(uint16_t)*numPart1Params);
-            dataTempPtr0 = (uint8_t *)&uciInfoAddInV3->part2ReportInfo[part2Idx].paramOffsets[0] + sizeof(uint16_t)*numPart1Params;
-            memcpy(&l1PuschPduOut->part2InfoAddInV3.part2ReportPara[part2Idx].paramSizes[0], dataTempPtr0, sizeof(uint8_t)*numPart1Params);
-            dataTempPtr1 = (uint16_t *)(dataTempPtr0 + sizeof(uint8_t)*numPart1Params);
+            part1ParamsNum  = uciInfoAddInV3->part2ReportInfo[part2Idx].part1ParamsNum;
+            l1PuschPduOut->part2InfoAddInV3.part2ReportPara[part2Idx].part1ParamsNum = part1ParamsNum;
+            memcpy(&l1PuschPduOut->part2InfoAddInV3.part2ReportPara[part2Idx].paramOffsets[0], &uciInfoAddInV3->part2ReportInfo[part2Idx].paramOffsets[0], sizeof(uint16_t)*part1ParamsNum);
+            dataTempPtr0 = (uint8_t *)&uciInfoAddInV3->part2ReportInfo[part2Idx].paramOffsets[0] + sizeof(uint16_t)*part1ParamsNum;
+            memcpy(&l1PuschPduOut->part2InfoAddInV3.part2ReportPara[part2Idx].paramSizes[0], dataTempPtr0, sizeof(uint8_t)*part1ParamsNum);
+            dataTempPtr1 = (uint16_t *)(dataTempPtr0 + sizeof(uint8_t)*part1ParamsNum);
             l1PuschPduOut->part2InfoAddInV3.part2ReportPara[part2Idx].part2SizeMapIndex = *dataTempPtr1;
         }
     }
