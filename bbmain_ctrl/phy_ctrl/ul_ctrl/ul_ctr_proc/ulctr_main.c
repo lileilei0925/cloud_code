@@ -8,6 +8,8 @@ uint32_t UlTtiRequestMessageSizeCalc (uint8_t *srcUlSlotMesagesBuff);
 uint32_t UlTtiRequestPrachPduparse(FapiNrMsgPrachPduInfo *fapiPrachPduInfoIn, L1PrachPduInfo *l1PrachPduOut, uint16_t pudIndex);
 uint32_t UlTtiRequestPuschPduparse(FapiNrMsgPuschPduInfo *fapiPuschPduInfoIn, L1PuschPduInfo *l1PuschPduOut, uint16_t pudIndex);
 
+#define DurationCalcInSlot(sfn1, sfn2, slot1, slot2, u)     ({ uint16_t slotNum = ((1<<u) * 10); ((((sfn2 - sfn1 + 1024) & 0x3ff) * slotNum) + (slot2 - slot1));})
+
 #if 1
 int main(void)
 {

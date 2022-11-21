@@ -58,60 +58,67 @@ typedef struct
 
 typedef struct
 {
-    uint16_t            sfn;
-    uint16_t            slot;
+    uint16_t            sfn;           //系统帧号，取值范围[0,1023]，随路信息
+    uint8_t             slot;          //时隙号，取值范围[0,19]，随路信息
+	uint8_t             cellIdx;       //小区索引，取值范围[0,3]，随路信息
+	
+    uint8_t             pduNum;        //译码配置个数，取值范围[0,3]
+    uint8_t             intFlag;       //译码完成后HAC是否触发中断标志，0：不触发，1：触发
+    uint8_t             codeType;      //HAC编码/译码类型，随路信息
+    uint8_t             msgType;       //消息类型
 
-	uint8_t             cellIdx;
-	uint8_t             pduNum;
-    uint8_t             msgType;       //消息类型,0:PUCCH UCI part1,1:PUCCH CSI part2,2:PUSCH ACK,3:PUSCH CSI part1,4:PUSCH CSI part2
-    uint8_t             rsvd;
+    uint8_t             msgIdx;        //本包数据的消息索引
+    uint8_t             rsvd[3];
+    
+    uint32_t            OutputAddr;     //译码输出数据起始地址  //head(8字节)+data（32字节对齐），data返回数据格式待定，松排或紧排确认即可
 }HacCfgHead;
 
 typedef struct
+{
+    uint32_t      segStartAddr;
+    uint16_t      segCycNum;
+    uint32_t      segLlrNum;
+    uint32_t      segPeriod;
+}LlrSegInfo;
+
+typedef struct
 {	
-    uint8_t       sizeCrcL;            //每个码块CRC比特长度L，取值6或11
-    uint8_t       lenQpc;              //PC比特个数，取值0或3
-	uint8_t       typeRM;              //速率匹配的类型，0: repetition 1: punturing 2:shortening  
-	uint8_t       interTval;           //信道交织使用的T值，满足T(T+1)/2>=E的最小整数
+	uint8_t       sizeT;              //解信道交织使用的T值，满足T(T+1)/2>=E的最小整数,译码输入参数
+    uint8_t	      nVal;	              //译码输入比特长度N=2^n，n的取值范围[5,10],译码输入参数
+    int16_t       uciBitNum;          //译码最终输出UCI比特数,212协议5.2.1章节中的A值
 
-	uint16_t	  sizeRmLenth;	       //速率匹配后每个码块的比特值E
-    uint16_t      sizeOutput;          //译码输出bit长度A 
+    uint32_t      llrNum;             //LLR总个数，取值范围[]
     
-    uint8_t       pathNum;             //译码路径   算法参数,待算法确认
-    uint8_t       CrcOut;	           //译码的CRC结果，bit0有效，0：错误，1：正确
-	uint8_t       rsvd[2];
+    uint8_t       ueIdx;   
+    uint8_t       uciType; 
+    uint8_t       llrSegNum; 
+    uint8_t       rsvd; 
+    LlrSegInfo    llrSegInfo[5];
 
-    uint32_t      BitInputAddrOffset;  //输入数据地址相对首地址的偏移
-
-	uint32_t      OutAddrOffset;       //输出数据地址相对首地址的偏移
-		
-	uint32_t	  sizeDecodingIn;	   //译码输入比特长度N=2^n，n的取值范围[5,10]
+    uint32_t      OutputAddr;     //译码输出数据起始地址 
 }PolarDecodePduInfo;
 
 typedef struct
 {
-    HacCfgHead  hacCfgHead;
-
-    uint8_t    *BitInputAddr;   //输入数据的首地址
-	uint8_t    *OutBaseAddr;    //输出数据的首地址
+    HacCfgHead  hacCfgHead;     //随路信息，待评审
 
 	PolarDecodePduInfo  polarPduInfo[];    
 }PolarDecodeHacCfgPara;
 
 typedef struct
 {
-    uint8_t            pduIdx;           //配置索引，取值范围[0,pduNum-1]
-    uint8_t            UciBitNum;        //译码输出比特长度，取值范围[3,11],LTE扩展CP PUCCH fmt2a/2b可取值12和13                                   
-    uint8_t            LlrNum;           //取值20,24或32。20对应LTE PUCCH的（20，A）编码，24对应LTE PUCCH的（24，O）编码，32对应NR PUCCH&PUSCH的（32，K）或LTE PUSCH的（32，O）编码
-    uint8_t            rsvd;
-
-    uint16_t	       RateMatchBitLen;	 //RM译码解速率匹配前的比特数。LTE PUCCH取值20或48，LTE PUSCH取值范围[？];NR PUCCH取值范围[6,4608],NR PUSCH取值范围[？]
-    uint16_t           RmDecodeOut;      //RM译码结果，bit0-bit10有效，LTE扩展CP PUCCH fmt2a/2b对应bit0-bit12有效
+    uint8_t       uciBitNum;           //译码输出比特长度，取值范围[3,11],LTE扩展CP PUCCH fmt2a/2b可取值12和13,译码输入参数                                   
+    uint8_t       codeMethod;          //20对应LTE PUCCH的（20，A）编码；24对应LTE PUCCH的（24，O）编码；32对应NR PUCCH&PUSCH的（32，K）或LTE PUSCH的（32，O）编码；
+    uint8_t       ueIdx;
+    uint8_t       uciType;
     
-    uint16_t           RmDecodeMaxDtx;   //RM最大打分值的DTX检测结果，取值范围[]
-    uint16_t           RmDecodeSubDtx;   //RM次大打分值的DTX检测结果，取值范围[]
+    uint32_t      llrNum;              //取值20,24或32。20对应LTE PUCCH的（20，A）编码，24对应LTE PUCCH的（24，O）编码，32对应NR PUCCH&PUSCH的（32，K）或LTE PUSCH的（32，O）编码,译码输入参数
 
-    uint8_t            *pBitInputAddr;   //输入数据存放起始地址
+    uint8_t	      llrSegNum;	   
+    uint8_t       rsvd[3];
+    
+    LlrSegInfo    llrSegInfo[5];
+	uint32_t      OutputAddr;           //译码输出数据地址
 }RMDecodePduInfo;
 
 typedef struct
