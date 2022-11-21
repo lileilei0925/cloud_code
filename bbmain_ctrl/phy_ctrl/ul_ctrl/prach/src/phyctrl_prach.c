@@ -10,7 +10,7 @@ uint32_t L1PrachRxInitParas(L1PrachParaPduInfo *l1prachParaPduInfoIn, L1PrachCon
 uint32_t L1PrachParaParse2LowPhy(PrachRxParaLocal *prachRxParaLocal, PrachLowPhyHacPara *prachLowPhyParaOut);
 uint32_t L1PrachParaParse2Rpp(PrachRxParaLocal *prachRxParaLocal, PrachRPPHacPara *prachRppParaOut);
 uint32_t L1PrachParaParse2Dsp(PrachRxParaLocal *prachRxParaLocal, PrachDetectDspPara *prachDspParaOut);
-uint16_t PrachCvCalc(PrachRxParaLocal *prachRxParaLocal);
+uint32_t PrachCvCalc(PrachRxParaLocal *prachRxParaLocal, uint16_t *cyclicShift);
 
 #if 0
 int main(void)
@@ -28,24 +28,23 @@ int main(void)
 
 uint32_t L1PrachRxParasInit(L1PrachParaPduInfo *l1prachParaPduInfoIn, L1PrachConfigInfo *l1PrachConfigInfoIn, PrachRxParaLocal *prachRxParaLocal)
 {
-    L1PrachPduInfo *l1PrachPduInfo = NULL;
-    uint8_t prachPduNum, pduIndex;
-    uint8_t prachScs, puschScs;
-    uint8_t cellIndex;
-    uint8_t durationSymbols;
-    uint8_t preambleFormat;
-    uint8_t repeatTimesOcas;
+    uint8_t  prachPduNum, pduIndex;
+    uint8_t  prachScs, puschScs;
+    uint8_t  cellIndex;
+    uint8_t  durationSymbols;
+    uint8_t  preambleFormat;
+    uint8_t  repeatTimesOcas;
+    uint8_t  tdOcasIdx, numTdOcas;
+    uint8_t  fdOcasIdx,fdOcasStart, fdOcasCnt;
     uint16_t prachResCfgIdx;
     uint16_t nCpLen;
     uint32_t prachScsValue;
     uint32_t downSampleValue;
-    uint8_t tdOcasIdx, numTdOcas;
-    uint8_t fdOcasIdx,fdOcasStart, fdOcasCnt;
+    L1PrachPduInfo *l1PrachPduInfo = NULL;
 
-    prachPduNum = l1prachParaPduInfoIn->prachPduNum;
     prachRxParaLocal->numTdOccas = 0;
     prachRxParaLocal->numFdOccas = 0;
-
+    prachPduNum = l1prachParaPduInfoIn->prachPduNum;
     for (pduIndex = 0; pduIndex < prachPduNum; pduIndex++){
         l1PrachPduInfo = &l1prachParaPduInfoIn->l1PrachPduInfo[pduIndex];
         if (pduIndex == 0) {/* TD&FD公共参数只计算一次 */
@@ -54,10 +53,10 @@ uint32_t L1PrachRxParasInit(L1PrachParaPduInfo *l1prachParaPduInfoIn, L1PrachCon
             prachRxParaLocal->cellIdx          = cellIndex;
             prachRxParaLocal->prachResCfgIdx   = prachResCfgIdx;
             prachRxParaLocal->prachConfigIndex = l1PrachConfigInfoIn[prachResCfgIdx].prachConfigIndex;
-            prachScs                          = l1PrachConfigInfoIn[prachResCfgIdx].prachSubCSpacing;
-            puschScs                          = l1PrachConfigInfoIn[prachResCfgIdx].ulBwpPuschScs; 
-            prachScsValue                     = g_PreambleforFraKbar[prachScs][puschScs].prachScsValue;
-            preambleFormat                    = l1PrachPduInfo->prachFormat;
+            prachScs                           = l1PrachConfigInfoIn[prachResCfgIdx].prachSubCSpacing;
+            puschScs                           = l1PrachConfigInfoIn[prachResCfgIdx].ulBwpPuschScs; 
+            prachScsValue                      = g_PreambleforFraKbar[prachScs][puschScs].prachScsValue;
+            preambleFormat                     = l1PrachPduInfo->prachFormat;
             prachRxParaLocal->prachScs         = prachScs;
             prachRxParaLocal->puschScs         = puschScs; 
             prachRxParaLocal->nRaRB            = g_PreambleforFraKbar[prachScs][puschScs].nRaRB;
@@ -70,18 +69,16 @@ uint32_t L1PrachRxParasInit(L1PrachParaPduInfo *l1prachParaPduInfoIn, L1PrachCon
             
             g_prachPduHandle[cellIndex].numPdu =  prachPduNum;
 
-            if(prachRxParaLocal->prachRaLength == 0)
-            {
-                prachRxParaLocal->nfftSize     = 1536; 
-                prachRxParaLocal->prachZcSize  = 839;
+            if(prachRxParaLocal->prachRaLength == 0){
+                prachRxParaLocal->nfftSize     = PRACH_FFT_LEN_839; 
+                prachRxParaLocal->prachZcSize  = PRACH_ZC_LEN_839;
                 repeatTimesOcas = g_PreambleforLRa139[preambleFormat - PRACH_FORMAT_A1].repeatTimesOcas;
-                downSampleValue = g_DownSamplingValue139[prachScsValue];
+                downSampleValue = g_DownSamplingValue139[prachScsValue]; 
                 nCpLen          = g_PreambleforLRa139[preambleFormat - PRACH_FORMAT_A1].udRaCp >> puschScs;
             }
-            else
-            {
-                prachRxParaLocal->nfftSize     = 256; 
-                prachRxParaLocal->prachZcSize  = 139;
+            else{
+                prachRxParaLocal->nfftSize     = PRACH_FFT_LEN_139; 
+                prachRxParaLocal->prachZcSize  = PRACH_ZC_LEN_139;
                 repeatTimesOcas = g_PreambleforLRa839[preambleFormat - PRACH_FORMAT_0].repeatTimesOcas;
                 downSampleValue = g_DownSamplingValue839[prachScsValue];
                 nCpLen          = g_PreambleforLRa839[preambleFormat - PRACH_FORMAT_0].udRaCp >> puschScs;
@@ -101,8 +98,8 @@ uint32_t L1PrachRxParasInit(L1PrachParaPduInfo *l1prachParaPduInfoIn, L1PrachCon
 
             numTdOcas  = l1PrachPduInfo->prachTdOcasNum;
             for (tdOcasIdx = 0; tdOcasIdx < numTdOcas; tdOcasIdx++){
-                prachRxParaLocal->prachRxTdFdOcasInfo[tdOcasIdx].tdOccasIdx = tdOcasIdx;
-                prachRxParaLocal->prachRxTdFdOcasInfo[tdOcasIdx].startSymb  = l1PrachPduInfo->prachStartSymb + durationSymbols * tdOcasIdx; 
+                prachRxParaLocal->prachRxFdOcasInfo[tdOcasIdx].tdOccasIdx = tdOcasIdx;
+                prachRxParaLocal->prachRxFdOcasInfo[tdOcasIdx].startSymb  = l1PrachPduInfo->prachStartSymb + durationSymbols * tdOcasIdx; 
             }
         }
 
@@ -113,10 +110,11 @@ uint32_t L1PrachRxParasInit(L1PrachParaPduInfo *l1prachParaPduInfoIn, L1PrachCon
         fdOcasCnt = 0;
         for (tdOcasIdx = 0; tdOcasIdx < numTdOcas; tdOcasIdx++){    
             for (fdOcasIdx = fdOcasStart; fdOcasIdx < prachRxParaLocal->numFdOccas; fdOcasIdx++){ /* fdOcasIdx 从0起始 */
-                prachRxParaLocal->prachRxTdFdOcasInfo[tdOcasIdx].fdOccasIdx[fdOcasIdx]   = l1PrachPduInfo->PrachFdmIndex + fdOcasCnt;
-                prachRxParaLocal->prachRxTdFdOcasInfo[tdOcasIdx].handle[fdOcasIdx]       = l1PrachPduInfo->handle;
-                prachRxParaLocal->prachRxTdFdOcasInfo[tdOcasIdx].rootSeqIndex[fdOcasIdx] = l1PrachConfigInfoIn[prachResCfgIdx].prachRootSequenceIndex[l1PrachPduInfo->PrachFdmIndex];
-                prachRxParaLocal->prachRxTdFdOcasInfo[tdOcasIdx].numZcRootSeq[fdOcasIdx] = l1PrachConfigInfoIn[prachResCfgIdx].numRootSequences[l1PrachPduInfo->PrachFdmIndex];
+                prachRxParaLocal->prachRxFdOcasInfo[tdOcasIdx].fdOccasIdx[fdOcasIdx]   = l1PrachPduInfo->PrachFdmIndex + fdOcasCnt;
+                prachRxParaLocal->prachRxFdOcasInfo[tdOcasIdx].handle[fdOcasIdx]       = l1PrachPduInfo->handle;
+                prachRxParaLocal->prachRxFdOcasInfo[tdOcasIdx].nK1[fdOcasIdx]          = l1PrachConfigInfoIn[prachResCfgIdx].k1[l1PrachPduInfo->PrachFdmIndex];
+                prachRxParaLocal->prachRxFdOcasInfo[tdOcasIdx].rootSeqIndex[fdOcasIdx] = l1PrachConfigInfoIn[prachResCfgIdx].prachRootSequenceIndex[l1PrachPduInfo->PrachFdmIndex];
+                prachRxParaLocal->prachRxFdOcasInfo[tdOcasIdx].numZcRootSeq[fdOcasIdx] = l1PrachConfigInfoIn[prachResCfgIdx].numRootSequences[l1PrachPduInfo->PrachFdmIndex];
                 fdOcasCnt++;
             }
         }
@@ -125,7 +123,7 @@ uint32_t L1PrachRxParasInit(L1PrachParaPduInfo *l1prachParaPduInfoIn, L1PrachCon
     return 0;
 }
 
-/* Option8 split:  PRACH LowPhy Enable; Option7-2x split:  PRACH LowPhy Disable; */
+/* Option8 split:PRACH LowPhy Enable;  Option7-2x split: PRACH LowPhy Disable; */
 uint32_t L1PrachParaParse2LowPhy(PrachRxParaLocal *prachRxParaLocal, PrachLowPhyHacPara *prachLowPhyParaOut)
 {
     uint16_t ulBwpBandwdith;
@@ -147,8 +145,8 @@ uint32_t L1PrachParaParse2LowPhy(PrachRxParaLocal *prachRxParaLocal, PrachLowPhy
     prachLowPhyParaOut->fftShifEn     = 1;
     prachLowPhyParaOut->fdRssiEn      = 1;
     prachLowPhyParaOut->outIQAlignEn  = 1; 
-    prachLowPhyParaOut->sfnNum        = prachRxParaLocal->sfnNum;
-    prachLowPhyParaOut->slotNum       = prachRxParaLocal->slotNum;
+    prachLowPhyParaOut->sfnIndex      = prachRxParaLocal->sfnIndex;
+    prachLowPhyParaOut->slotIndex     = prachRxParaLocal->slotIndex;
     prachLowPhyParaOut->cellIdx       = prachRxParaLocal->cellIdx;
     prachLowPhyParaOut->rxAntNum      = prachRxParaLocal->rxAntNum;
     prachLowPhyParaOut->longOrShortRa = prachRxParaLocal->prachRaLength;
@@ -168,7 +166,7 @@ uint32_t L1PrachParaParse2LowPhy(PrachRxParaLocal *prachRxParaLocal, PrachLowPhy
     puschScsValue = prachRxParaLocal->puschScsValue;
     nCpLength     = prachRxParaLocal->nCpLen;
     nCpLength = (nCpLength * downSampleValue) / 3072000000;
-    if (((puschScsValue == 15000) && ((prachLowPhyParaOut->slotNum % 5) == 0)) || ((puschScsValue == 30000) && ((prachLowPhyParaOut->slotNum % 10) == 0))){
+    if (((puschScsValue == 15000) && ((prachLowPhyParaOut->slotIndex % 5) == 0)) || ((puschScsValue == 30000) && ((prachLowPhyParaOut->slotIndex % 10) == 0))){
         nCpLength = nCpLength + (16 * downSampleValue) / 3072000000;
     }
     prachLowPhyParaOut->cutCpLen = nCpLength;
@@ -185,14 +183,14 @@ uint32_t L1PrachParaParse2LowPhy(PrachRxParaLocal *prachRxParaLocal, PrachLowPhy
     for (tdOcasIdx = 0; tdOcasIdx < numTdOcas; tdOcasIdx++)
     {
         prachLowPhyParaOut->tdFdOcasInfoLowPhy[tdOcasIdx].tdOccasIdx = tdOcasIdx;
-        prachLowPhyParaOut->tdFdOcasInfoLowPhy[tdOcasIdx].startSymb  = prachRxParaLocal->prachRxTdFdOcasInfo[tdOcasIdx].startSymb; 
+        prachLowPhyParaOut->tdFdOcasInfoLowPhy[tdOcasIdx].startSymb  = prachRxParaLocal->prachRxFdOcasInfo[tdOcasIdx].startSymb; 
         
         for (fdOcasIdx = 0; fdOcasIdx < prachRxParaLocal->numFdOccas; fdOcasIdx++)
         {
-            prachLowPhyParaOut->tdFdOcasInfoLowPhy[tdOcasIdx].fdOccasIdx[fdOcasIdx] = prachRxParaLocal->prachRxTdFdOcasInfo[tdOcasIdx].fdOccasIdx[fdOcasIdx];
-            prachLowPhyParaOut->tdFdOcasInfoLowPhy[tdOcasIdx].handle[fdOcasIdx]     = prachRxParaLocal->prachRxTdFdOcasInfo[tdOcasIdx].handle[fdOcasIdx];
-            freqOffsetRb0  = prachRxParaLocal->prachRxTdFdOcasInfo[tdOcasIdx].nK1[fdOcasIdx];
-            freqShiftValue = (freqOffsetRb0 - (ulBwpBandwdith - raRbLenth)>>1) * N_SC_PER_PRB * (puschScsValue/prachScsValue) + raKbar; 
+            prachLowPhyParaOut->tdFdOcasInfoLowPhy[tdOcasIdx].fdOccasIdx[fdOcasIdx] = prachRxParaLocal->prachRxFdOcasInfo[tdOcasIdx].fdOccasIdx[fdOcasIdx];
+            prachLowPhyParaOut->tdFdOcasInfoLowPhy[tdOcasIdx].handle[fdOcasIdx]     = prachRxParaLocal->prachRxFdOcasInfo[tdOcasIdx].handle[fdOcasIdx];
+            freqOffsetRb0  = prachRxParaLocal->prachRxFdOcasInfo[tdOcasIdx].nK1[fdOcasIdx];
+            freqShiftValue = (freqOffsetRb0 - (ulBwpBandwdith - raRbLenth)>>1) * N_SC_PER_PRB * (puschScsValue / prachScsValue) + raKbar; 
             freqShiftValue = freqShiftValue * prachScsValue * 1000;
             prachLowPhyParaOut->tdFdOcasInfoLowPhy[tdOcasIdx].prachPhaseStep[fdOcasIdx] = freqShiftValue;
             //prachLowPhyParaOut->tdOcasAndFdOcasInfo[tdOcasIdx].outPutIQBuffAddr[fdOcasIdx] = 0x00000000;
@@ -209,8 +207,8 @@ uint32_t L1PrachParaParse2Rpp(PrachRxParaLocal *prachRxParaLocal, PrachRPPHacPar
     uint8_t  preambleFormat;
     uint8_t  tdOcasIdx, fdOcasIdx, rootIdx;
 
-    prachRppParaOut->sfnNum           = prachRxParaLocal->sfnNum;
-    prachRppParaOut->slotNum          = prachRxParaLocal->slotNum;
+    prachRppParaOut->sfnIndex           = prachRxParaLocal->sfnIndex;
+    prachRppParaOut->slotIndex          = prachRxParaLocal->slotIndex;
     prachRppParaOut->cellIdx          = prachRxParaLocal->cellIdx;
     prachRppParaOut->rxAntNum         = prachRxParaLocal->rxAntNum;
     prachRppParaOut->prachLength      = prachRxParaLocal->prachRaLength;
@@ -227,9 +225,9 @@ uint32_t L1PrachParaParse2Rpp(PrachRxParaLocal *prachRxParaLocal, PrachRPPHacPar
         for (fdOcasIdx = 0; fdOcasIdx < prachRppParaOut->numFdOccas; fdOcasIdx++)
         {
             prachTdFdOcasRpp               = &prachRppParaOut->prachTdFdOcasRpp[tdOcasIdx][fdOcasIdx];
-            prachTdFdOcasRpp->handle       = prachRxParaLocal->prachRxTdFdOcasInfo[tdOcasIdx].handle[fdOcasIdx];
-            prachTdFdOcasRpp->rootSeqIndex = prachRxParaLocal->prachRxTdFdOcasInfo[tdOcasIdx].rootSeqIndex[fdOcasIdx];
-            prachTdFdOcasRpp->numZcRootSeq = prachRxParaLocal->prachRxTdFdOcasInfo[tdOcasIdx].numZcRootSeq[fdOcasIdx];
+            prachTdFdOcasRpp->handle       = prachRxParaLocal->prachRxFdOcasInfo[tdOcasIdx].handle[fdOcasIdx];
+            prachTdFdOcasRpp->rootSeqIndex = prachRxParaLocal->prachRxFdOcasInfo[tdOcasIdx].rootSeqIndex[fdOcasIdx];
+            prachTdFdOcasRpp->numZcRootSeq = prachRxParaLocal->prachRxFdOcasInfo[tdOcasIdx].numZcRootSeq[fdOcasIdx];
 
             if(prachRppParaOut->prachLength = 0){
                 prachTdFdOcasRpp->inputZcBuffAddr = 0x00000001; /* 输入根序列 DDr Buffer首地址， 长序列地址 */ 
@@ -253,10 +251,10 @@ uint32_t L1PrachParaParse2Dsp(PrachRxParaLocal *prachRxParaLocal, PrachDetectDsp
 {
     uint8_t  tdOcasIdx, fdOcasIdx;
     uint16_t rootSeqIdx,rootSeqNum;
-    uint16_t nNcs, nCv;
+    uint16_t nNcs, nCv[64];
 
-    prachDspParaOut->sfnNum    = prachRxParaLocal->sfnNum;
-    prachDspParaOut->slotNum   = prachRxParaLocal->slotNum;
+    prachDspParaOut->sfnIndex    = prachRxParaLocal->sfnIndex;
+    prachDspParaOut->slotIndex   = prachRxParaLocal->slotIndex;
     prachDspParaOut->cellIdx   = prachRxParaLocal->cellIdx;
     prachDspParaOut->rxAntNum  = prachRxParaLocal->rxAntNum;
     prachDspParaOut->nFftSzie  = prachRxParaLocal->nfftSize;
@@ -295,17 +293,17 @@ uint32_t L1PrachParaParse2Dsp(PrachRxParaLocal *prachRxParaLocal, PrachDetectDsp
         prachDspParaOut->numExcursion = 5;
     }
 
-    nCv = PrachCvCalc(prachRxParaLocal);
+    PrachCvCalc(prachRxParaLocal, &nCv[0]);
 
     for (tdOcasIdx = 0; tdOcasIdx < prachRxParaLocal->numTdOccas; tdOcasIdx++)
     {
-        prachDspParaOut->prachTdOcasDsp[tdOcasIdx].tdOcasFirstSym    = prachRxParaLocal->prachRxTdFdOcasInfo[tdOcasIdx].startSymb;
+        //prachDspParaOut->prachTdOcasDsp[tdOcasIdx].tdOcasFirstSym    = prachRxParaLocal->prachRxFdOcasInfo[tdOcasIdx].startSymb;
         prachDspParaOut->prachTdOcasDsp[tdOcasIdx].pdpSeqAddr        = 0x00000000;
         for (fdOcasIdx = 0; fdOcasIdx < prachRxParaLocal->numFdOccas; fdOcasIdx++)
         {
             //prachDspParaOut->prachTdOcasDsp[tdOcasIdx].pdpSeqPerZcOffSet = 0x00000000;
-            prachDspParaOut->prachTdOcasDsp[tdOcasIdx].handle[fdOcasIdx] = prachRxParaLocal->prachRxTdFdOcasInfo[tdOcasIdx].handle[fdOcasIdx];
-            prachDspParaOut->prachTdOcasDsp[tdOcasIdx].numZcRootSeq[fdOcasIdx]  = prachRxParaLocal->prachRxTdFdOcasInfo[tdOcasIdx].numZcRootSeq[fdOcasIdx]; 
+            prachDspParaOut->prachTdOcasDsp[tdOcasIdx].handle[fdOcasIdx] = prachRxParaLocal->prachRxFdOcasInfo[tdOcasIdx].handle[fdOcasIdx];
+            prachDspParaOut->prachTdOcasDsp[tdOcasIdx].numZcRootSeq[fdOcasIdx]  = prachRxParaLocal->prachRxFdOcasInfo[tdOcasIdx].numZcRootSeq[fdOcasIdx]; 
             //prachDspParaOut->prachTdOcasDsp[tdOcasIdx].fdmAddrOffset[fdOcasIdx] = 0x00000000;
         }
     }
@@ -336,16 +334,16 @@ uint32_t UlCarrierSampleRateCalc(uint16_t ulBwpBandwdith)
     return sampleRateCarry;
 }
 
-uint16_t PrachCvCalc(PrachRxParaLocal *prachRxParaLocal)
+uint32_t PrachCvCalc(PrachRxParaLocal *prachRxParaLocal, uint16_t *cyclicShift)
 {
-    uint16_t rootIdx;
+    uint16_t rootIdx, vIdx;
     uint16_t raLength;
     uint16_t qIdx, qValue, du;
-    uint16_t nNcs, nCv;
+    uint16_t nNcs;
     uint16_t nRaShift, dStart, nRaGroup, nBarRaShift;
     uint16_t wRestrictedA;
 
-    rootIdx  = prachRxParaLocal->prachRxTdFdOcasInfo[0].rootSeqIndex[0];
+    rootIdx  = prachRxParaLocal->prachRxFdOcasInfo[0].rootSeqIndex[0];
     raLength = prachRxParaLocal->prachZcSize;
     nNcs     = prachRxParaLocal->nNcs;
     for (qIdx = 0; qIdx < raLength; qIdx++){
@@ -364,10 +362,12 @@ uint16_t PrachCvCalc(PrachRxParaLocal *prachRxParaLocal)
 
     if(prachRxParaLocal->restrictedSetType == 0){
         if(nNcs == 0){
-            nCv = 0;  
+            memset(&cyclicShift[0], 0x0, sizeof(uint16_t));  
         }
         else{
-            nCv = nNcs;
+            for(vIdx = 0; vIdx < (raLength / nNcs); vIdx++){
+                cyclicShift[vIdx] = vIdx * nNcs;
+            }
         }
     }
     else if(prachRxParaLocal->restrictedSetType == 1){
@@ -392,15 +392,15 @@ uint16_t PrachCvCalc(PrachRxParaLocal *prachRxParaLocal)
                 nBarRaShift = nRaShift;
             }
         }
-        wRestrictedA =  nRaShift * nRaGroup + nBarRaShift;
 
+        wRestrictedA =  nRaShift * nRaGroup + nBarRaShift;
+        for(vIdx = 0; vIdx < wRestrictedA; vIdx++){
+            cyclicShift[vIdx] = dStart * (vIdx / nRaShift) + (vIdx % nRaShift) * nNcs;
+        }
     }
     else
     {
         return 0xFFFF;
     } 
-
-    return nCv;
 }
-
 
