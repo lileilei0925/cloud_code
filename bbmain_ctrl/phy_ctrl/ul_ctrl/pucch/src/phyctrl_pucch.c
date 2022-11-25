@@ -111,7 +111,7 @@ void PucchNcsandUVCalc(uint8_t SlotIdx, uint16_t PucchHoppingId,uint8_t GroupHop
     }
 }
 
-void PucchFmt0Pduparse(PucParam *pucParam, FapiNrMsgPucchPduInfo *fapipucchpduInfo, uint8_t intraSlotFreqHopping, uint8_t groupOrSequenceHopping,uint8_t slotNum)
+void PucchFmt0Pduparse(PucParam *pucParam, FapiNrMsgPucchPduInfo *fapipucchpduInfo, uint8_t intraSlotFreqHopping, uint8_t groupOrSequenceHopping, uint16_t pduIndex, uint8_t slotNum)
 {
     uint8_t SymbIdx;
     PucFmt0Param *fmt0Param = NULL;
@@ -122,22 +122,26 @@ void PucchFmt0Pduparse(PucParam *pucParam, FapiNrMsgPucchPduInfo *fapipucchpduIn
     pucParam->uciSymNum[1]  = pucParam->symNum - pucParam->uciSymNum[0];
 
     fmt0Param = (PucFmt0Param *)((uint8_t *)pucParam  + sizeof(PucParam) - sizeof(PucFmt1Param));
-    fmt0Param->srFlag        = fapipucchpduInfo->srFlag;
-    fmt0Param->harqBitLength = fapipucchpduInfo->bitLenHarq;
+    fmt0Param->pduIdxInner = pduIndex;
+    fmt0Param->uciBitNum   = (fapipucchpduInfo->srFlag) + (fapipucchpduInfo->bitLenHarq);
     PucchNcsandUVCalc(slotNum,fapipucchpduInfo->nIdPucchHopping,fapipucchpduInfo->groupOrSequenceHopping);
     for (SymbIdx = 0; SymbIdx < SYM_NUM_PER_SLOT; SymbIdx++)
     {
         fmt0Param->cyclicShift[SymbIdx] = (fapipucchpduInfo->initCyclicShift + g_NcsValue[SymbIdx]) % SC_NUM_PER_RB;
     }
 
-    fmt0Param->rnti = fapipucchpduInfo->ueRnti;
 }
 
 void RMDecodeHacCfg(FapiNrMsgPucchPduInfo *fapipucchpduInfo, uint16_t uciLen ,uint8_t PduIdxInner, uint16_t sfnNum, uint8_t slotNum, uint8_t cellIndex)
 {
     uint8_t  pduNum;
+    uint8_t  totBit;
+    uint8_t  part1Bit;
+    uint8_t  maxCodeRate;
+    uint8_t  valQm;
     HacCfgHead      *hacHead;
     RMDecodePduInfo *rmInfo;
+    LlrSegInfo      *llrSegInfo;
 
     hacHead = &(g_rmDecodeHacCfgPara[cellIndex].hacCfgHead);
     pduNum  = hacHead->pduNum;
@@ -148,29 +152,51 @@ void RMDecodeHacCfg(FapiNrMsgPucchPduInfo *fapipucchpduInfo, uint16_t uciLen ,ui
     (hacHead->pduNum)++;
 
     rmInfo = &(g_rmDecodeHacCfgPara[cellIndex].rmPduInfo[pduNum]);
-    rmInfo->pduIdx          = PduIdxInner;
-    rmInfo->UciBitNum       = uciLen;
-    rmInfo->LlrNum          = 32;
+    rmInfo->uciBitNum  = uciLen;
+    rmInfo->ueIdx      = PduIdxInner;
+    rmInfo->codeMethod = 32;
+    rmInfo->uciType    = 0;//待修改
     if(PUCCH_FORMAT_2 == (fapipucchpduInfo->formatType))
     {
-        rmInfo->RateMatchBitLen = 16 * (fapipucchpduInfo->numSymbols) * (fapipucchpduInfo->prbSize);
+        rmInfo->llrNum = 16 * (fapipucchpduInfo->numSymbols) * (fapipucchpduInfo->prbSize);
     }
     else if(PUCCH_FORMAT_3 == (fapipucchpduInfo->formatType))
     {
-        rmInfo->RateMatchBitLen = 12 * (2 - (fapipucchpduInfo->pi2BpskFlag)) * (fapipucchpduInfo->numSymbols) * (fapipucchpduInfo->prbSize);
+        totBit = 12 * (2 - (fapipucchpduInfo->pi2BpskFlag)) * (fapipucchpduInfo->numSymbols) * (fapipucchpduInfo->prbSize);
+        if(!(fapipucchpduInfo->uciInfoAddInV3.numPart2s))
+        {
+            rmInfo->llrNum = totBit;
+        }
+        else
+        {
+            maxCodeRate = fapipucchpduInfo->pucchParaAddInV3.maxCodeRate;
+            valQm       = (2 - fapipucchpduInfo->pi2BpskFlag);
+            part1Bit    = ((uint16_t)((totBit - 1) / ((maxCodeRateTab[maxCodeRate]) * valQm)) + 1)*valQm;
+            rmInfo->llrNum = (totBit < part1Bit) ? totBit:part1Bit;
+        }
     }
-    //rmInfo->pBitInputAddr  = ;  
+    rmInfo->llrSegNum     = 1;
+    llrSegInfo = &rmInfo->llrSegInfo[0];
+    llrSegInfo->segStartAddr  = 0;//待修改
+    llrSegInfo->segCycNum     = 1;
+    llrSegInfo->segLlrNum     = rmInfo->llrNum;
+    llrSegInfo->segPeriod     = rmInfo->llrNum;
 }
 
 void PolarDecodeHacCfg(FapiNrMsgPucchPduInfo *fapipucchpduInfo, uint16_t uciLen ,uint8_t PduIdxInner, uint16_t sfnNum, uint8_t slotNum, uint8_t cellIndex)
 {
     uint8_t  pduNum;
+    uint8_t  totBit;
+    uint8_t  part1Bit;
+    uint8_t  maxCodeRate;
+    uint8_t  valQm;
     uint16_t K;
     uint16_t n;
     uint16_t n1;
     uint16_t n2;
     HacCfgHead         *hacHead;
     PolarDecodePduInfo *polarInfo;
+    LlrSegInfo         *llrSegInfo;
 
     hacHead = &(g_polarDecodeHacCfgPara[cellIndex].hacCfgHead);
     pduNum  = hacHead->pduNum;
@@ -183,64 +209,59 @@ void PolarDecodeHacCfg(FapiNrMsgPucchPduInfo *fapipucchpduInfo, uint16_t uciLen 
     polarInfo = &(g_polarDecodeHacCfgPara[cellIndex].polarPduInfo[pduNum]);
     if((12 <= uciLen) && (19 >= uciLen))
     {
-        polarInfo->sizeCrcL = 6;
-        polarInfo->lenQpc   = 3;
+        K = uciLen + 6;
     }
     else
     {
-        polarInfo->sizeCrcL = 11;
-        polarInfo->lenQpc   = 0;
+        K = uciLen + 11;
     }
     
-    //polarInfo->pathNum//
-    //polarInfo->BitInputAddrOffset//
-    //polarInfo->OutAddrOffset//
-    polarInfo->sizeOutput = uciLen;
-    K = (polarInfo->sizeCrcL) + uciLen;
+    polarInfo->uciBitNum = uciLen;
     if(PUCCH_FORMAT_2 == (fapipucchpduInfo->formatType))
     {
-        polarInfo->sizeRmLenth = 16 * (fapipucchpduInfo->numSymbols) * (fapipucchpduInfo->prbSize);
+         polarInfo->llrNum = 16 * (fapipucchpduInfo->numSymbols) * (fapipucchpduInfo->prbSize);
     }
     else if(PUCCH_FORMAT_3 == (fapipucchpduInfo->formatType))
     {
-        polarInfo->sizeRmLenth = 12 * (2 - (fapipucchpduInfo->pi2BpskFlag)) * (fapipucchpduInfo->numSymbols) * (fapipucchpduInfo->prbSize);
+        totBit = 12 * (2 - (fapipucchpduInfo->pi2BpskFlag)) * (fapipucchpduInfo->numSymbols) * (fapipucchpduInfo->prbSize);
+        if(!(fapipucchpduInfo->uciInfoAddInV3.numPart2s))
+        {
+            polarInfo->llrNum = totBit;
+        }
+        else
+        {
+            maxCodeRate = fapipucchpduInfo->pucchParaAddInV3.maxCodeRate;
+            valQm       = (2 - fapipucchpduInfo->pi2BpskFlag);
+            part1Bit    = ((uint16_t)((totBit - 1) / ((maxCodeRateTab[maxCodeRate]) * valQm)) + 1)*valQm;
+            polarInfo->llrNum = (totBit < part1Bit) ? totBit:part1Bit;
+        }
     }
 
-    if((8 * (polarInfo->sizeRmLenth)) <= (9 * (2>>(log2Ceiling(polarInfo->sizeRmLenth) - 1)))
-        && ((16 * K) < (9 * (polarInfo->sizeRmLenth))))//E<=(9/8)*2^(Ceil(log2E)-1) and K/E<9/16
+    if(((8 * (polarInfo->llrNum)) <= (9 * (2>>(log2Ceiling(polarInfo->llrNum) - 1))))
+        && ((16 * K) < (9 * (polarInfo->llrNum))))//E<=(9/8)*2^(Ceil(log2E)-1) and K/E<9/16
     {
-        n1 = log2Ceiling(polarInfo->sizeRmLenth) - 1;
+        n1 = log2Ceiling(polarInfo->llrNum) - 1;
     }
     else
     {
-        n1 = log2Ceiling(polarInfo->sizeRmLenth);
+        n1 = log2Ceiling(polarInfo->llrNum);
     }
     n2 = log2Ceiling(8 * K);
     n = (n1 < n2) ? n1:n2;
     n = (n < 10) ? n:10;
     n = (n < 5) ? 5:n;
-    polarInfo->sizeDecodingIn = (2>>n);
+    polarInfo->nVal = n;
 
-    if((polarInfo->sizeRmLenth) >= (polarInfo->sizeDecodingIn))
-    {
-        polarInfo->typeRM = REPETITION;
-    }
-    else
-    {
-        if((16 * (polarInfo->sizeDecodingIn)) <= (7 * (polarInfo->sizeRmLenth)))//K/E<=7/16
-        {
-            polarInfo->typeRM = PUNTURING;
-        }
-        else
-        {
-            polarInfo->typeRM = SHORTENING;
-        }
-    }
+    polarInfo->sizeT = ceil((sqrt(8 * (polarInfo->llrNum) + 1) - 1)/2);
 
-    polarInfo->interTval = ceil((sqrt(8 * (polarInfo->sizeRmLenth) + 1) -1 ) /2);
+    llrSegInfo = &polarInfo->llrSegInfo[0];
+    llrSegInfo->segStartAddr  = 0;//待修改
+    llrSegInfo->segCycNum     = 1;
+    llrSegInfo->segLlrNum     = polarInfo->llrNum;
+    llrSegInfo->segPeriod     = polarInfo->llrNum;
 }
 
-void PucchFmt2Pduparse(PucParam *pucParam, FapiNrMsgPucchPduInfo *fapipucchpduInfo, uint8_t intraSlotFreqHopping, uint16_t sfnNum, uint8_t slotNum, uint8_t cellIndex)
+void PucchFmt2Pduparse(PucParam *pucParam, FapiNrMsgPucchPduInfo *fapipucchpduInfo, uint8_t intraSlotFreqHopping, uint16_t pduIndex, uint16_t sfnNum, uint8_t slotNum, uint8_t cellIndex)
 {
 		uint8_t  StartSaveIdx;
         uint16_t uciLen;
@@ -271,20 +292,20 @@ void PucchFmt2Pduparse(PucParam *pucParam, FapiNrMsgPucchPduInfo *fapipucchpduIn
         PseudoRandomSeqGen(g_fmt2pilotScrambuff[1], Cinit, SequenceLen, StartSaveIdx);
         
         fmt2Param = (PucFmt2Param *)((uint8_t *)pucParam  + sizeof(PucParam) - sizeof(PucFmt1Param));
+        fmt2Param->pduIdxInner       = pduIndex;
         fmt2Param->srBitLen          = fapipucchpduInfo->srFlag;
         fmt2Param->harqBitLength     = fapipucchpduInfo->bitLenHarq;
         fmt2Param->csiPart1BitLength = fapipucchpduInfo->csiPart1BitLength;
-        fmt2Param->rnti              = fapipucchpduInfo->ueRnti;
         //fmt2Param->scrambSeqAddr[HOP_NUM];   /* 加扰序列在DDR中的存放地址,TODO:根据HAC存放确定是否需要2个hop的首地址 */ 
 
         uciLen  = (fmt2Param->srBitLen) + (fmt2Param->harqBitLength) + (fmt2Param->csiPart1BitLength);
         if((3 <= uciLen) && (11 >= uciLen))
         {
-            RMDecodeHacCfg(fapipucchpduInfo, uciLen, pucParam->PduIdxInner, sfnNum, slotNum, cellIndex);
+            RMDecodeHacCfg(fapipucchpduInfo, uciLen, pduIndex, sfnNum, slotNum, cellIndex);
         }
         else if(1706 >= uciLen)
         {
-            PolarDecodeHacCfg(fapipucchpduInfo, uciLen, pucParam->PduIdxInner, sfnNum, slotNum, cellIndex);
+            PolarDecodeHacCfg(fapipucchpduInfo, uciLen, pduIndex, sfnNum, slotNum, cellIndex);
         }
 }
 
@@ -308,7 +329,6 @@ void CalcPart1ReNum(PucParam *pucParam, PucFmt3Param *fmt3Param, uint8_t intraSl
     uint16_t totE;
     uint16_t valG1;
     uint16_t valG2;
-    float maxCodeRateTab[8] = {0.08, 0.15, 0.25, 0.35, 0.45, 0.60, 0.80, 0.80};
 
     valQm       = 2 - (fmt3Param->pi2bpsk);
     uciBitNum   = (fmt3Param->srBitLen) + (fmt3Param->harqBitLength) + (fmt3Param->csiPart1BitLength);
@@ -645,7 +665,7 @@ void CalcPart1ReNum(PucParam *pucParam, PucFmt3Param *fmt3Param, uint8_t intraSl
     }
 }
 
-void PucchFmt3Pduparse(PucParam *pucParam, FapiNrMsgPucchPduInfo *fapipucchpduInfo, uint8_t intraSlotFreqHopping, uint8_t groupOrSequenceHopping, uint16_t sfnNum, uint8_t slotNum, uint8_t cellIndex)
+void PucchFmt3Pduparse(PucParam *pucParam, FapiNrMsgPucchPduInfo *fapipucchpduInfo, uint8_t intraSlotFreqHopping, uint16_t pduIndex, uint8_t groupOrSequenceHopping, uint16_t sfnNum, uint8_t slotNum, uint8_t cellIndex)
 {
 	uint8_t  SymbIdx;
 	uint8_t  addDmrsFlag;
@@ -659,18 +679,22 @@ void PucchFmt3Pduparse(PucParam *pucParam, FapiNrMsgPucchPduInfo *fapipucchpduIn
 	addDmrsFlag  = fapipucchpduInfo->addDmrsFlag;
     maxCodeRate = (fapipucchpduInfo->pucchParaAddInV3.maxCodeRate)&0x7;
 	fmt3Param = (PucFmt3Param *)((uint8_t *)pucParam  + sizeof(PucParam) - sizeof(PucFmt1Param));
-	fmt3Param->pi2bpsk = fapipucchpduInfo->pi2BpskFlag;
-	fmt3Param->addDmrsFlag = addDmrsFlag;
-	fmt3Param->srBitLen = fapipucchpduInfo->srFlag;
-	fmt3Param->harqBitLength = fapipucchpduInfo->bitLenHarq;
+    fmt3Param->pduIdxInner       = pduIndex;
+	fmt3Param->pi2bpsk           = fapipucchpduInfo->pi2BpskFlag;
+	fmt3Param->srBitLen          = fapipucchpduInfo->srFlag;
+    fmt3Param->part2Exist        = (0 == (fapipucchpduInfo->uciInfoAddInV3.numPart2s)) ? 0:1;
+	fmt3Param->harqBitLength     = fapipucchpduInfo->bitLenHarq;
 	fmt3Param->csiPart1BitLength = fapipucchpduInfo->csiPart1BitLength;
-	fmt3Param->rnti = fapipucchpduInfo->ueRnti;
 
 	PucchNcsandUVCalc(slotNum,fapipucchpduInfo->nIdPucchHopping,groupOrSequenceHopping);
+    /*待修改
 	for (SymbIdx = 0; SymbIdx < SYM_NUM_PER_SLOT; SymbIdx++)
 	{
 	    fmt3Param->cyclicShift[SymbIdx] = (fapipucchpduInfo->initCyclicShift + g_NcsValue[SymbIdx]) % SC_NUM_PER_RB;
 	}
+    //dmrsSymIdx[HOP_NUM][PUC_FMT3_MAX_DMRS_NUM];  按照跳频指示的fmt3导频符号索引
+	//cyclicShift[HOP_NUM][PUC_FMT3_MAX_DMRS_NUM]; 按照跳频指示的fmt3导频符号的循环移位，符号间紧排
+    */
 
 	Cinit         = ((fapipucchpduInfo->ueRnti)<<15) + (fapipucchpduInfo->nIdPucchHopping);
 	SequenceLen   = 12*(2 - (fapipucchpduInfo->pi2BpskFlag))*(fapipucchpduInfo->numSymbols)*(fapipucchpduInfo->prbSize);
@@ -731,11 +755,11 @@ void PucchFmt3Pduparse(PucParam *pucParam, FapiNrMsgPucchPduInfo *fapipucchpduIn
     uciLen  = (fmt3Param->srBitLen) + (fmt3Param->harqBitLength) + (fmt3Param->csiPart1BitLength);
     if((3 <= uciLen) && (11 >= uciLen))
     {
-        RMDecodeHacCfg(fapipucchpduInfo, uciLen, pucParam->PduIdxInner, sfnNum, slotNum, cellIndex);
+        RMDecodeHacCfg(fapipucchpduInfo, uciLen, pduIndex, sfnNum, slotNum, cellIndex);
     }
-    else if(1706 >= uciLen)
+    else if(360 < uciLen)
     {
-        PolarDecodeHacCfg(fapipucchpduInfo, uciLen, pucParam->PduIdxInner, sfnNum, slotNum, cellIndex);
+        PolarDecodeHacCfg(fapipucchpduInfo, uciLen, pduIndex, sfnNum, slotNum, cellIndex);
     }
 }
 
@@ -757,7 +781,6 @@ void UlTtiRequestPucchFmt023Pduparse(FapiNrMsgPucchPduInfo *fapipucchpduInfo, Pu
     groupOrSequenceHopping = fapipucchpduInfo->groupOrSequenceHopping;
     intraSlotFreqHopping   = fapipucchpduInfo->intraSlotFreqHopping;
     /* 所在小区的小区级参数 */
-    pucParam->PduIdxInner  = pduIndex;
     pucParam->pucFormat    = fapipucchpduInfo->formatType;
     pucParam->rxAntNum     = g_cellConfigPara[cellIndex].rxAntNum;
 
@@ -782,13 +805,13 @@ void UlTtiRequestPucchFmt023Pduparse(FapiNrMsgPucchPduInfo *fapipucchpduInfo, Pu
 	switch(formatType)
 	{
 		case PUCCH_FORMAT_0:
-			PucchFmt0Pduparse(pucParam, fapipucchpduInfo, intraSlotFreqHopping, groupOrSequenceHopping, slotNum);
+			PucchFmt0Pduparse(pucParam, fapipucchpduInfo, intraSlotFreqHopping, groupOrSequenceHopping, pduIndex, slotNum);
 			break;
 		case PUCCH_FORMAT_2:
-			PucchFmt2Pduparse(pucParam, fapipucchpduInfo, intraSlotFreqHopping, sfnNum, slotNum, cellIndex);
+			PucchFmt2Pduparse(pucParam, fapipucchpduInfo, intraSlotFreqHopping, pduIndex, sfnNum, slotNum, cellIndex);
 			break;
 		case PUCCH_FORMAT_3:
-			PucchFmt3Pduparse(pucParam, fapipucchpduInfo, intraSlotFreqHopping, groupOrSequenceHopping, sfnNum, slotNum, cellIndex);
+			PucchFmt3Pduparse(pucParam, fapipucchpduInfo, intraSlotFreqHopping, pduIndex, groupOrSequenceHopping, sfnNum, slotNum, cellIndex);
 			break;
 		default:
 		break;
@@ -851,10 +874,9 @@ void UlTtiRequestPucchFmt1Pduparse(PucParam *pucParam, uint8_t pucchpduGroupCnt,
             }
 
             fmt1UEParam = &fmt1ParamOcc->fmt1UEParam[pucchindex];
-            fmt1UEParam->m0            = fapipucchpduInfo->initCyclicShift;
-            fmt1UEParam->srFlag        = fapipucchpduInfo->srFlag;
-            fmt1UEParam->harqBitLength = fapipucchpduInfo->bitLenHarq;
-            fmt1UEParam->rnti          = fapipucchpduInfo->ueRnti;   
+            fmt1UEParam->pduIdxInner  = pucchpduIndex;
+            fmt1UEParam->m0           = fapipucchpduInfo->initCyclicShift;
+            fmt1UEParam->uciBitNum    = (fapipucchpduInfo->srFlag) + (fapipucchpduInfo->bitLenHarq);
         }
 
         if(MinUserOcc > pucchuserNumPerOcc)
@@ -873,7 +895,6 @@ void UlTtiRequestPucchFmt1Pduparse(PucParam *pucParam, uint8_t pucchpduGroupCnt,
 
     intraSlotFreqHopping = fapipucchpduInfo->intraSlotFreqHopping;
     /* 所在小区的小区级参数 */
-    //pucParam->PduIdxInner  = pduIndex;需要修改，塞到各种格式下
     pucParam->pucFormat    = fapipucchpduInfo->formatType;
     pucParam->rxAntNum     = g_cellConfigPara[cellIndex].rxAntNum;
     /* frequency domain */

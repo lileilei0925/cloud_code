@@ -7,6 +7,7 @@
 #define MAX_USER_NUM_PER_OCC 6
 #define SC_NUM_PER_RB 12
 #define MAX_DMRS_SYM_NUM 7
+#define PUC_FMT3_MAX_DMRS_NUM 4
 #define MAX_PUCCH_NUM 50    /* 待定 */
 
 enum PUCCH_FORMAT
@@ -20,34 +21,31 @@ enum PUCCH_FORMAT
  
 typedef struct
 {
-	uint8_t  srFlag;       					    /* 是否SR发送时机，0:无SR，1:SR发送时机 */
-    uint8_t  harqBitLength;  					/* HARQ的payload,取值[0,2] */
-	uint8_t  cyclicShift[SYM_NUM_PER_SLOT]; 	/* 38.211协议 6.3.2.2.2计算得到的各符号α值，取值[0,11] */
-	uint16_t rnti;							    /* UE唯一标识，取值[1,65535] */
-    uint8_t  rsvd[2];
+	uint8_t  pduIdxInner;                   /* 物理层内部使用的每个UE的索引 */
+    uint8_t  uciBitNum;  					/* UCI的payload,取值[1,2] */
+	uint8_t  cyclicShift[SYM_NUM_PER_SLOT]; /* 38.211协议 6.3.2.2.2计算得到的各符号α值，取值[0,11] */
 }PucFmt0Param;
 
 typedef struct
 {
-    uint8_t  rsvd[3];
-    uint8_t  m0;            /* initial cyclic shift */
-    uint8_t  srFlag;        /* 是否SR发送时机，0:无SR，1:SR发送时机 */
-    uint8_t  harqBitLength; /* HARQ的payload,取值[0,2] */
-    uint16_t rnti;
+    uint8_t  pduIdxInner;                   /* 物理层内部使用的每个UE的索引 */
+    uint8_t  rsvd;
+    uint8_t  m0;                            /* initial cyclic shift */
+    uint8_t  uciBitNum;  					/* UCI的payload,取值[1,2] */
 }Fmt1UEParam;
 
 typedef struct
 {
-    uint16_t ueTapBitMap[SYM_NUM_PER_SLOT];    /* 当前OCC所有ue在某OFDM符号上的alpha值的bitmap，如alpha值为3，那么bit3设为1;alpha等于(N_SC_PER_PRB - m0)mod(N_SC_PER_PRB) */
-    uint8_t rsvd[2];
-    uint8_t timeDomainOccIdx;                     /* 时域OCC的索引值，取值[0,6] */
-    uint8_t userNumPerOcc;                        /* 每个OCC上复用的用户数，协议规定最多12个，实际最多6个，取值[1,6] */
-    Fmt1UEParam fmt1UEParam[MAX_USER_NUM_PER_OCC];/* 当前OCC上fmt1 UE参数 */
+    uint16_t    ueTapBitMap[SYM_NUM_PER_SLOT];        /* 当前OCC所有ue在某OFDM符号上的alpha值的bitmap，如alpha值为3，那么bit3设为1;alpha等于(N_SC_PER_PRB - m0)mod(N_SC_PER_PRB) */
+    uint8_t     rsvd[2];
+    uint8_t     timeDomainOccIdx;                     /* 时域OCC的索引值，取值[0,6] */
+    uint8_t     userNumPerOcc;                        /* 每个OCC上复用的用户数，协议规定最多12个，实际最多6个，取值[1,6] */
+    Fmt1UEParam fmt1UEParam[MAX_USER_NUM_PER_OCC];    /* 当前OCC上fmt1 UE参数 */
 }Fmt1ParamOcc;
 
 typedef struct
 {  
-    uint8_t cyclicShift[SYM_NUM_PER_SLOT];   /* 38.211协议 6.3.2.2.2计算得到的各符号α值，取值[0,11]，注意不用加m0和mcs */
+    uint8_t cyclicShift[SYM_NUM_PER_SLOT];      /* 38.211协议 6.3.2.2.2计算得到的各符号α值，取值[0,11]，注意不用加m0和mcs */
     uint8_t occNum;                             /* occ数目 */
     uint8_t MinUserOccIdx;                      /* 复用用户数最少的OCC在数组中的索引 */
     Fmt1ParamOcc fmt1ParamOcc[MAX_OCC_NUM_FMT1];/* fmt1 OCC级参数 */
@@ -55,49 +53,46 @@ typedef struct
 
 typedef struct
 {
+    uint8_t  pduIdxInner;               /* 物理层内部使用的每个UE的索引 */
 	uint8_t  srBitLen;                  /* SR比特数，取值[0,4] */
-    uint8_t  rsvd;
+    uint8_t  rsvd[2];
 	uint16_t harqBitLength;	            /* HARQ的payload,取值[0,1706]除了1 */
     uint16_t csiPart1BitLength;         /* CSI part1的payload,取值[0,1706] */
-	uint16_t rnti;			            /* UE唯一标识，取值[1,65535] */
     uint32_t *scrambSeqAddr[HOP_NUM];   /* 加扰序列在DDR中的存放地址,TODO:根据HAC存放确定是否需要2个hop的首地址 */
 }PucFmt2Param;
 
 typedef struct
 {
-	uint16_t LlrStart;     /* UCI起始RE位置，取值[0,] */
-    uint16_t LlrDuration;  /* UCI占用的RE数，取值[0,192] */
+	uint16_t LlrStart;          /* UCI起始RE位置，取值[0,] */
+    uint16_t LlrDuration;       /* UCI占用的RE数，取值[0,192] */
 }Fmt3UciLlrBitmap;
 
 typedef struct
 {
+    uint8_t pduIdxInner;        /* 物理层内部使用的每个UE的索引 */
 	uint8_t pi2bpsk;		    /* pi/2-BPSK是否使能标志，取值0:不使能，使用QPSK，1:使能，使用pi/2-BPSK */
-	uint8_t addDmrsFlag;	    /* 附加导频是否使能标志，取值0:不使能，1:使能 */
-    uint8_t part2Exist;         /* CSI part2是否存在标志，0：不存在，1：存在 */
 	uint8_t srBitLen;           /* SR比特数，取值[0,4] */
+    uint8_t part2Exist;         /* CSI part2是否存在标志，0：不存在，1：存在 */
 	
     uint16_t harqBitLength;	    /* HARQ的payload,取值[0,1706]除了1 */
     uint16_t csiPart1BitLength; /* CSI part1的payload,取值[0,1706] */
 	
-    uint16_t rnti;		        /* UE唯一标识，取值[1,65535] */
-	uint8_t  cyclicShift[SYM_NUM_PER_SLOT]; 	/* 38.211协议 6.3.2.2.2计算得到的各符号α值 */
-    
+    uint8_t  dmrsSymIdx[HOP_NUM][PUC_FMT3_MAX_DMRS_NUM];  /* 按照跳频指示的fmt3导频符号索引*/
+	uint8_t  cyclicShift[HOP_NUM][PUC_FMT3_MAX_DMRS_NUM]; /* 按照跳频指示的fmt3导频符号的循环移位，符号间紧排 */
+
     uint16_t part1SymBitmap;    /* UCI part1占用符号的比特位图，bit0到bit13有效 */
     uint16_t part2SymBitmap;    /* UCI part2占用符号的比特位图，bit0到bit13有效 */
 
     Fmt3UciLlrBitmap  part1LlrBitmap[SYM_NUM_PER_SLOT];
     Fmt3UciLlrBitmap  part2LlrBitmap[SYM_NUM_PER_SLOT];
 
-    uint32_t *scrambSeqAddr[HOP_NUM];           /* 加扰序列在DDR中的存放地址，TODO:根据HAC存放确定是否需要2个hop的首地址 */
+    uint32_t *scrambSeqAddr[HOP_NUM];/* 加扰序列在DDR中的存放地址，TODO:根据HAC存放确定是否需要2个hop的首地址 */
 }PucFmt3Param;
 
 typedef struct
 {
-    uint8_t PduIdxInner;			/* DSP不使用，只需透传到对应UE的上报接口 */
     uint8_t pucFormat; 	            /* PUCCH格式，取值0/1/2/3，暂不支持格式 4 */
-
     uint8_t rxAntNum;	            /* 基站接收天线个数，取值2/4 */
-    uint8_t rsvd[3];
 
     /* frequency domain */
     uint16_t prbStart; 			    /* PRB起始索引，取值[0,274] */
@@ -196,20 +191,20 @@ typedef struct
 
 typedef struct
 {
-    uint8_t  PduIdxInner;
-    uint8_t  UL_CQI;					    /* SNR,取值范围[0,255],代表-64dB到63dB,步长0.5dB，无效值255 */
-    uint8_t  rsvd[2];
-
-    uint8_t	 SRindication;					/* SR检测结果，0:未检测到SR,1:检测到SR */
-    uint8_t	 NumHarq;						/* HARQ比特个数，取值1或2 */
-	uint8_t  HarqValue[2];					/* HARQ解调结果，0:ACK,1:NACK,2:DTX */
+    uint8_t pduIdxInner;
+    uint8_t rsvd[3];
+    uint8_t uciBitNum;          /* UCI比特个数，取值1或2 */
+    uint8_t uciDecodeValue[2];  /* UCI解调结果, 每个bit保存到uint8_t中 */
+    uint8_t dtxFlag;            /* DTX状态：1：DTX; 0:非DTX */
+    int32_t snr;                /* SNR，线性值，由ARM转成FAPI需要的单位 */
 }PucchFmt01Rpt;
 
 typedef struct
 {
-    uint8_t  PduIdxInner;
-    uint8_t  UL_CQI;					    /* SNR,取值范围[0,255],代表-64dB到63dB,步长0.5dB，无效值255 */
-    uint8_t  rsvd[2];
+    uint8_t pduIdxInner;
+    uint8_t rsvd[2];
+    uint8_t dtxFlag;    /* DTX状态：1：DTX; 0:非DTX */
+    int32_t snr;        /* SNR，线性值，由ARM转成FAPI需要的单位  */
 }PucchFmt23Rpt;
 
 typedef struct
