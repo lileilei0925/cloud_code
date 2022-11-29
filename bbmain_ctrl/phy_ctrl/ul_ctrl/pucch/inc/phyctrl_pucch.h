@@ -1,6 +1,7 @@
 #pragma once
 #include "../../../../common/inc/common_typedef.h"
 #include "../../../../common/inc/common_macro.h"
+#include "../../../../common/inc/fapi_mac2phy_interface.h"
 
 #define MAX_RX_ANT_NUM 4
 #define MAX_OCC_NUM_FMT1 7
@@ -219,54 +220,6 @@ typedef struct
 
 typedef struct
 {
-	uint8_t		SRindication;					/* SR检测结果，0:未检测到SR,1:检测到SR */
-	uint8_t		SRconfidenceLevel;				/* SR检测置信度，0:置信,1:不置信,无效值255 */
-    uint8_t     rsv[2];
-}SRInfoFmt01;
-
-typedef struct
-{
-	uint16_t	SrBitLen;						/* SR比特长度，取值范围[1,8] */
-	uint8_t		SrPayload;						/* SR码流 */
-    uint8_t		rsv;						
-}SRInfoFmt234;//1DW
-
-typedef struct
-{
-	uint8_t		NumHarq;						/* HARQ比特个数，取值1或2 */
-	uint8_t		HarqconfidenceLevel;			/* HARQ检测置信度，0:置信,1:不置信,无效值255 */
-	uint8_t 	HarqValue[2];					/* HARQ解调结果，0:ACK,1:NACK,2:DTX */
-}HARQInfoFmt01;//1dw
-
-typedef struct
-{
-	uint8_t		HarqCrc;						/* HARQ CRC结果，0:pass,1:fail,2:not present */
-	uint8_t		rsv;
-	uint16_t	HarqBitLen;						/* HARQ比特长度，取值范围[1,1706] */
-	
-    uint8_t 	HarqPayload[216];				/* HARQ码流 */
-}HARQInfoFmt234;//55DW
-
-typedef struct
-{
-	uint8_t		CsiPart1Crc;					/* CsiPart1 CRC结果，0:pass,1:fail,2:not present */
-	uint8_t		rsv;
-	uint16_t	CsiPart1BitLen;					/* CsiPart1比特长度，取值范围[1,1706] */
-	
-    uint8_t 	CsiPart1Payload[216];			/* CsiPart1码流 */
-}CSIpart1Info;//55DW
-
-typedef struct
-{
-	uint8_t		CsiPart2Crc;					/* CsiPart2 CRC结果，0:pass,1:fail,2:not present */
-	uint8_t		rsv;
-	uint16_t	CsiPart2BitLen;					/* CsiPart2比特长度，取值范围[1,1706] */
-	
-    uint8_t 	CsiPart2Payload[216];			/* CsiPart2码流 */
-}CSIpart2Info;
-
-typedef struct
-{
 	uint8_t  pduBitmap;       					/* bit0:SR,bit1:HARQ,其他比特位清0。0:存在,1:不存在 */
     uint8_t  PucchFormat;						/* PUCCH格式,0: PUCCH Format0,1: PUCCH Format1 */
 	uint8_t  UL_CQI;							/* SNR,取值范围[0,255],代表-64dB到63dB,步长0.5dB，无效值255 */
@@ -291,7 +244,7 @@ typedef struct
 	uint8_t  UL_CQI;							/* SNR,取值范围[0,255],代表-64dB到63dB,步长0.5dB，无效值255 */
     uint8_t  rsv1;
 
-	uint32_t Handle;  							/* ？ARM侧无法区分，待定 */
+	uint32_t Handle; 
     
 	uint16_t RNTI;    							/* UE的RNTI */
 	uint16_t TA;								/* UE的TA值,取值范围[0,63],213协议4.2节,无效值65535 */
@@ -299,14 +252,14 @@ typedef struct
     uint16_t RSSI;								/* 取值范围[0,1280],步长0.1dB */
 	uint16_t rsv2;
 
-	SRInfoFmt234   srInfoFmt234;
+	SRInfoFmt23    srInfoFmt234;
 	
-	HARQInfoFmt234 harqInfoFmt234;
+	HARQInfoFmt23  harqInfoFmt234;
 	
 	CSIpart1Info   csipart1Info;
 	
 	CSIpart2Info   csipart2Info;
-}PucFmt234Rpt;
+}PucFmt23Rpt;
 
 typedef struct
 {
@@ -315,5 +268,5 @@ typedef struct
     uint8_t rsv[2];
 
 	PucFmt01Rpt  pucFmt01Rpt[MAX_PUCCH_NUM];
-	PucFmt234Rpt pucFmt234Rpt[MAX_PUCCH_NUM];
+	PucFmt23Rpt  pucFmt23Rpt[MAX_PUCCH_NUM];
 }PucFmtRpt;

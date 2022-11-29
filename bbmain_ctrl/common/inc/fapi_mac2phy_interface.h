@@ -293,3 +293,70 @@ typedef struct
     uint8_t         numPdus;            /* Number of Measurement PDUs included in this message*/
     PrachMeasPerPdu prachMeasPerPdu[];  /* For each Measurement PDU */
 }FapiNrPrachIndication;	
+
+typedef struct
+{
+	uint8_t		SRindication;					/* SR检测结果，0:未检测到SR,1:检测到SR */
+	uint8_t		SRconfidenceLevel;				/* SR检测置信度，0:置信,1:不置信,无效值255 */
+    uint8_t     rsv[2];
+}SRInfoFmt01;
+
+typedef struct
+{
+	uint16_t	SrBitLen;						/* SR比特长度，取值范围[1,8] */
+	uint8_t		SrPayload;						/* SR码流 */
+    uint8_t		rsv;						
+}SRInfoFmt23;
+
+typedef struct
+{
+	uint8_t		NumHarq;						/* HARQ比特个数，取值1或2 */
+	uint8_t		HarqconfidenceLevel;			/* HARQ检测置信度，0:置信,1:不置信,无效值255 */
+	uint8_t 	HarqValue[2];					/* HARQ解调结果，0:ACK,1:NACK,2:DTX */
+}HARQInfoFmt01;
+
+typedef struct
+{
+	uint8_t		HarqCrc;						/* HARQ CRC结果，0:pass,1:fail,2:not present */
+	uint8_t		rsv;
+	uint16_t	HarqBitLen;						/* HARQ比特长度，取值范围[1,1706] */
+	
+    uint8_t 	HarqPayload[48];				/* HARQ码流 */
+}HARQInfoFmt23;
+
+typedef struct
+{
+	uint8_t		CsiPart1Crc;					/* CsiPart1 CRC结果，0:pass,1:fail,2:not present */
+	uint8_t		rsv;
+	uint16_t	CsiPart1BitLen;					/* CsiPart1比特长度，取值范围[1,1706] */
+	
+    uint8_t 	CsiPart1Payload[48];			/* CsiPart1码流 */
+}CSIpart1Info;
+
+typedef struct
+{
+	uint8_t		CsiPart2Crc;					/* CsiPart2 CRC结果，0:pass,1:fail,2:not present */
+	uint8_t		rsv;
+	uint16_t	CsiPart2BitLen;					/* CsiPart2比特长度，取值范围[1,1706] */
+	
+    uint8_t 	CsiPart2Payload[48];			/* CsiPart2码流 */
+}CSIpart2Info;
+
+typedef struct
+{
+	uint8_t  pduBitmap;       					/* bit0:not used,bit1:HARQ,bit2:CSI Part 1,bit3:CSI Part 2,其他比特位清0。0:存在,1:不存在 */
+    
+    uint32_t Handle;
+    
+    uint16_t RNTI;    							/* UE的RNTI */
+    uint8_t  UL_CQI;							/* SNR,取值范围[0,255],代表-64dB到63dB,步长0.5dB，无效值255 */
+    
+    uint16_t TA;								/* UE的TA值,取值范围[0,63],213协议4.2节,无效值65535 */
+    uint16_t RSSI;								/* 取值范围[0,1280],步长0.1dB */
+	
+	HARQInfoFmt23  harqInfoFmt23;
+	
+	CSIpart1Info   csipart1Info;
+	
+	CSIpart2Info   csipart2Info;
+}FapiNrPushUciIndication;

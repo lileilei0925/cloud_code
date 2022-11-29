@@ -366,3 +366,65 @@ void findRbgNumAndSize (uint8_t *inputData, uint8_t dataNum, uint8_t *rbgNum, Nr
     }
     *rbgNum = rbgCnt;
 }
+
+typedef struct FSM{
+    uint32_t curState;//当前状态
+    FsmTable *fsmTable;//状态表
+    uint32_t size;//表的项数
+}FSM;
+
+/*状态机注册,给它一个状态表*/
+void FSM_Regist(FSM *fsm, FsmTable *table)
+{
+    fsm->fsmTable = table;
+}
+
+/*状态迁移*/
+void FSM_StateTransfer(FSM *fsm, uint32_t state)
+{
+    fsm->curState = state;
+}
+
+/*事件处理*/
+void FSM_EventHandle(FSM *fsm, uint32_t event)
+{
+    int curState;
+    int nextState;
+    int size;
+    int flag = 0; //标识是否满足状态转移条件
+    int index;
+    FsmTable *ActTable = fsm->fsmTable;
+    void (*handlerFun)()  = NULL;  //函数指针初始化为空
+
+    curState  = fsm->curState;
+    size      = fsm->size;
+
+    /*获取当前动作函数*/
+    for (index = 0; index < size; index++)
+    {
+        //当前状态下来指定事件，才会状态转移
+        if ((curState == ActTable[index].curState) && (event == ActTable[index].event))
+        {
+            flag = 1;
+            handlerFun = ActTable[index].handlerFun;
+            nextState  = ActTable[index].nextState;
+            break;
+        }
+    }
+
+    if (flag) //如果满足条件了
+    {
+        /*动作执行*/
+        if (NULL != handlerFun)
+        {
+            handlerFun();
+        }
+
+        //跳转到下一个状态
+        FSM_StateTransfer(fsm, nextState);
+    }
+    else
+    {
+        printf("状态转移异常\n");
+    }
+}

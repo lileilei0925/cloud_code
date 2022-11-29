@@ -128,6 +128,13 @@ typedef struct
 	RMDecodePduInfo     rmPduInfo[];    
 }RMDecodeHacCfgPara;
 
+typedef struct FsmTable{
+    uint32_t  curState;           //当前状态
+	uint32_t  event;              //trigger事件
+    void      (*handlerFun)();    //handler函数指针
+    uint32_t  nextState;          //转移后的状态
+}FsmTable;
+
 uint32_t          g_ulTtiMessageTempBuff[2000] = { 0 };            /* ULTTIMessage 本地buffer */
 UlPduMappingInfo  g_ulPduMappingInfo[MAX_CELL_NUM][200] = { 0 };   /* 暂时假设有200个PDU */
 L1CellConfigInfo  g_cellConfigPara[MAX_CELL_NUM] = { 0 };

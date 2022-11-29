@@ -1,6 +1,26 @@
 #pragma once
 #include "../../../../common/inc/common_typedef.h"
 #include "../../../../common/inc/common_macro.h"
+#include "../../../../common/inc/fapi_mac2phy_interface.h"
+
+enum PUSCH_UCI_STATE{
+    Pusch_Uci_Idle_State = 0,
+    Pusch_Wait_Part1_Result_State,
+    Pusch_Wait_Part2_Data_With_Para_Ready_State,
+    Pusch_Wait_Part2_Para_With_Data_Ready_State,
+    Pusch_Wait_Part2_Result_State,
+    Pusch_Uci_Packing_State,
+    Pusch_Uci_State_Num
+};
+
+enum PUSCH_UCI_EVENT{
+	Pusch_Slot_Tast_Start_Event = 0,
+	Pusch_Part1_Result_Trigger_Event,
+	Pusch_Part2_And_Data_Demap_Trigger_Event,
+	Pusch_Part2_Result_Trigger_Event,
+	Pusch_UCI_Packing_Over_Event,
+    Pusch_Uci_Event_Num
+};
 
 typedef struct 
 {
@@ -518,3 +538,13 @@ typedef struct
     uint16_t uciNum;                                     /*  */
     PuschCrcPduInfo puschCrcPduInfo[MAX_PUSCH_PDU_NUM];
 } UCIIndication;
+
+
+typedef struct 
+{
+    uint16_t sfnIndex;                                    /* system frame number [0: 1023] */
+    uint16_t slotIndex;                                   /* slot number [0: 159]  */
+    uint16_t uciNum;                                      
+    
+    FapiNrPushUciIndication[MAX_PUSCH_PDU_NUM];
+}PuschUciRst;
