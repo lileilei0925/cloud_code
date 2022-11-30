@@ -10,6 +10,10 @@
 #define MAX_DMRS_SYM_NUM 7
 #define PUC_FMT3_MAX_DMRS_NUM 4
 #define MAX_PUCCH_NUM 50    /* 待定 */
+#define PUCCH_UCI_PART_NUM  2   
+#define PUCCH_UCI_PING_PONG_NUM 2
+#define MAX_PUCCH_FMT01_NUM 64    /* 待定 */
+#define MAX_PUCCH_FMT23_NUM 38
 
 enum PUCCH_FORMAT
 {
@@ -19,7 +23,23 @@ enum PUCCH_FORMAT
     PUCCH_FORMAT_3 = 3,    
     PUCCH_FORMAT_BUTT
  };
- 
+
+enum PUCCH_UCI_STATE{
+    Pucch_Uci_Idle_State = 0,
+    Pucch_Wait_Part1_Result_State,
+    Pucch_Wait_Part2_Result_State,
+    Pucch_Uci_Packing_State,
+    Pucch_Uci_State_Num
+};
+
+enum PUSCH_UCI_EVENT{
+	Pucch_Slot_Tast_Start_Event = 0,
+	Pucch_Part1_Result_Trigger_Event,
+	Pucch_Part2_Result_Trigger_Event,
+	Pucch_UCI_Packing_Over_Event,
+    Pucch_Uci_Event_Num
+};
+
 typedef struct
 {
 	uint8_t  pduIdxInner;                   /* 物理层内部使用的每个UE的索引 */
@@ -270,3 +290,35 @@ typedef struct
 	PucFmt01Rpt  pucFmt01Rpt[MAX_PUCCH_NUM];
 	PucFmt23Rpt  pucFmt23Rpt[MAX_PUCCH_NUM];
 }PucFmtRpt;
+
+typedef struct
+{
+    HacCfgHead          hacCfgHead;
+
+	PolarDecodePduInfo  polarPduInfo[MAX_PUCCH_FMT23_NUM];    
+}PucchPolarDecodeHacCfgPara;
+
+typedef struct
+{
+    HacCfgHead          hacCfgHead;
+
+	RMDecodePduInfo     rmPduInfo[MAX_PUCCH_FMT23_NUM];    
+}PucchRMDecodeHacCfgPara;
+
+typedef struct 
+{
+    uint16_t sfnIndex;                                    /* system frame number [0: 1023] */
+    uint16_t slotIndex;                                   /* slot number [0: 159]  */
+    uint16_t uciNum;                                      
+    
+    FapiNrPucchFmt01Indication fapiNrPucchFmt01Indication[MAX_PUCCH_FMT01_NUM];
+}PucchFmt01Rst;
+
+typedef struct 
+{
+    uint16_t sfnIndex;                                    /* system frame number [0: 1023] */
+    uint16_t slotIndex;                                   /* slot number [0: 159]  */
+    uint16_t uciNum;                                      
+    
+    FapiNrPucchFmt23Indication fapiNrPucchFmt23Indication[MAX_PUCCH_FMT23_NUM];
+}PucchFmt23Rst;

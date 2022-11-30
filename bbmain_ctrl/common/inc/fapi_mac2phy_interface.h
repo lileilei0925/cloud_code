@@ -360,3 +360,43 @@ typedef struct
 	
 	CSIpart2Info   csipart2Info;
 }FapiNrPushUciIndication;
+
+typedef struct
+{
+	uint8_t  pduBitmap;       					/* bit0:SR,bit1:HARQ,其他比特位清0。0:存在,1:不存在 */
+    
+    uint32_t Handle;
+    
+    uint16_t RNTI;    							/* UE的RNTI */
+    uint16_t PucchFormat;                       /* PUCCH格式，0：格式0,1：格式1 */
+    uint8_t  UL_CQI;							/* SNR,取值范围[0,255],代表-64dB到63dB,步长0.5dB，无效值255 */
+    
+    uint16_t TA;								/* UE的TA值,取值范围[0,63],213协议4.2节,无效值65535 */
+    uint16_t RSSI;								/* 取值范围[0,1280],步长0.1dB */
+	
+    SRInfoFmt01    srInfoFmt01;
+
+	HARQInfoFmt01  harqInfoFmt01;
+}FapiNrPucchFmt01Indication;
+
+typedef struct
+{
+	uint8_t  pduBitmap;       					/* bit0:SR,bit1:HARQ,bit2:CSI Part 1,bit3:CSI Part 2,其他比特位清0。0:存在,1:不存在 */
+    
+    uint32_t Handle;
+    
+    uint16_t RNTI;    							/* UE的RNTI */
+    uint16_t PucchFormat;                       /* PUCCH格式，0：格式2,1：格式3 */
+    uint8_t  UL_CQI;							/* SNR,取值范围[0,255],代表-64dB到63dB,步长0.5dB，无效值255 */
+    
+    uint16_t TA;								/* UE的TA值,取值范围[0,63],213协议4.2节,无效值65535 */
+    uint16_t RSSI;								/* 取值范围[0,1280],步长0.1dB */
+	
+    SRInfoFmt23    srInfoFmt23;
+
+	HARQInfoFmt23  harqInfoFmt23;
+	
+	CSIpart1Info   csipart1Info;
+	
+	CSIpart2Info   csipart2Info;
+}FapiNrPucchFmt23Indication;

@@ -1,7 +1,17 @@
 #pragma once
 #include "../../../../common/inc/common_typedef.h"
 #include "../../../../common/inc/common_macro.h"
+#include "../../../../common/inc/phy_ctrl_common.h"
 #include "../../../../common/inc/fapi_mac2phy_interface.h"
+
+#define PUSCH_UCI_PING_PONG_NUM        2
+
+enum PUSCH_UCI_TYPE{
+    Pusch_Uci_Ack = 0,
+    Pusch_Uci_CsiPart1,
+    Pusch_Uci_CsiPart2,
+    Pusch_Uci_Type_Num
+};
 
 enum PUSCH_UCI_STATE{
     Pusch_Uci_Idle_State = 0,
@@ -531,6 +541,20 @@ typedef struct
     uint16_t rssi;
 } PuschUciPduInfo;
 
+typedef struct
+{
+    HacCfgHead          hacCfgHead;
+
+	PolarDecodePduInfo  polarPduInfo[MAX_PUSCH_PDU_NUM];    
+}PuschPolarDecodeHacCfgPara;
+
+typedef struct
+{
+    HacCfgHead          hacCfgHead;
+
+	RMDecodePduInfo     rmPduInfo[MAX_PUSCH_PDU_NUM];    
+}PuschRMDecodeHacCfgPara;
+
 typedef struct 
 {
     uint16_t sfnIndex;                                    /* system frame number [0: 1023] */
@@ -546,5 +570,5 @@ typedef struct
     uint16_t slotIndex;                                   /* slot number [0: 159]  */
     uint16_t uciNum;                                      
     
-    FapiNrPushUciIndication[MAX_PUSCH_PDU_NUM];
+    FapiNrPushUciIndication fapiNrPushUciIndication[MAX_PUSCH_PDU_NUM];
 }PuschUciRst;

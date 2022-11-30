@@ -367,11 +367,6 @@ void findRbgNumAndSize (uint8_t *inputData, uint8_t dataNum, uint8_t *rbgNum, Nr
     *rbgNum = rbgCnt;
 }
 
-typedef struct FSM{
-    uint32_t curState;//当前状态
-    FsmTable *fsmTable;//状态表
-    uint32_t size;//表的项数
-}FSM;
 
 /*状态机注册,给它一个状态表*/
 void FSM_Regist(FSM *fsm, FsmTable *table)

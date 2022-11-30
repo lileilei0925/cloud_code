@@ -949,3 +949,275 @@ uint32_t L1PuschLdpcCbPartRowCalculate(PuschLdpcUePara *puschLdpcUePara, uint8_t
     return 0;
 }
 
+uint32_t PuschACK1or2BitDecodeHandler()
+{
+    //待李雷雷提供ACK 1/2比特译码函数
+    
+    return 0;
+}
+
+uint32_t PuschACKOver2BitParseHandler()//后续考虑与CSI Part1和CSI Part2解析函数合并
+{
+    printf("解析大于2比特的ACK译码结果\n");//ACK大于2比特
+
+    uint16_t sfn;     
+    uint16_t slot; 
+    uint8_t  cellIdx;
+    uint8_t  pduNum;
+    uint8_t  codeType;
+    uint8_t  msgType;
+    uint8_t  pduIndex;
+    uint8_t  ueIdx;
+    PuschPolarDecodeHacCfgPara   *puschPolarDecodeHacCfgPara   = NULL;
+    PuschRMDecodeHacCfgPara      *puschRMDecodeHacCfgPara      = NULL;
+    HacCfgHead                   *hacCfgHead                   = NULL;
+    PolarDecodePduInfo           *polarDecodePduInfo           = NULL;
+    RMDecodePduInfo              *rmDecodePduInfo              = NULL;
+    RMUeDecodeOut                *rmUeDecodeOut                = NULL;
+    PolarUeDecodeOut             *polarUeDecodeOut             = NULL;
+    PuschUciRst                  *puschUciRst                  = NULL;
+    FapiNrPushUciIndication      *fapiNrPushUciIndication      = NULL;
+    HARQInfoFmt23                *harqInfoFmt23                = NULL;
+
+    //先解析消息头？  
+    sfn      =  0; //待从消息头获取    
+    slot     =  0; //待从消息头获取
+    cellIdx  =  0; //待从消息头获取  
+    pduNum   =  0; //待从消息头获取 
+    codeType =  0; //待从消息头获取，确认是RM还是Polar译码结果
+    msgType  =  0; //待从消息头获取，确认是ACK,CSI Part1还是CSI Part2  
+    
+    puschUciRst = &(g_puschUciRst[cellIdx][slot]);//UCI译码结果回写目的地址
+
+    if(0 == codeType)//RM
+    {
+        puschRMDecodeHacCfgPara = &(g_puschRMDecodeHacCfgParaDDR[cellIdx][slot][msgType]);//读取RM译码结果
+        hacCfgHead = &(puschRMDecodeHacCfgPara->hacCfgHead);
+        //hacCfgHead->增加校验？
+
+        for(pduIndex = 0; pduIndex < pduNum; pduIndex++)
+        {
+            rmDecodePduInfo = &(puschRMDecodeHacCfgPara->rmPduInfo[pduIndex]);
+            rmUeDecodeOut   = (RMUeDecodeOut *)(rmDecodePduInfo->OutputAddr);//UE输出结果地址
+            
+            ueIdx = rmDecodePduInfo->ueIdx;//待从配置参数获取,还需要转换为UCI上报对应的UE索引
+            harqInfoFmt23 = &(puschUciRst->fapiNrPushUciIndication[ueIdx].harqInfoFmt23);
+
+            harqInfoFmt23->HarqCrc     = 0;//待补充
+            harqInfoFmt23->HarqBitLen  = rmDecodePduInfo->uciBitNum;
+            harqInfoFmt23->HarqPayload[0] = 0;//L2D到DDR的拷贝,待补充
+        }
+    }
+    else if(1 == codeType)//Polar
+    {
+        puschPolarDecodeHacCfgPara = &(g_puschPolarDecodeHacCfgParaDDR[cellIdx][slot][msgType]);//读取Polar译码结果
+        hacCfgHead = &(puschPolarDecodeHacCfgPara->hacCfgHead);
+        //hacCfgHead->增加校验？
+
+        for(pduIndex = 0; pduIndex < pduNum; pduIndex++)
+        {
+            polarDecodePduInfo = &(puschPolarDecodeHacCfgPara->polarPduInfo[pduIndex]);
+            polarUeDecodeOut   = (PolarUeDecodeOut *)(polarDecodePduInfo->OutputAddr);//UE输出结果地址
+            
+            ueIdx = polarDecodePduInfo->ueIdx;//待从配置参数获取,还需要转换为UCI上报对应的UE索引
+            harqInfoFmt23 = &(puschUciRst->fapiNrPushUciIndication[ueIdx].harqInfoFmt23);
+
+            harqInfoFmt23->HarqCrc     = 0;//polarUeDecodeOut->待补充
+            harqInfoFmt23->HarqBitLen  = polarDecodePduInfo->uciBitNum;
+            harqInfoFmt23->HarqPayload[0] = 0;//polarUeDecodeOut,L2D到DDR的拷贝,待补充
+        }
+    }
+    else
+    {
+        ;//异常
+    }
+    
+    return 0;
+}
+
+uint32_t PuschPart1AndLDPCParaCfgHandler()
+{
+    printf("配置Part1译码参数&&配置无Part2 UE的LDPC译码参数\n");//
+    
+    return 0;
+}
+
+uint32_t PuschPart1ParsePart2AndLDPCParaCfgHandler()
+{
+    printf("解析Part1&&配置Part2译码参数&&配置含Part2的UE的LDPC译码参数\n");////PUSCH CSI Part1
+    
+    uint16_t sfn;     
+    uint16_t slot; 
+    uint8_t  cellIdx;
+    uint8_t  pduNum;
+    uint8_t  codeType;
+    uint8_t  msgType;
+    uint8_t  pduIndex;
+    uint8_t  ueIdx;
+    PuschPolarDecodeHacCfgPara   *puschPolarDecodeHacCfgPara   = NULL;
+    PuschRMDecodeHacCfgPara      *puschRMDecodeHacCfgPara      = NULL;
+    HacCfgHead                   *hacCfgHead                   = NULL;
+    PolarDecodePduInfo           *polarDecodePduInfo           = NULL;
+    RMDecodePduInfo              *rmDecodePduInfo              = NULL;
+    RMUeDecodeOut                *rmUeDecodeOut                = NULL;
+    PolarUeDecodeOut             *polarUeDecodeOut             = NULL;
+    PuschUciRst                  *puschUciRst                  = NULL;
+    FapiNrPushUciIndication      *fapiNrPushUciIndication      = NULL;
+    CSIpart1Info                 *csipart1Info                 = NULL;
+
+    //先解析消息头？  
+    sfn      =  0; //待从消息头获取    
+    slot     =  0; //待从消息头获取
+    cellIdx  =  0; //待从消息头获取  
+    pduNum   =  0; //待从消息头获取 
+    codeType =  0; //待从消息头获取，确认是RM还是Polar译码结果
+    msgType  =  0; //待从消息头获取，确认是ACK,CSI Part1还是CSI Part2  
+    
+    puschUciRst = &(g_puschUciRst[cellIdx][slot]);//UCI译码结果回写目的地址
+
+    if(0 == codeType)//RM
+    {
+        puschRMDecodeHacCfgPara = &(g_puschRMDecodeHacCfgParaDDR[cellIdx][slot][msgType]);//读取RM译码结果
+        hacCfgHead = &(puschRMDecodeHacCfgPara->hacCfgHead);
+        //hacCfgHead->增加校验？
+
+        for(pduIndex = 0; pduIndex < pduNum; pduIndex++)
+        {
+            rmDecodePduInfo = &(puschRMDecodeHacCfgPara->rmPduInfo[pduIndex]);
+            rmUeDecodeOut   = (RMUeDecodeOut *)(rmDecodePduInfo->OutputAddr);//UE输出结果地址
+            
+            ueIdx = rmDecodePduInfo->ueIdx;//待从配置参数获取,还需要转换为UCI上报对应的UE索引
+            csipart1Info = &(puschUciRst->fapiNrPushUciIndication[ueIdx].csipart1Info);
+
+            csipart1Info->CsiPart1Crc     = 0;//待补充
+            csipart1Info->CsiPart1BitLen  = rmDecodePduInfo->uciBitNum;
+            csipart1Info->CsiPart1Payload[0] = 0;//L2D到DDR的拷贝,待补充
+        }
+    }
+    else if(1 == codeType)//Polar
+    {
+        puschPolarDecodeHacCfgPara = &(g_puschPolarDecodeHacCfgParaDDR[cellIdx][slot][msgType]);//读取Polar译码结果
+        hacCfgHead = &(puschPolarDecodeHacCfgPara->hacCfgHead);
+        //hacCfgHead->增加校验？
+
+        for(pduIndex = 0; pduIndex < pduNum; pduIndex++)
+        {
+            polarDecodePduInfo = &(puschPolarDecodeHacCfgPara->polarPduInfo[pduIndex]);
+            polarUeDecodeOut   = (PolarUeDecodeOut *)(polarDecodePduInfo->OutputAddr);//UE输出结果地址
+            
+            ueIdx = polarDecodePduInfo->ueIdx;//待从配置参数获取,还需要转换为UCI上报对应的UE索引
+            csipart1Info = &(puschUciRst->fapiNrPushUciIndication[ueIdx].csipart1Info);
+
+            csipart1Info->CsiPart1Crc     = 0;//polarUeDecodeOut->待补充
+            csipart1Info->CsiPart1BitLen  = polarDecodePduInfo->uciBitNum;
+            csipart1Info->CsiPart1Payload[0] = 0;//polarUeDecodeOut,L2D到DDR的拷贝,待补充
+        }
+    }
+    else
+    {
+        ;//异常
+    }
+
+    return 0;
+}
+
+uint32_t PuschTriggerPart2AndLDPCDecodeHandler()//待确认接口后补充
+{
+    printf("trigger Polar/RM HAC启动Part2译码&&trigger LDPC HAC启动UL-Data译码\n");//
+    return 0;
+}
+
+uint32_t PuschParseCfgTriggerHandler()
+{
+    PuschPart1ParsePart2AndLDPCParaCfgHandler();
+
+    PuschTriggerPart2AndLDPCDecodeHandler();//待确认接口后补充
+    
+    return 0;
+}
+
+uint32_t PuschPart2ParseHandler()//待合并
+{
+    printf("解析PUSCH Part2\n");//PUSCH CSI part2
+
+    uint16_t sfn;     
+    uint16_t slot; 
+    uint8_t  cellIdx;
+    uint8_t  pduNum;
+    uint8_t  codeType;
+    uint8_t  msgType;
+    uint8_t  pduIndex;
+    uint8_t  ueIdx;
+    PuschPolarDecodeHacCfgPara   *puschPolarDecodeHacCfgPara   = NULL;
+    PuschRMDecodeHacCfgPara      *puschRMDecodeHacCfgPara      = NULL;
+    HacCfgHead                   *hacCfgHead                   = NULL;
+    PolarDecodePduInfo           *polarDecodePduInfo           = NULL;
+    RMDecodePduInfo              *rmDecodePduInfo              = NULL;
+    RMUeDecodeOut                *rmUeDecodeOut                = NULL;
+    PolarUeDecodeOut             *polarUeDecodeOut             = NULL;
+    PuschUciRst                  *puschUciRst                  = NULL;
+    FapiNrPushUciIndication      *fapiNrPushUciIndication      = NULL;
+    CSIpart2Info                 *csipart2Info                 = NULL;
+
+    //先解析消息头？  
+    sfn      =  0; //待从消息头获取    
+    slot     =  0; //待从消息头获取
+    cellIdx  =  0; //待从消息头获取  
+    pduNum   =  0; //待从消息头获取 
+    codeType =  0; //待从消息头获取，确认是RM还是Polar译码结果
+    msgType  =  0; //待从消息头获取，确认是ACK,CSI Part1还是CSI Part2  
+    
+    puschUciRst = &(g_puschUciRst[cellIdx][slot]);//UCI译码结果回写目的地址
+
+    if(0 == codeType)//RM
+    {
+        puschRMDecodeHacCfgPara = &(g_puschRMDecodeHacCfgParaDDR[cellIdx][slot][msgType]);//读取RM译码结果
+        hacCfgHead = &(puschRMDecodeHacCfgPara->hacCfgHead);
+        //hacCfgHead->增加校验？
+
+        for(pduIndex = 0; pduIndex < pduNum; pduIndex++)
+        {
+            rmDecodePduInfo = &(puschRMDecodeHacCfgPara->rmPduInfo[pduIndex]);
+            rmUeDecodeOut   = (RMUeDecodeOut *)(rmDecodePduInfo->OutputAddr);//UE输出结果地址
+            
+            ueIdx = rmDecodePduInfo->ueIdx;//待从配置参数获取,还需要转换为UCI上报对应的UE索引
+            csipart2Info = &(puschUciRst->fapiNrPushUciIndication[ueIdx].csipart2Info);
+
+            csipart2Info->CsiPart2Crc     = 0;//待补充
+            csipart2Info->CsiPart2BitLen  = rmDecodePduInfo->uciBitNum;
+            csipart2Info->CsiPart2Payload[0] = 0;//L2D到DDR的拷贝,待补充
+        }
+    }
+    else if(1 == codeType)//Polar
+    {
+        puschPolarDecodeHacCfgPara = &(g_puschPolarDecodeHacCfgParaDDR[cellIdx][slot][msgType]);//读取Polar译码结果
+        hacCfgHead = &(puschPolarDecodeHacCfgPara->hacCfgHead);
+        //hacCfgHead->增加校验？
+
+        for(pduIndex = 0; pduIndex < pduNum; pduIndex++)
+        {
+            polarDecodePduInfo = &(puschPolarDecodeHacCfgPara->polarPduInfo[pduIndex]);
+            polarUeDecodeOut   = (PolarUeDecodeOut *)(polarDecodePduInfo->OutputAddr);//UE输出结果地址
+            
+            ueIdx = polarDecodePduInfo->ueIdx;//待从配置参数获取,还需要转换为UCI上报对应的UE索引
+            csipart2Info = &(puschUciRst->fapiNrPushUciIndication[ueIdx].csipart2Info);
+
+            csipart2Info->CsiPart2Crc     = 0;//polarUeDecodeOut->待补充
+            csipart2Info->CsiPart2BitLen  = polarDecodePduInfo->uciBitNum;
+            csipart2Info->CsiPart2Payload[0] = 0;//polarUeDecodeOut,L2D到DDR的拷贝,待补充
+        }
+    }
+    else
+    {
+        ;//异常
+    }
+
+    return 0;
+}
+
+uint32_t PuschUciSendHandler()//
+{
+    printf("给L2发送UCI\n");//
+    
+    return 0;
+}

@@ -100,13 +100,6 @@ typedef struct
 
 typedef struct
 {
-    HacCfgHead  hacCfgHead;     //随路信息，待评审
-
-	PolarDecodePduInfo  polarPduInfo[];    
-}PolarDecodeHacCfgPara;
-
-typedef struct
-{
     uint8_t       uciBitNum;           //译码输出比特长度，取值范围[3,11],LTE扩展CP PUCCH fmt2a/2b可取值12和13,译码输入参数                                   
     uint8_t       codeMethod;          //20对应LTE PUCCH的（20，A）编码；24对应LTE PUCCH的（24，O）编码；32对应NR PUCCH&PUSCH的（32，K）或LTE PUSCH的（32，O）编码；
     uint8_t       ueIdx;
@@ -123,10 +116,32 @@ typedef struct
 
 typedef struct
 {
-    HacCfgHead          hacCfgHead;
+    uint8_t          rsvd[16];          //待确认具体字段后补充
+}HacOutputHead;
 
-	RMDecodePduInfo     rmPduInfo[];    
-}RMDecodeHacCfgPara;
+typedef struct
+{
+    uint8_t          rsvd[52];          //待确认具体字段后补充
+}PolarUeDecodeOut;
+
+typedef struct
+{
+    uint8_t          rsvd[8];          //待确认具体字段后补充
+}RMUeDecodeOut;
+
+typedef struct 
+{                          
+    HacOutputHead    hacOutputHead;
+
+    PolarUeDecodeOut polarUeDecodeOut[MAX_PUSCH_PDU_NUM];
+}PolarDecodeOut;
+
+typedef struct 
+{
+    HacOutputHead    hacOutputHead;
+    
+    RMUeDecodeOut    rmUeDecodeOut[MAX_PUSCH_PDU_NUM];
+}RMDecodeOut;
 
 typedef struct FsmTable{
     uint32_t  curState;           //当前状态
@@ -134,6 +149,12 @@ typedef struct FsmTable{
     void      (*handlerFun)();    //handler函数指针
     uint32_t  nextState;          //转移后的状态
 }FsmTable;
+
+typedef struct FSM{
+    uint32_t curState;//当前状态
+    FsmTable *fsmTable;//状态表
+    uint32_t size;//表的项数
+}FSM;
 
 uint32_t          g_ulTtiMessageTempBuff[2000] = { 0 };            /* ULTTIMessage 本地buffer */
 UlPduMappingInfo  g_ulPduMappingInfo[MAX_CELL_NUM][200] = { 0 };   /* 暂时假设有200个PDU */
