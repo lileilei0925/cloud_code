@@ -287,7 +287,7 @@ void PucchPolarDecodeHacCfg(FapiNrMsgPucchPduInfo *fapipucchpduInfo, uint16_t uc
 void PucchFmt2Pduparse(PucParam *pucParam, FapiNrMsgPucchPduInfo *fapipucchpduInfo, uint8_t intraSlotFreqHopping, uint16_t pduIndex, uint16_t sfnNum, uint8_t slotNum, uint8_t cellIndex)
 {
 		uint8_t  StartSaveIdx;
-        uint16_t uciLen;
+        uint16_t uciPart1BitLength;
 		uint32_t Cinit       = 0;
 		uint32_t SequenceLen = 0;
 		PucFmt2Param *fmt2Param = NULL;
@@ -321,14 +321,14 @@ void PucchFmt2Pduparse(PucParam *pucParam, FapiNrMsgPucchPduInfo *fapipucchpduIn
         fmt2Param->csiPart1BitLength = fapipucchpduInfo->csiPart1BitLength;
         //fmt2Param->scrambSeqAddr[HOP_NUM];   /* 加扰序列在DDR中的存放地址,TODO:根据HAC存放确定是否需要2个hop的首地址 */ 
 
-        uciLen  = (fmt2Param->srBitLen) + (fmt2Param->harqBitLength) + (fmt2Param->csiPart1BitLength);
-        if((3 <= uciLen) && (11 >= uciLen))
+        uciPart1BitLength  = (fmt2Param->srBitLen) + (fmt2Param->harqBitLength) + (fmt2Param->csiPart1BitLength);
+        if((RM_BIT_LENGTH_MIN <= uciPart1BitLength) && (RM_BIT_LENGTH_MAX >= uciPart1BitLength))
         {
-            PucchRMDecodeHacCfg(fapipucchpduInfo, uciLen, pduIndex, PUCCH_UCI_PART1, sfnNum, slotNum, cellIndex);
+            PucchRMDecodeHacCfg(fapipucchpduInfo, uciPart1BitLength, pduIndex, PUCCH_UCI_PART1, sfnNum, slotNum, cellIndex);
         }
-        else if(360 > uciLen)
+        else if(POLAR_BIT_LENGTH_Max >= uciPart1BitLength)
         {
-            PucchPolarDecodeHacCfg(fapipucchpduInfo, uciLen, pduIndex, PUCCH_UCI_PART1, sfnNum, slotNum, cellIndex);
+            PucchPolarDecodeHacCfg(fapipucchpduInfo, uciPart1BitLength, pduIndex, PUCCH_UCI_PART1, sfnNum, slotNum, cellIndex);
         }
 }
 
@@ -1059,7 +1059,7 @@ uint32_t PucchUCIPart1Part2Parse()
 {
     uint16_t sfn;     
     uint16_t slot;
-    uint16_t uciLen; 
+    uint16_t csiPart2BitLength; 
     uint8_t  cellIdx;
     uint8_t  pduNum;
     uint8_t  codeType;
@@ -1130,14 +1130,14 @@ uint32_t PucchUCIPart1Part2Parse()
                     //sizesPart1Params = ;//待补充
                     //map              = ;//待补充
                     //numPart1Params   = ;//待补充
-                    uciLen = CalcPucchCsipart2Size(&(fapipucchpduInfo->uciInfoAddInV3), csipart1Info->CsiPart1Payload, sizesPart1Params, map, csipart1Info->CsiPart1BitLen, numPart1Params);
-                    if((3 <= uciLen) && (11 >= uciLen))
+                    csiPart2BitLength = CalcCsiPart2BitLength(&(fapipucchpduInfo->uciInfoAddInV3), csipart1Info->CsiPart1Payload, sizesPart1Params, map, csipart1Info->CsiPart1BitLen, numPart1Params);
+                    if((RM_BIT_LENGTH_MIN <= csiPart2BitLength) && (RM_BIT_LENGTH_MAX >= csiPart2BitLength))
                     {
-                        PucchRMDecodeHacCfg(fapipucchpduInfo, uciLen, pduIndex, PUCCH_UCI_PART2, sfn, slot, cellIdx);
+                        PucchRMDecodeHacCfg(fapipucchpduInfo, csiPart2BitLength, pduIndex, PUCCH_UCI_PART2, sfn, slot, cellIdx);
                     }
-                    else if(360 > uciLen)
+                    else if(POLAR_BIT_LENGTH_Max >= csiPart2BitLength)
                     {
-                        PucchPolarDecodeHacCfg(fapipucchpduInfo, uciLen, pduIndex, PUCCH_UCI_PART2, sfn, slot, cellIdx);
+                        PucchPolarDecodeHacCfg(fapipucchpduInfo, csiPart2BitLength, pduIndex, PUCCH_UCI_PART2, sfn, slot, cellIdx);
                     }
                 }
 			}
@@ -1189,14 +1189,14 @@ uint32_t PucchUCIPart1Part2Parse()
                     //sizesPart1Params = ;//待补充
                     //map              = ;//待补充
                     //numPart1Params   = ;//待补充
-                    uciLen = CalcPucchCsipart2Size(&(fapipucchpduInfo->uciInfoAddInV3), csipart1Info->CsiPart1Payload, sizesPart1Params, map, csipart1Info->CsiPart1BitLen, numPart1Params);
-                    if((3 <= uciLen) && (11 >= uciLen))
+                    csiPart2BitLength = CalcCsiPart2BitLength(&(fapipucchpduInfo->uciInfoAddInV3), csipart1Info->CsiPart1Payload, sizesPart1Params, map, csipart1Info->CsiPart1BitLen, numPart1Params);
+                    if((RM_BIT_LENGTH_MIN <= csiPart2BitLength) && (RM_BIT_LENGTH_MAX >= csiPart2BitLength))
                     {
-                        PucchRMDecodeHacCfg(fapipucchpduInfo, uciLen, pduIndex, PUCCH_UCI_PART2, sfn, slot, cellIdx);
+                        PucchRMDecodeHacCfg(fapipucchpduInfo, csiPart2BitLength, pduIndex, PUCCH_UCI_PART2, sfn, slot, cellIdx);
                     }
-                    else if(360 > uciLen)
+                    else if(POLAR_BIT_LENGTH_Max >= csiPart2BitLength)
                     {
-                        PucchPolarDecodeHacCfg(fapipucchpduInfo, uciLen, pduIndex, PUCCH_UCI_PART2, sfn, slot, cellIdx);
+                        PucchPolarDecodeHacCfg(fapipucchpduInfo, csiPart2BitLength, pduIndex, PUCCH_UCI_PART2, sfn, slot, cellIdx);
                     }
                 }
 

@@ -19,6 +19,12 @@
 #define UL_PDU_TYPE_PUCCH            2
 #define UL_PDU_TYPE_SRS              3
 
+#define RM_BIT_LENGTH_MIN            3
+#define RM_BIT_LENGTH_MAX            11
+#define POLAR_BIT_LENGTH_MIN         12
+#define POLAR_BIT_LENGTH_Max         359
+
+
 enum UCI_TYPE
 {
     PUCCH_UCI_PART1    =  0,
@@ -59,8 +65,8 @@ enum RM_TYPE
 #define    PRACH_FORMAT_A2           5
 #define    PRACH_FORMAT_A3           6
 #define    PRACH_FORMAT_B1           7
-#define    PRACH_FORMAT_B2           255 /* FAPI½Ó¿ÚÎÞB2 B3 */
-#define    PRACH_FORMAT_B3           255 /* FAPI½Ó¿ÚÎÞB2 B3 */
+#define    PRACH_FORMAT_B2           255 /* FAPIï¿½Ó¿ï¿½ï¿½ï¿½B2 B3 */
+#define    PRACH_FORMAT_B3           255 /* FAPIï¿½Ó¿ï¿½ï¿½ï¿½B2 B3 */
 #define    PRACH_FORMAT_B4           8
 #define    PRACH_FORMAT_C0           9
 #define    PRACH_FORMAT_C2           10
@@ -105,9 +111,9 @@ enum RM_TYPE
 #define NR_PUSCH_MAX_UE_NUM_PER_SLOT 16
 #define NR_PUSCH_MAX_PRG_NUM         137
 
-#define MAX_BIT_FGH                 8*20*2  //20: Ã¿Ö¡°üº¬µÄÊ±Ï¶Êý£¬2£ºhop
-#define MAX_BIT_V                   2*20    //20: Ã¿Ö¡°üº¬µÄÊ±Ï¶Êý
-#define MAX_BIT_NCS                 8*14*20 //14: Ã¿Ê±Ï¶°üº¬µÄ·ûºÅÊý£¬20: Ã¿Ö¡°üº¬µÄÊ±Ï¶Êý
+#define MAX_BIT_FGH                 8*20*2  //20: Ã¿Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±Ï¶ï¿½ï¿½ï¿½ï¿½2ï¿½ï¿½hop
+#define MAX_BIT_V                   2*20    //20: Ã¿Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±Ï¶ï¿½ï¿½
+#define MAX_BIT_NCS                 8*14*20 //14: Ã¿Ê±Ï¶ï¿½ï¿½ï¿½ï¿½ï¿½Ä·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½20: Ã¿Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±Ï¶ï¿½ï¿½
 
 #define _extu(v1, csta, cstb)     (((uint32_t)(v1) << (csta)) >> (cstb))
 #define MAX_POLAR_CB_NUM             2
