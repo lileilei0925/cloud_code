@@ -367,6 +367,37 @@ void findRbgNumAndSize (uint8_t *inputData, uint8_t dataNum, uint8_t *rbgNum, Nr
     *rbgNum = rbgCnt;
 }
 
+uint16_t CalcPucchCsipart2Size(UciInfoAddInV3 *uciInfoAddInV3, uint8_t *CsiPart1Payload, uint8_t *sizesPart1Params, uint16_t *map , uint16_t csiPart1BitLength, uint8_t numPart1Params)
+{
+    uint16_t numPart2s;
+    uint16_t paramOffsets;
+    uint16_t ParamValue;
+    uint16_t mapIndex;
+    uint8_t  Part1ParamsIdx;
+    uint8_t  paramSizes;
+    uint8_t  bitNum;
+    Part2ReportInfo *part2ReportInfo = NULL;
+    
+    numPart2s         = 1;//uciInfoAddInV3->numPart2s;暂时只支持1个CSI report
+    part2ReportInfo   = uciInfoAddInV3->part2ReportInfo;
+    if(numPart1Params != part2ReportInfo->numPart1Params)
+    {
+        return 0;
+    }
+
+    mapIndex = 0;
+    for(Part1ParamsIdx = 0; Part1ParamsIdx < numPart1Params; Part1ParamsIdx++)
+    {
+        paramOffsets = part2ReportInfo->paramOffsets[Part1ParamsIdx];
+        paramSizes   = part2ReportInfo->paramSizes[Part1ParamsIdx];  
+        ParamValue   = InterceptData(CsiPart1Payload, paramOffsets, paramSizes);//CsiPart1Payload,paramOffsets,paramSizes?从CsiPart1Payload截取值
+        bitNum       = sizesPart1Params[Part1ParamsIdx];
+        ParamValue   = ParamValue&genbitmask(bitNum);//二次截取
+        mapIndex     = (mapIndex<<bitNum) + ParamValue;
+    }
+
+    return map[mapIndex];
+}
 
 /*状态机注册,给它一个状态表*/
 void FSM_Regist(FSM *fsm, FsmTable *table)

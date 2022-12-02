@@ -142,9 +142,7 @@ uint32_t MessageUlTtiRequestParse(uint8_t cellIndex, uint8_t *srcUlSlotMesagesBu
         //l1PucchParaInfoOut->puschPduNum = pduCntPerType[2];
         //l1SrsParaInfoOut->puschPduNum   = pduCntPerType[3];
 
-        UlTtiRequestPucchPduparse(fapipucchpduInfo, pucParam, sfnNum, slotNum, pduIndex, cellIndex); 
-
-        UlTtiRequestSrsPduparse(fapisrspduInfo, srsParam, sfnNum, slotNum, pduIndex, cellIndex); 
+        //UlTtiRequestSrsPduparse(fapisrspduInfo, srsParam, sfnNum, slotNum, pduIndex, cellIndex); 
 
         /************** pduIndex mapping relation with UE **************/
         UlueGoupNumInfo  *ulUeGoupNumInfo = (UlueGoupNumInfo *)((uint8_t *)pduHead); /* sizeof(uint8_t) * (ulUeGoupNumInfo->ueNum + 1) per Group */

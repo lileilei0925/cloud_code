@@ -10,10 +10,16 @@
 #define MAX_DMRS_SYM_NUM 7
 #define PUC_FMT3_MAX_DMRS_NUM 4
 #define MAX_PUCCH_NUM 50    /* 待定 */
-#define PUCCH_UCI_PART_NUM  2   
 #define PUCCH_UCI_PING_PONG_NUM 2
 #define MAX_PUCCH_FMT01_NUM 64    /* 待定 */
 #define MAX_PUCCH_FMT23_NUM 38
+
+enum PUCCH_FORMAT
+{
+    PUCCH_UCI_PART1 = 0,
+    PUCCH_UCI_PART2 = 1,  
+    PUCCH_UCI_PART_NUM
+ };
 
 enum PUCCH_FORMAT
 {
