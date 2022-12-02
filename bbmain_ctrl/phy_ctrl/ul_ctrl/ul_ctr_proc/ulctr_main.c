@@ -269,7 +269,7 @@ uint32_t UlTtiRequestPuschPduparse(FapiNrMsgPuschPduInfo *fapiPuschPduInfoIn, L1
     l1PuschPduOut->puschDmrsId        = fapiPuschPduInfoIn->puschDmrsId;
     l1PuschPduOut->nSCID              = fapiPuschPduInfoIn->nSCID;
     l1PuschPduOut->numCdmGrpsNoData   = fapiPuschPduInfoIn->dmrsCdmGrpsNoDataNum;
-    l1PuschPduOut->dmrsPorts          = fapiPuschPduInfoIn->dmrsPorts;
+    l1PuschPduOut->dmrsPorts          = fapiPuschPduInfoIn->dmrsPort;
     /*Pusch Allocation in frequency domain*/
     l1PuschPduOut->resourceAlloc      = fapiPuschPduInfoIn->resourceAlloc;
     memcpy(&l1PuschPduOut->rbBitmap[0], &fapiPuschPduInfoIn->rbBitmap[0], sizeof(uint8_t)*36);

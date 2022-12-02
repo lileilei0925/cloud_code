@@ -47,8 +47,8 @@ typedef struct
 /* Slot Messages Ul_TTI.request的头,PDU信息之前的部分 */
 typedef struct
 {
-    uint16_t sfnIndex;                           /* system frame number [0: 1023] */
-    uint16_t slotIndex;                          /* SLOT number [0: 159] */
+    uint16_t sfnIndex;                         /* system frame number [0: 1023] */
+    uint16_t slotIndex;                        /* SLOT number [0: 159] */
     uint16_t pduNum;                           /* Number of PDUs that are included in this message */
     uint8_t  ulPduTypes;                       /* Maximum number of UL PDU types supported by UL_TTI.request */
     uint16_t pduNumPerType[MAX_UL_PDU_TYPES];  /* Number of PDUs of each type that are included in this message,nUlPduTypes = 5 */

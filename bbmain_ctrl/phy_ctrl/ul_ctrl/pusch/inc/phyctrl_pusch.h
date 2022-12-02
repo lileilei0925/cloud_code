@@ -137,7 +137,7 @@ typedef struct
     uint16_t prgNum;                  /* Number of PRGs spanning this allocation */
     uint16_t prgSize;                 /* Size in RBs of a precoding resource block group */
     uint8_t  digitalBfNum;            /* Number of logical antenna ports */
-    uint16_t beamIndex[MAX_PRG_NUM][MAX_BF_PORT];
+    uint16_t beamIndex[NR_PUSCH_MAX_PRG_NUM][MAX_BF_PORT];
     /* PuschParaAddInV3 */
     uint8_t  puschTransType;          /* puschTransTypeValidity = 1 有效. Value 0: */
     uint16_t deltabwp0fromActiveBwp;  /* The value of Bwp[0].Start - Bwp[i].start */
@@ -309,6 +309,7 @@ typedef struct
 {
     uint16_t sfnIndex;     /* system frame number [0: 1023] */
     uint8_t  slotIndex;    /* slot number [0: 159]  */
+    uint16_t taskBitmap;
     NrPuschCellPara puschCellPara;
     NrPuschSymPara  puschSymPara[SYM_NUM_PER_SLOT];
 } PuschDcePara;
@@ -333,6 +334,37 @@ typedef struct
 /* DEQ&DEMAP 接口 */
 typedef struct 
 {
+    uint8_t  dataSymbNum;
+    uint8_t  dmrsSymbNum;
+    uint8_t  firstDmrsIndex;
+    uint8_t  secondDmrsIndex;
+    uint8_t  thirdDmrsIndex;
+    uint8_t  dmrsRePerRB;
+    uint16_t rbNumAllRbg;
+    uint16_t ulResourceG;
+    uint16_t ueUCIReNum;
+    uint16_t hackAckbit;
+    uint16_t enCodeAckRe;
+    uint16_t csiPart1bit;
+    uint16_t enCodeCsiPart1Re;
+    uint16_t csiPart2bit;
+    uint16_t enCodeCsiPart2Re;
+} PuschResourceInfo;
+
+typedef struct 
+{
+    uint8_t  cbNum;
+    uint8_t  tbCrcType;
+    uint8_t  iLs;
+    uint16_t ulKd;
+    uint16_t ulKr;
+    uint16_t cbFillingLen;
+    uint16_t ulZc;
+    uint16_t ulN;
+} PuschDemapParaTemp;
+
+typedef struct 
+{
     uint16_t ackRvdExsitFlag;
     uint16_t ackRvdStartRe;
     uint16_t ackRvdReNum;
@@ -345,31 +377,7 @@ typedef struct
     uint16_t csiPart1StartRe;
     uint16_t csiPart1ReNum;
     uint16_t csiPart1Distance;
-} PuschAckAndCsiPart1Info;
-
-typedef struct 
-{
-   uint8_t  dataSymbNum;
-   uint8_t  dmrsSymbNum;
-   uint8_t  firstDmrsIndex;
-   uint8_t  secondDmrsIndex;
-   uint8_t  thirdDmrsIndex;
-   uint8_t  cbNum;
-   uint8_t  tbCrcType;
-   uint8_t  iLs;
-   uint16_t ulKd;
-   uint16_t ulKr;
-   uint16_t cbFillingLen;
-   uint16_t ulZc;
-   uint16_t ulN;
-   uint16_t rbSize;
-   uint16_t hackAckbit;
-   uint16_t enCodeAckRe;
-   uint16_t csiPart1bit;
-   uint16_t enCodeCsiPart1Re;
-   uint16_t rbNumAllRbg;
-   PuschAckAndCsiPart1Info puschAckAndCsiPart1Info[SYM_NUM_PER_SLOT];
-} PuschDemapParaTemp;
+} PuschAckAndCsiInfo;
 
 typedef struct
 {
@@ -443,6 +451,29 @@ typedef struct
 /* LDPC 接口 */
 typedef struct 
 {
+    uint32_t *segmStartAddr;
+    uint16_t segmCycNum;
+    uint32_t segmLlrNum;
+    uint32_t segmPeriod;
+} PuschLlrSegmPara;
+
+typedef struct 
+{
+    uint8_t  segmNum;          /* 分割的组数 */
+    PuschLlrSegmPara puschLlrSegmPara[5]; /* CSI-Part2&Data抽取参数 */
+}PuschLlrSegmInfo;
+
+typedef struct 
+{
+    uint8_t  dmrsNumBfPart2;
+    uint8_t  csiPart2StartSymb;
+    uint8_t  csiPart2EndSymb;
+    uint8_t  reDistance[SYM_NUM_PER_SLOT];
+    uint16_t part2ReNumInSymb[SYM_NUM_PER_SLOT];
+} CsiPart2ParaInfo;
+
+typedef struct 
+{
     uint8_t  ueIndex;          /* UE 索引 */
     uint8_t  qamMode;          /* 调制阶数 */
     uint8_t  layerNum;         /* 层数 */
@@ -461,6 +492,7 @@ typedef struct
     uint32_t cbRmLen0;         /* 第一类码块速率匹配后的长度 */
     uint32_t cbRmLen1;         /* 第二类码块速率匹配后的长度 */
     uint32_t tbSize;           /* 添加TB Size */ 
+    PuschLlrSegmInfo PuschLlrSegmInfo; /* CSI-Part2&Data抽取参数 */
     uint32_t harqInBufOffset;
     uint32_t harqOutBufOffset;
     uint32_t tbDataOutOffset;
@@ -572,3 +604,12 @@ typedef struct
     
     FapiNrPushUciIndication fapiNrPushUciIndication[MAX_PUSCH_PDU_NUM];
 }PuschUciRst;
+typedef struct 
+{
+    uint16_t sfnIndex;                                    /* system frame number [0: 1023] */
+    uint8_t  slotIndex;                                   /* slot number [0: 159]  */
+    uint8_t  ueIndex;                                     
+    uint8_t  msgType;
+    uint8_t  rsvp[3]; 
+    uint16_t uciBitLen;  
+} UCIParaInfoTemp;

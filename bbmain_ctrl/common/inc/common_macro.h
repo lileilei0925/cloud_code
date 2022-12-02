@@ -65,8 +65,8 @@ enum RM_TYPE
 #define    PRACH_FORMAT_A2           5
 #define    PRACH_FORMAT_A3           6
 #define    PRACH_FORMAT_B1           7
-#define    PRACH_FORMAT_B2           255 /* FAPI�ӿ���B2 B3 */
-#define    PRACH_FORMAT_B3           255 /* FAPI�ӿ���B2 B3 */
+#define    PRACH_FORMAT_B2           255 
+#define    PRACH_FORMAT_B3           255 
 #define    PRACH_FORMAT_B4           8
 #define    PRACH_FORMAT_C0           9
 #define    PRACH_FORMAT_C2           10
@@ -86,7 +86,6 @@ enum RM_TYPE
 /* Prach  end*/
 
 #define HOP_NUM                      2
-#define MAX_PRG_NUM                  137
 #define MAX_BF_PORT                  4
 #define MAX_GROUP_NUM                8
 #define MAX_UE_NUM_PER_GROUP         12
@@ -111,9 +110,22 @@ enum RM_TYPE
 #define NR_PUSCH_MAX_UE_NUM_PER_SLOT 16
 #define NR_PUSCH_MAX_PRG_NUM         137
 
-#define MAX_BIT_FGH                 8*20*2  //20: ÿ֡������ʱ϶����2��hop
-#define MAX_BIT_V                   2*20    //20: ÿ֡������ʱ϶��
-#define MAX_BIT_NCS                 8*14*20 //14: ÿʱ϶�����ķ�������20: ÿ֡������ʱ϶��
+#define NR_ULSCH_WITHOUT_UCI         0   /* PUSCH Data Only */
+#define NR_UCI_HARQ_ACK              1   /* HARQ_ACK  */
+#define NR_UCI_CSI_PART1             2   /* CSI_PART1 */
+//#define NR_UCI_CSI_PART2             3   /* CSI_PART2 */
+#define NR_UCI_WITH_ALL              4   /* HARQ_ACK + CSI_PART1 + CSI_PART2 */
+#define NR_UCI_WITHOUT_HARQ_ACK      5   /* CSI-Part1 + CSI-Part2 */
+#define NR_UCI_WITHOUT_PART2         6   /* HAQK-ACK + CSI-Part1 */
+#define NR_ULSCH_WITH_PART2          7   /* Data + CSI-Part2 */
+#define NR_ULSCH_WITHOUT_PART2       8   /* Data + UCI WithOut CSI-Part2 */
+
+#define NR_PUSCH_CSIPART2_EXT        0
+#define NR_PUSCH_ULSCH_EXT           1
+
+#define MAX_BIT_FGH                 8*20*2  
+#define MAX_BIT_V                   2*20    
+#define MAX_BIT_NCS                 8*14*20 
 
 #define _extu(v1, csta, cstb)     (((uint32_t)(v1) << (csta)) >> (cstb))
 #define MAX_POLAR_CB_NUM             2

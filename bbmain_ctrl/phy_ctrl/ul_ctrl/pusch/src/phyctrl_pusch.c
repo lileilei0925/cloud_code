@@ -1,31 +1,30 @@
 #include "../../../../common/inc/fapi_mac2phy_interface.h"
 #include "../../../../common/inc/phy_ctrl_common.h"
 #include "../../../../common/src/common.c"
-
 #include "../inc/phyctrl_pusch.h"
 #include "../inc/pusch_variable.h"
 
 uint32_t L1PuschTbParaCalculate(L1PuschPduInfo *l1PuschUeInfo, PuschDemapParaTemp *puschDemapParaTemp);
 uint32_t L1PuschUciCrcLengthCalculate(uint16_t ucibitlength, uint8_t *crcLength);
-uint32_t L1PuschUciEncodeBitCalculate(L1PuschPduInfo *l1PuschUeInfo,  PuschDemapParaTemp *puschDemapParaTemp);
-uint32_t L1PuschUciReLocationCalculate(L1PuschPduInfo *l1PuschUeInfo, PuschDemapParaTemp *puschDemapParaTemp);
+uint32_t L1PuschUciEncodeBitCalculate(L1PuschPduInfo *l1PuschUeInfo, PuschResourceInfo  *puschResourceInfo, PuschDemapParaTemp *puschDemapParaTemp);
+uint32_t L1PuschUciReLocationCalculate(L1PuschPduInfo *l1PuschUeInfo, PuschResourceInfo *puschResourceInfo, PuschAckAndCsiInfo *puschAckAndCsiInfo);
 uint32_t L1PuschLdpcCbPartRowCalculate(PuschLdpcUePara *puschLdpcUePara, uint8_t baseGraphType, uint16_t *cbPartRow);
+uint32_t L1PuschCsiPart2ResCalculate(L1PuschPduInfo *l1PuschUeInfo, PuschResourceInfo *puschResourceInfo, PuschAckAndCsiInfo *puschAckAndCsiInfo, CsiPart2ParaInfo *csiPart2ParaInfo);
+uint32_t L1PuschDataTypeCalculate(L1PuschPduInfo *l1PuschUeInfo, uint8_t *dataFlag);
+uint32_t L1PuschCsiPart2AndDataExtract(uint8_t dataFlag, L1PuschPduInfo *l1PuschUeInfo, PuschResourceInfo *puschResourceInfo, CsiPart2ParaInfo *csiPart2ParaInfo, PuschLlrSegmInfo *puschLlrSegmInfo);
 
 #if 1
 int main(void)
 {
-  uint32_t a = 40;
-  uint32_t b = 16;
-  uint32_t c = 0;
-  uint32_t d = 0;
-  uint16_t aa;
-  uint16_t bb[16] = { 0 };
-  uint8_t  rbgNum = 0;
-  uint8_t  rbgStartAndsize[137*2] = { 0 };
-  
-  a = sizeof(NrPuschMeasPara);
-  b = sizeof(PuschLowPhyCellReport);
-  
+    uint32_t a = 40;
+    uint32_t b = 16;
+    uint32_t c = 0;
+    uint32_t d = 0;
+    uint16_t aa;
+    uint16_t bb[16] = { 0 };
+    uint8_t  rbgNum = 0;
+    uint8_t  rbgStartAndsize[137*2] = { 0 };
+
   //findRbgNumAndSize(&rbBitmap[0], 36, &rbgNum, &g_puschUeRbgInfo[0][0]);
   //findBit1NumAndIndex(rbBitmap1, &aa, &bb[0]); 
   printf("c = %d;\n",a+b);
@@ -166,7 +165,7 @@ uint32_t L1PuschParaParse2DceDsp(uint8_t cellIndex, L1PuschParaPduInfo *l1PuschP
         dmrsCnt[ueIndex] = 0;  /* 清零 后面使用 */
     }
 
-    for(symbIndex = 0; symbIndex < SYM_NUM_PER_SLOT; symbIndex++){
+    for (symbIndex = 0; symbIndex < SYM_NUM_PER_SLOT; symbIndex++){
         validUeNum = 0;
         nrPuschSymPara = &puschDcePara->puschSymPara[symbIndex];
         for(ueIndex = 0; ueIndex < ueNum; ueIndex++){
@@ -232,17 +231,23 @@ uint32_t L1PuschParaParse2DceDsp(uint8_t cellIndex, L1PuschParaPduInfo *l1PuschP
             g_puschUeRbsize[cellIndex][slotIndex][ueIndex] = nrPuschSymPara->puschUePara[ueIndex].rbsize;
        
             validUeNum ++;
+        }
+
+        if(validUeNum > 0){
+            g_puschUeNumInSymb[cellIndex][symbIndex] = validUeNum;
+            nrPuschSymPara->validUeNum = validUeNum;
+            puschDcePara->taskBitmap |= (1 << symbIndex ); 
+
+            /* 输入数据地址，待确定 */
+            *nrPuschSymPara->puschFreqData  = 0x00000000;
+            *nrPuschSymPara->puschFreqAgc   = 0x00000001;   
+            /* 输出数据数据，待确定 */
+            *nrPuschSymPara->puschCheResult = 0x00000003;
+            *nrPuschSymPara->puschRuuResult = 0x00000004;
+            *nrPuschSymPara->puschCheAgc    = 0x00000005;
         }   
-        g_puschUeNumInSymb[cellIndex][symbIndex] = validUeNum;
-        nrPuschSymPara->validUeNum = validUeNum;
-        /* 输入数据地址，待确定 */
-        *nrPuschSymPara->puschFreqData  = 0x00000000;
-        *nrPuschSymPara->puschFreqAgc   = 0x00000001;   
-        /* 输出数据数据，待确定 */
-        *nrPuschSymPara->puschCheResult = 0x00000003;
-        *nrPuschSymPara->puschRuuResult = 0x00000004;
-        *nrPuschSymPara->puschCheAgc    = 0x00000005;
     }    
+
     return 0;
 }
 
@@ -307,10 +312,12 @@ uint32_t L1PuschPara2DeqAndDemapHac(uint8_t cellIndex, L1PuschParaPduInfo *l1Pus
     uint8_t  ueIndex, validUeNum, rbgIndex, layerNum;
     uint8_t  symbIndex, symbStart, symbEnd, ueSymbNum, qamMode;
     uint8_t  dmrsSymbNum, dataSymbNum; 
-    uint16_t rbSize, dataReInSymb, rbNum;
+    uint16_t dataReInSymb, rbNum;
     PuschDemapParaTemp puschDemapParaTemp[16];
+    PuschResourceInfo  puschResourceInfo[16];
     PuschDeqAndDemapSymPara *puschDeqAndDemapSymPara = NULL;
     PuschDeqAndDemapUePara  *puschDeqAndDemapUePara  = NULL;
+    PuschAckAndCsiInfo      *puschAckAndCsiInfo      = NULL;    
     L1PuschPduInfo          *l1PuschUeInfo           = NULL;
 
     memset(&puschDeqAndDemapHacPara->sfnIndex, 0x0, sizeof(PuschDeqAndDemapHacPara));  /* 对接口先清零 */
@@ -327,24 +334,26 @@ uint32_t L1PuschPara2DeqAndDemapHac(uint8_t cellIndex, L1PuschParaPduInfo *l1Pus
     slotIndex = l1PuschParaPduInfo->sfnIndex;
     
     /* ue级参数提前计算 */
+    memset(&g_puschAckAndCsiInfo[cellIndex][slotIndex][0][0], 0x0, sizeof(PuschAckAndCsiInfo) * NR_PUSCH_MAX_UE_NUM_PER_SLOT * SYM_NUM_PER_SLOT);
     for(ueIndex = 0; ueIndex < puschDeqAndDemapHacPara->ueNum; ueIndex++){
-        rbSize = g_puschUeRbsize[cellIndex][slotIndex][ueIndex];
         l1PuschUeInfo = &l1PuschParaPduInfo->l1PuschPduInfo[ueIndex];
-        puschDemapParaTemp[ueIndex].rbNumAllRbg = rbSize;
-
+        puschAckAndCsiInfo = &g_puschAckAndCsiInfo[cellIndex][slotIndex][ueIndex][0];
+        
         L1PuschTbParaCalculate(l1PuschUeInfo, &puschDemapParaTemp[ueIndex]); /* TB参数计算 */
         
-        ueSymbNum       = l1PuschUeInfo->nrOfSymbols;
-        dmrsSymbNum     = g_puschDmrsSymbNum[cellIndex][slotIndex][ueIndex];
-        dataSymbNum     = ueSymbNum - dmrsSymbNum;
-        puschDemapParaTemp[ueIndex].dmrsSymbNum     = dmrsSymbNum;
-        puschDemapParaTemp[ueIndex].dataSymbNum     = dataSymbNum;
-        puschDemapParaTemp[ueIndex].firstDmrsIndex  = g_puschDmrsSymbIndex[cellIndex][slotIndex][ueIndex][0];
-        puschDemapParaTemp[ueIndex].secondDmrsIndex = g_puschDmrsSymbIndex[cellIndex][slotIndex][ueIndex][1];
-        puschDemapParaTemp[ueIndex].thirdDmrsIndex  = g_puschDmrsSymbIndex[cellIndex][slotIndex][ueIndex][2];
+        ueSymbNum   = l1PuschUeInfo->nrOfSymbols;
+        dmrsSymbNum = g_puschDmrsSymbNum[cellIndex][slotIndex][ueIndex];
+        dataSymbNum = ueSymbNum - dmrsSymbNum;
+        puschResourceInfo[ueIndex].dmrsSymbNum     = dmrsSymbNum;
+        puschResourceInfo[ueIndex].dataSymbNum     = dataSymbNum;
+        puschResourceInfo[ueIndex].firstDmrsIndex  = g_puschDmrsSymbIndex[cellIndex][slotIndex][ueIndex][0];
+        puschResourceInfo[ueIndex].secondDmrsIndex = g_puschDmrsSymbIndex[cellIndex][slotIndex][ueIndex][1];
+        puschResourceInfo[ueIndex].thirdDmrsIndex  = g_puschDmrsSymbIndex[cellIndex][slotIndex][ueIndex][2];
+        puschResourceInfo[ueIndex].rbNumAllRbg     = g_puschUeRbsize[cellIndex][slotIndex][ueIndex];
 
-        L1PuschUciEncodeBitCalculate(l1PuschUeInfo,  &puschDemapParaTemp[ueIndex]);
-        L1PuschUciReLocationCalculate(l1PuschUeInfo, &puschDemapParaTemp[ueIndex]);
+        L1PuschUciEncodeBitCalculate(l1PuschUeInfo,  &puschResourceInfo[ueIndex], &puschDemapParaTemp[ueIndex]);
+
+        L1PuschUciReLocationCalculate(l1PuschUeInfo, &puschResourceInfo[ueIndex], puschAckAndCsiInfo);
     }
     
     /* 按照符号循环，配置每个符号的参数 */
@@ -353,6 +362,7 @@ uint32_t L1PuschPara2DeqAndDemapHac(uint8_t cellIndex, L1PuschParaPduInfo *l1Pus
         validUeNum = 0;
         for (ueIndex = 0; ueIndex < puschDeqAndDemapHacPara->ueNum; ueIndex++){
             l1PuschUeInfo = &l1PuschParaPduInfo->l1PuschPduInfo[ueIndex];
+            
             symbStart = l1PuschUeInfo->startSymbIndex;
             symbEnd   = symbStart + l1PuschUeInfo->nrOfSymbols;
 
@@ -422,7 +432,7 @@ uint32_t L1PuschPara2DeqAndDemapHac(uint8_t cellIndex, L1PuschParaPduInfo *l1Pus
                 puschDeqAndDemapUePara->equInterCoeff[1] = 0;
             }
             
-            rbNum    = puschDemapParaTemp[ueIndex].rbNumAllRbg;
+            rbNum    = puschResourceInfo[ueIndex].rbNumAllRbg;
             layerNum = puschDeqAndDemapUePara->layerNum;
             qamMode  = puschDeqAndDemapUePara->deModType;
             puschDeqAndDemapUePara->scrambleReOffset += rbNum * dataReInSymb * layerNum * qamMode;
@@ -440,20 +450,20 @@ uint32_t L1PuschPara2DeqAndDemapHac(uint8_t cellIndex, L1PuschParaPduInfo *l1Pus
                 }
             }
 
-            puschDeqAndDemapUePara->palcehoderFlag      = puschDemapParaTemp[ueIndex].puschAckAndCsiPart1Info[symbIndex].ackRvdExsitFlag;
-            puschDeqAndDemapUePara->uciReStart          = puschDemapParaTemp[ueIndex].puschAckAndCsiPart1Info[symbIndex].ackRvdStartRe;
-            puschDeqAndDemapUePara->uciReDistance       = puschDemapParaTemp[ueIndex].puschAckAndCsiPart1Info[symbIndex].ackRvdDistance;
-            puschDeqAndDemapUePara->uciReNum            = puschDemapParaTemp[ueIndex].puschAckAndCsiPart1Info[symbIndex].ackRvdReNum;
+            puschDeqAndDemapUePara->palcehoderFlag     = puschAckAndCsiInfo[symbIndex].ackRvdExsitFlag;
+            puschDeqAndDemapUePara->uciReStart         = puschAckAndCsiInfo[symbIndex].ackRvdStartRe;
+            puschDeqAndDemapUePara->uciReDistance      = puschAckAndCsiInfo[symbIndex].ackRvdDistance;
+            puschDeqAndDemapUePara->uciReNum           = puschAckAndCsiInfo[symbIndex].ackRvdReNum;
             
-            puschDeqAndDemapUePara->ackFlag             = puschDemapParaTemp[ueIndex].puschAckAndCsiPart1Info[symbIndex].ackExsitFlag;
-            puschDeqAndDemapUePara->ackReStart          = puschDemapParaTemp[ueIndex].puschAckAndCsiPart1Info[symbIndex].ackStartRe;
-            puschDeqAndDemapUePara->ackReDistance       = puschDemapParaTemp[ueIndex].puschAckAndCsiPart1Info[symbIndex].ackDistance;
-            puschDeqAndDemapUePara->ackReNum            = puschDemapParaTemp[ueIndex].puschAckAndCsiPart1Info[symbIndex].ackReNum;
+            puschDeqAndDemapUePara->ackFlag            = puschAckAndCsiInfo[symbIndex].ackExsitFlag;
+            puschDeqAndDemapUePara->ackReStart         = puschAckAndCsiInfo[symbIndex].ackStartRe;
+            puschDeqAndDemapUePara->ackReDistance      = puschAckAndCsiInfo[symbIndex].ackDistance;
+            puschDeqAndDemapUePara->ackReNum           = puschAckAndCsiInfo[symbIndex].ackReNum;
 
-            puschDeqAndDemapUePara->csiPart1Flag        = puschDemapParaTemp[ueIndex].puschAckAndCsiPart1Info[symbIndex].csiPart1ExsitFlag;
-            puschDeqAndDemapUePara->csiPart1ReStart     = puschDemapParaTemp[ueIndex].puschAckAndCsiPart1Info[symbIndex].csiPart1StartRe;
-            puschDeqAndDemapUePara->csiPart1ReDistance  = puschDemapParaTemp[ueIndex].puschAckAndCsiPart1Info[symbIndex].csiPart1Distance;
-            puschDeqAndDemapUePara->csiPart1ReNum       = puschDemapParaTemp[ueIndex].puschAckAndCsiPart1Info[symbIndex].ackReNum;
+            puschDeqAndDemapUePara->csiPart1Flag       = puschAckAndCsiInfo[symbIndex].csiPart1ExsitFlag;
+            puschDeqAndDemapUePara->csiPart1ReStart    = puschAckAndCsiInfo[symbIndex].csiPart1StartRe;
+            puschDeqAndDemapUePara->csiPart1ReDistance = puschAckAndCsiInfo[symbIndex].csiPart1Distance;
+            puschDeqAndDemapUePara->csiPart1ReNum      = puschAckAndCsiInfo[symbIndex].ackReNum;
             
             /* 地址待定 */
             *puschDeqAndDemapUePara->scrambBaseAddrC0In = 0x00000000;
@@ -473,14 +483,23 @@ uint32_t L1PuschPara2LdpcDecoderHac(uint8_t cellIndex, L1PuschParaPduInfo *l1Pus
 {
     uint8_t  ueIndex, ueNum, slotIndex, baseGraphType, rvIndex, harqId;
     uint8_t  dmrsSymbNum, ueSymbNum, dmrsNoDataNum, dmrsRePerRB;
-    uint8_t  cbRmLen0, cbRmLen1;
-    uint8_t  qamModer, layerNum, cbNum;
+    uint8_t  cbRmLen0, cbRmLen1, qamModer, layerNum, cbNum;
+    uint8_t  betaOffsetPart2, alphaScaling, csiPart2UlschFlag,crcLengthPart2;
     uint16_t rbSize, ulNref, ulResourceG;
+    uint16_t csiPart2Flag, ulKr;
+    uint16_t csiPart2BitLen;
+    uint16_t ueUCIReNum, qPart2P0, qPart2P1;
     uint16_t iLoop, cbPartRow[3];
+    uint16_t enCodeHarqAckReNum, enCodeCsiPart1ReNum, enCodeulschReNum;
+    PuschResourceInfo  puschResourceInfo;
     PuschDemapParaTemp puschDemapParaTemp;
-    L1PuschPduInfo  *l1PuschUeInfo   = NULL;
-    PuschLdpcUePara *puschLdpcUePara = NULL;
-   
+    PuschLlrSegmInfo   puschLlrSegmInfo;
+    L1PuschPduInfo     *l1PuschUeInfo      = NULL;
+    PuschLdpcUePara    *puschLdpcUePara    = NULL;
+    PuschAckAndCsiInfo *puschAckAndCsiInfo = NULL;
+    CsiPart2ParaInfo   *csiPart2ParaInfo   = NULL;
+    uint32_t *csiPart2AndDataBaseAddr = NULL;
+
     ldpcDecoderHacPara->sfnIndex  = l1PuschParaPduInfo->sfnIndex;
     ldpcDecoderHacPara->slotIndex = l1PuschParaPduInfo->slotIndex;
     ldpcDecoderHacPara->ueNum     = l1PuschParaPduInfo->puschPduNum;
@@ -491,24 +510,24 @@ uint32_t L1PuschPara2LdpcDecoderHac(uint8_t cellIndex, L1PuschParaPduInfo *l1Pus
     ueNum     = l1PuschParaPduInfo->puschPduNum;
     slotIndex = l1PuschParaPduInfo->slotIndex;
 
+    l1PuschUeInfo   = &l1PuschParaPduInfo->l1PuschPduInfo[ueIndex];
+    puschLdpcUePara = &ldpcDecoderHacPara->puschLdpcUePara[ueIndex];
     for (ueIndex = 0; ueIndex < ueNum; ueIndex++){
-        l1PuschUeInfo   = &l1PuschParaPduInfo->l1PuschPduInfo[ueIndex];
-        puschLdpcUePara = &ldpcDecoderHacPara->puschLdpcUePara[ueIndex];
         baseGraphType   = l1PuschUeInfo->ldpcBaseGraph - 1;
-
+      
         L1PuschTbParaCalculate(l1PuschUeInfo, &puschDemapParaTemp);   /* TB参数计算 */
         
         memset(&cbPartRow[0], 0x0, sizeof(uint16_t) * 3);
-        puschLdpcUePara->ueIndex          = ueIndex;
-        puschLdpcUePara->tbCrcType        = puschDemapParaTemp.tbCrcType;
-        puschLdpcUePara->cbNum            = puschDemapParaTemp.cbNum;
-        puschLdpcUePara->ldpcKd           = puschDemapParaTemp.ulKd;
-        puschLdpcUePara->cbFillBitLen     = puschDemapParaTemp.cbFillingLen;
-        puschLdpcUePara->ldpcZc           = puschDemapParaTemp.ulZc;
-        puschLdpcUePara->ldpcBgId         = g_puschLdpcBgId[baseGraphType][puschDemapParaTemp.iLs];
-        puschLdpcUePara->qamMode          = l1PuschUeInfo->qamModOrder;
-        puschLdpcUePara->layerNum         = l1PuschUeInfo->nrOfLayers;
-        puschLdpcUePara->tbSize           = l1PuschUeInfo->puschDataPara.tbSize;
+        puschLdpcUePara->ueIndex      = ueIndex;
+        puschLdpcUePara->tbCrcType    = puschDemapParaTemp.tbCrcType;
+        puschLdpcUePara->cbNum        = puschDemapParaTemp.cbNum;
+        puschLdpcUePara->ldpcKd       = puschDemapParaTemp.ulKd;
+        puschLdpcUePara->cbFillBitLen = puschDemapParaTemp.cbFillingLen;
+        puschLdpcUePara->ldpcZc       = puschDemapParaTemp.ulZc;
+        puschLdpcUePara->ldpcBgId     = g_puschLdpcBgId[baseGraphType][puschDemapParaTemp.iLs];
+        puschLdpcUePara->qamMode      = l1PuschUeInfo->qamModOrder;
+        puschLdpcUePara->layerNum     = l1PuschUeInfo->nrOfLayers;
+        puschLdpcUePara->tbSize       = l1PuschUeInfo->puschDataPara.tbSize;
 
         rbSize        = g_puschUeRbsize[cellIndex][slotIndex][ueIndex];
         dmrsSymbNum   = g_puschDmrsSymbNum[cellIndex][slotIndex][ueIndex];
@@ -545,10 +564,80 @@ uint32_t L1PuschPara2LdpcDecoderHac(uint8_t cellIndex, L1PuschParaPduInfo *l1Pus
         puschLdpcUePara->ldpcK0 = ((g_puschK0Coeff[baseGraphType][rvIndex] * puschLdpcUePara->ldpcNcb) / puschDemapParaTemp.ulN) * puschLdpcUePara->ldpcZc;
 
         L1PuschLdpcCbPartRowCalculate(puschLdpcUePara, baseGraphType, &cbPartRow[0]);
-        
         for (iLoop = 0; iLoop < 3; iLoop++){
             puschLdpcUePara->rBgUsedBitmap[iLoop] |= cbPartRow[iLoop];
         }
+        
+        puschResourceInfo.dmrsSymbNum     = dmrsSymbNum;
+        puschResourceInfo.dataSymbNum     = ueSymbNum - dmrsSymbNum;
+        puschResourceInfo.firstDmrsIndex  = g_puschDmrsSymbIndex[cellIndex][slotIndex][ueIndex][0];
+        puschResourceInfo.secondDmrsIndex = g_puschDmrsSymbIndex[cellIndex][slotIndex][ueIndex][1];
+        puschResourceInfo.thirdDmrsIndex  = g_puschDmrsSymbIndex[cellIndex][slotIndex][ueIndex][2];
+        puschResourceInfo.rbNumAllRbg     = g_puschUeRbsize[cellIndex][slotIndex][ueIndex];
+        puschResourceInfo.ulResourceG     = ulResourceG;
+        L1PuschUciEncodeBitCalculate(l1PuschUeInfo, &puschResourceInfo, &puschDemapParaTemp);
+        
+        /* CSI-Part2占用Re数计算 */ 
+        csiPart2BitLen  = 0xFFFF; /* 根据part1译码结果获取part2的长度 */
+        L1PuschUciCrcLengthCalculate(csiPart2BitLen, &crcLengthPart2);
+
+        ulKr            = puschDemapParaTemp.ulKr;
+        ueUCIReNum      = puschResourceInfo.ueUCIReNum;
+        betaOffsetPart2 = l1PuschUeInfo->puschUciPara.betaOffsetCsi2;
+        qPart2P0        = ceilDiv((csiPart2BitLen + crcLengthPart2) * betaOffsetPart2 * ueUCIReNum, cbNum * ulKr);
+        qPart2P1        = ceilDiv(alphaScaling * ueUCIReNum, 1) - puschResourceInfo.enCodeAckRe - puschResourceInfo.enCodeCsiPart1Re; 
+        puschResourceInfo.enCodeCsiPart2Re = (qPart2P0 < qPart2P1) ? qPart2P0 : qPart2P1;
+        puschResourceInfo.csiPart2bit      = csiPart2BitLen;
+        
+        csiPart2Flag = l1PuschUeInfo->puschUciPara.flagCsiPart2;
+        if ((l1PuschUeInfo->pduBitMap & 0x3) == 1){        /* DATA Only */
+            csiPart2UlschFlag = NR_ULSCH_WITHOUT_UCI;
+        }
+        else if ((l1PuschUeInfo->pduBitMap & 0x3) == 3){   /* Data + UCI */
+            if (csiPart2Flag != 0){ /* 0: No CSI part 2, 65535: Determine CSI Part2 length based on Table3-77 */
+                csiPart2UlschFlag = NR_ULSCH_WITH_PART2;   /* DATA + UCI 存在 CSI-Part2 */
+            }
+            else{
+                csiPart2UlschFlag = NR_ULSCH_WITHOUT_PART2;/* DATA + UCI 不存在 CSI-Part2 */
+            }
+        }
+        
+        csiPart2ParaInfo   = &g_CsiPart2ParaInfo[cellIndex][slotIndex][ueIndex];
+        puschAckAndCsiInfo = &g_puschAckAndCsiInfo[cellIndex][slotIndex][ueIndex][0];
+        memset(csiPart2ParaInfo, 0x0, sizeof(CsiPart2ParaInfo));
+        L1PuschCsiPart2ResCalculate(l1PuschUeInfo, &puschResourceInfo, puschAckAndCsiInfo, csiPart2ParaInfo);
+
+        enCodeHarqAckReNum  = puschResourceInfo.enCodeAckRe;   
+        enCodeCsiPart1ReNum = puschResourceInfo.enCodeCsiPart1Re;
+        csiPart2AndDataBaseAddr = &g_UePart2AndDataAddr[cellIndex][ueIndex];
+        if ((csiPart2UlschFlag == NR_ULSCH_WITHOUT_UCI) || (csiPart2UlschFlag == NR_ULSCH_WITHOUT_PART2)){/* 没有CSI-Part2时， Data只有一段 */
+            if (puschResourceInfo.hackAckbit > 2){
+                enCodeulschReNum = ulResourceG - enCodeCsiPart1ReNum - enCodeHarqAckReNum;
+            }
+            else {
+                enCodeulschReNum = ulResourceG - enCodeCsiPart1ReNum;
+            }
+            puschLlrSegmInfo.segmNum = 1;
+            puschLlrSegmInfo.puschLlrSegmPara[0].segmStartAddr = csiPart2AndDataBaseAddr; /* ue data数据地址 */
+            puschLlrSegmInfo.puschLlrSegmPara[0].segmLlrNum    = enCodeulschReNum;
+            puschLlrSegmInfo.puschLlrSegmPara[0].segmPeriod    = enCodeulschReNum;
+            puschLlrSegmInfo.puschLlrSegmPara[0].segmCycNum    = 1;
+        }
+        else if (csiPart2UlschFlag == NR_ULSCH_WITH_PART2){/* Data with Part2 需要抽取 Part2 + Data */    
+            /* CSI-Part2&Data 抽取 */
+            L1PuschCsiPart2AndDataExtract(NR_PUSCH_ULSCH_EXT, l1PuschUeInfo, &puschResourceInfo, csiPart2ParaInfo, &puschLlrSegmInfo);
+        }
+  
+        puschLdpcUePara->PuschLlrSegmInfo.segmNum = puschLlrSegmInfo.segmNum;
+        for(iLoop = 0; iLoop < puschLlrSegmInfo.segmNum; iLoop++){
+            puschLdpcUePara->PuschLlrSegmInfo.puschLlrSegmPara[iLoop].segmStartAddr = puschLlrSegmInfo.puschLlrSegmPara[iLoop].segmStartAddr;
+            puschLdpcUePara->PuschLlrSegmInfo.puschLlrSegmPara[iLoop].segmLlrNum    = puschLlrSegmInfo.puschLlrSegmPara[iLoop].segmLlrNum;
+            puschLdpcUePara->PuschLlrSegmInfo.puschLlrSegmPara[iLoop].segmPeriod    = puschLlrSegmInfo.puschLlrSegmPara[iLoop].segmPeriod;
+            puschLdpcUePara->PuschLlrSegmInfo.puschLlrSegmPara[iLoop].segmCycNum    = puschLlrSegmInfo.puschLlrSegmPara[iLoop].segmCycNum;
+        }
+
+        l1PuschUeInfo++;
+        puschLdpcUePara++;
     }
 
     return 0;
@@ -598,15 +687,15 @@ uint32_t L1PuschTbParaCalculate(L1PuschPduInfo *l1PuschUeInfo, PuschDemapParaTem
 
     if(tbSizeB <= kCb){
         crcLength = 0;
-        puschDemapParaTemp->cbNum     = 1;
+        puschDemapParaTemp->cbNum = 1;
     }
     else{
         crcLength = 24;
-        puschDemapParaTemp->cbNum     = ceilDiv(tbSizeB, kCb - crcLength);
+        puschDemapParaTemp->cbNum = ceilDiv(tbSizeB, kCb - crcLength);
     }
     tbSizeBp = tbSizeB + (puschDemapParaTemp->cbNum) * crcLength;
     ulKd     = tbSizeBp / (puschDemapParaTemp->cbNum); /* 每个CB中的bit数 */
-    puschDemapParaTemp->ulKd         = ulKd;
+    puschDemapParaTemp->ulKd = ulKd;
 
     /*get Zc from Table 5.3.2-1: Sets of LDPC lifting size  */
     tempZc = ceilDiv(ulKd, kb);
@@ -642,27 +731,7 @@ uint32_t L1PuschTbParaCalculate(L1PuschPduInfo *l1PuschUeInfo, PuschDemapParaTem
     return 0;
 }
 
-uint32_t L1PuschUciCrcLengthCalculate(uint16_t ucibitlength, uint8_t *crcLength)
-{
-    if(ucibitlength > 0)
-    {
-        if(ucibitlength > 360){
-            *crcLength = 11;
-        }
-        else if((ucibitlength < 360)&&(ucibitlength >=20)){
-            *crcLength = 11;
-        }
-        else if((ucibitlength <= 19)&&(ucibitlength >= 12)){
-            *crcLength = 6;
-        }
-        else{
-            *crcLength = 0;
-        }
-    }
-    return 0;
-}
-
-uint32_t L1PuschUciEncodeBitCalculate(L1PuschPduInfo *l1PuschUeInfo, PuschDemapParaTemp *puschDemapParaTemp)
+uint32_t L1PuschUciEncodeBitCalculate(L1PuschPduInfo *l1PuschUeInfo, PuschResourceInfo *puschResourceInfo, PuschDemapParaTemp *puschDemapParaTemp)
 {
     uint8_t  crcLengthAck, crcLengthPart1;
     uint8_t  alphaScaling, betaOffsetAck, betaOffsetPart1;
@@ -675,15 +744,15 @@ uint32_t L1PuschUciEncodeBitCalculate(L1PuschPduInfo *l1PuschUeInfo, PuschDemapP
 
     hackAckBitLength  = l1PuschUeInfo->puschUciPara.harqAckBitLength;
     csiPart1BitLength = l1PuschUeInfo->puschUciPara.csiPart1BitLength;
-    puschDemapParaTemp->hackAckbit  = hackAckBitLength;
-    puschDemapParaTemp->csiPart1bit = csiPart1BitLength;
+    puschResourceInfo->hackAckbit  = hackAckBitLength;
+    puschResourceInfo->csiPart1bit = csiPart1BitLength;
     
     L1PuschUciCrcLengthCalculate(hackAckBitLength, &crcLengthAck);
     L1PuschUciCrcLengthCalculate(csiPart1BitLength, &crcLengthPart1);
     
-    rbSize        = puschDemapParaTemp->rbNumAllRbg;
-    dmrsSymb      = puschDemapParaTemp->dmrsSymbNum;
-    dataSymb      = puschDemapParaTemp->dataSymbNum;
+    rbSize        = puschResourceInfo->rbNumAllRbg;
+    dmrsSymb      = puschResourceInfo->dmrsSymbNum;
+    dataSymb      = puschResourceInfo->dataSymbNum;
     dmrsNoDataNum = l1PuschUeInfo->numCdmGrpsNoData;
     dmrsRePerRB   = l1PuschUeInfo->dmrsCfgType == 1 ? NR_DMRS_TYPE1_SC_PER_RB : NR_DMRS_TYPE2_SC_PER_RB;
     ulKr          = puschDemapParaTemp->ulKr;
@@ -693,7 +762,10 @@ uint32_t L1PuschUciEncodeBitCalculate(L1PuschPduInfo *l1PuschUeInfo, PuschDemapP
     qamMode       = l1PuschUeInfo->qamModOrder;
     ueSCHReNum    = (dmrsSymb + dataSymb) * rbSize * N_SC_PER_PRB - (dmrsSymb * rbSize * dmrsNoDataNum * dmrsRePerRB); /* 暂时不考虑PTRS：SCH可以在除dmrs no data之外的re上传输 */
     ueUCIReNum    = dataSymb * rbSize * N_SC_PER_PRB;  /* 暂时不考虑PTRS：UCI可在除DMRS符号之外的符号上传输 */
-    ueUCIReNumAck = ueUCIReNum - puschDemapParaTemp->firstDmrsIndex * rbSize * N_SC_PER_PRB;
+    ueUCIReNumAck = ueUCIReNum - puschResourceInfo->firstDmrsIndex * rbSize * N_SC_PER_PRB;
+    puschResourceInfo->ulResourceG = ueSCHReNum;
+    puschResourceInfo->ueUCIReNum  = ueUCIReNum;
+    puschResourceInfo->dmrsRePerRB = dmrsRePerRB;
 
     if(l1PuschUeInfo->pduBitMap == 1){
         /* PUSCH Only *///只需要区分DMRS即可
@@ -701,46 +773,58 @@ uint32_t L1PuschUciEncodeBitCalculate(L1PuschPduInfo *l1PuschUeInfo, PuschDemapP
     }
     else if(l1PuschUeInfo->pduBitMap == 2){/* UCI only */
         /* HARQ-ACK */
+        if(hackAckBitLength < 2){
+            hackAckBitLength = 2;
+        }
         qAckP0   = ceilDiv((hackAckBitLength + crcLengthAck) * betaOffsetAck, codeRate*qamMode/1024);
         qAckP1   = ceilDiv(alphaScaling * ueUCIReNumAck, 1); /* 向上取整待修改 */
-        puschDemapParaTemp->enCodeAckRe = (qAckP0 < qAckP1) ? qAckP0 : qAckP1; 
+        puschResourceInfo->enCodeAckRe = (qAckP0 < qAckP1) ? qAckP0 : qAckP1; 
         /* CSI-Part1 */
         qPart1P0 = ceilDiv((csiPart1BitLength + crcLengthPart1) * betaOffsetPart1, codeRate*qamMode/1024);
-        qPart1P1 = ueUCIReNum - puschDemapParaTemp->enCodeAckRe; 
-        puschDemapParaTemp->enCodeCsiPart1Re = (qPart1P0 < qPart1P1) ? qPart1P0 : qPart1P1; 
+        qPart1P1 = ueUCIReNum - puschResourceInfo->enCodeAckRe; 
+        puschResourceInfo->enCodeCsiPart1Re = (qPart1P0 < qPart1P1) ? qPart1P0 : qPart1P1; 
     }
     else if(l1PuschUeInfo->pduBitMap == 3){/* PSUCH + UCI */
         /* HARQ-ACK */
         qAckP0   = ceilDiv((hackAckBitLength + crcLengthAck) * betaOffsetAck * ueUCIReNum, cbNum * ulKr);
         qAckP1   = ceilDiv(alphaScaling * ueUCIReNumAck, 1); /* 向上取整待修改 */
-        puschDemapParaTemp->enCodeAckRe = (qAckP0 < qAckP1) ? qAckP1 : qAckP1; 
+        puschResourceInfo->enCodeAckRe = (qAckP0 < qAckP1) ? qAckP1 : qAckP1; 
         /* CSI-Part1 */
         qPart1P0 = ceilDiv((csiPart1BitLength + crcLengthPart1) * betaOffsetPart1 * ueUCIReNum, cbNum * ulKr);
-        qPart1P1 = ceilDiv(alphaScaling * ueUCIReNum, 1) - puschDemapParaTemp->enCodeAckRe; 
-        puschDemapParaTemp->enCodeCsiPart1Re = (qPart1P0 < qPart1P1) ? qPart1P0 : qPart1P1; 
+        qPart1P1 = ceilDiv(alphaScaling * ueUCIReNum, 1) - puschResourceInfo->enCodeAckRe; 
+        puschResourceInfo->enCodeCsiPart1Re = (qPart1P0 < qPart1P1) ? qPart1P0 : qPart1P1; 
     }
 
     return 0;
 }
 
-uint32_t L1PuschUciReLocationCalculate(L1PuschPduInfo *l1PuschUeInfo, PuschDemapParaTemp *puschDemapParaTemp)
+uint32_t L1PuschUciReLocationCalculate(L1PuschPduInfo *l1PuschUeInfo, PuschResourceInfo *puschResourceInfo, PuschAckAndCsiInfo *puschAckAndCsiInfo)
 {
-    uint8_t  qamMode, layerNum, ackReRvdDistance, ackReDistance, csiPart1Distance;
-    uint8_t  symbIndex;
-    uint16_t mAckCnt, nGAck, nGAckRvd, mReCnt, reIndex;
-    uint16_t nMUciSc, ackReNumRvd[SYM_NUM_PER_SLOT], nMUciScBar[SYM_NUM_PER_SLOT];
+    uint8_t  ackReRvdDistance, ackReDistance, csiPart1Distance;
+    uint8_t  symbIndex, qamMode, layerNum;
+    uint8_t  symbStart, symbNum;
+    uint16_t dmrsSymBitmap;
+    uint16_t mAckCnt, mReCnt, reIndex;
+    uint16_t nMUciSc, nGAck, nGAckRvd;
+    uint16_t ackReNumRvd[SYM_NUM_PER_SLOT] = { 0 };
+    uint16_t ackReNum[SYM_NUM_PER_SLOT]    = { 0 };
+    uint16_t nMUciScBar[SYM_NUM_PER_SLOT]  = { 0 };
     uint16_t mCsiPart1Cnt, nGCsiPart1, nMCsiPart1Sc;
 
-    qamMode  = l1PuschUeInfo->qamModOrder;
-    layerNum = l1PuschUeInfo->nrOfLayers;
-    nGAckRvd = puschDemapParaTemp->enCodeAckRe * qamMode * layerNum;
-    nGAck    = nGAckRvd;
-    nMUciSc  = puschDemapParaTemp->rbNumAllRbg * N_SC_PER_PRB; /* 每个符号上的有效RE数，UCI不能在DMRS符号上传送 */
-
-    mAckCnt  = 0;
-    symbIndex = puschDemapParaTemp->firstDmrsIndex + 1; /* ACK 从第一个DMRS之后的数据符号开始映射, 当前只会配置单列导频 */
-    if(puschDemapParaTemp->hackAckbit <= 2){/* step1: 计算ACK预留资源 */
-        while (mAckCnt < nGAckRvd) 
+    memset(puschAckAndCsiInfo, 0x0, sizeof(PuschAckAndCsiInfo) * SYM_NUM_PER_SLOT);
+    qamMode       = l1PuschUeInfo->qamModOrder;
+    layerNum      = l1PuschUeInfo->nrOfLayers;
+    symbStart     = l1PuschUeInfo->startSymbIndex;
+    symbNum       = l1PuschUeInfo->nrOfSymbols;
+    dmrsSymBitmap = l1PuschUeInfo->ulDmrsSymbPos;
+    
+    nMUciSc       = puschResourceInfo->rbNumAllRbg * N_SC_PER_PRB; /* 每个符号上的有效RE数，UCI不能在DMRS符号上传送 */
+    nGAckRvd      = puschResourceInfo->enCodeAckRe * qamMode * layerNum;
+    nGAck         = nGAckRvd;
+    mAckCnt       = 0;
+    symbIndex     = puschResourceInfo->firstDmrsIndex + 1; /* ACK 从第一个DMRS之后的数据符号开始映射, 当前只会配置单列导频 */
+    if (puschResourceInfo->hackAckbit <= 2){/* step1: 计算ACK预留资源 */
+        while (mAckCnt < nGAckRvd)
         {
             nMUciScBar[symbIndex] = nMUciSc;
             if(nMUciScBar[symbIndex] > 0){
@@ -757,22 +841,22 @@ uint32_t L1PuschUciReLocationCalculate(L1PuschPduInfo *l1PuschUeInfo, PuschDemap
                     //ackRvdRE[symbIndex][reIndex] = reIndex * reDistance; /* 资源位置可以通过 reDistance, mReCnt联合确认，不需要提前存储 */
                     mAckCnt = mAckCnt + layerNum * qamMode;
                 }
-            
+
+                puschAckAndCsiInfo[symbIndex].ackRvdExsitFlag = 1;
+                puschAckAndCsiInfo[symbIndex].ackRvdStartRe   = 0;
+                puschAckAndCsiInfo[symbIndex].ackRvdDistance  = ackReRvdDistance;
+                puschAckAndCsiInfo[symbIndex].ackRvdReNum     = mReCnt;
+                ackReNumRvd[symbIndex] = mReCnt;
                 symbIndex = symbIndex + 1;
-                if ((symbIndex == puschDemapParaTemp->secondDmrsIndex) || (symbIndex == puschDemapParaTemp->thirdDmrsIndex)){
+
+                if (((uint16_t)1<< symbIndex) & dmrsSymBitmap != 0){
                     symbIndex = symbIndex + 1;
                 }
-
-                puschDemapParaTemp->puschAckAndCsiPart1Info[symbIndex].ackRvdExsitFlag = 1;
-                puschDemapParaTemp->puschAckAndCsiPart1Info[symbIndex].ackRvdStartRe   = 0;
-                puschDemapParaTemp->puschAckAndCsiPart1Info[symbIndex].ackRvdDistance  = ackReRvdDistance;
-                puschDemapParaTemp->puschAckAndCsiPart1Info[symbIndex].ackRvdReNum     = mReCnt;
-                ackReNumRvd[symbIndex] = mReCnt;
             }   
         }
 
         mAckCnt   = 0;
-        symbIndex = puschDemapParaTemp->firstDmrsIndex + 1; /* ACK 从第一个DMRS之后的数据符号开始映射 */
+        symbIndex = puschResourceInfo->firstDmrsIndex + 1; /* ACK 从第一个DMRS之后的数据符号开始映射 */
         while (mAckCnt < nGAck) /* step5: 计算ACK实际占用资源 */
         {
             if (ackReNumRvd[symbIndex] > 0){
@@ -785,30 +869,29 @@ uint32_t L1PuschUciReLocationCalculate(L1PuschPduInfo *l1PuschUeInfo, PuschDemap
                     mReCnt        = ceilDiv((nGAck - mAckCnt) , (layerNum * qamMode));
                 }
 
-                for(reIndex = 0; reIndex < mReCnt; reIndex++)
-                {
+                for(reIndex = 0; reIndex < mReCnt; reIndex++){
                     //ackRE[symbIndex][reIndex] = ackRvdRE[symbIndex][reIndex * ackReDistance];
                     mAckCnt = mAckCnt + layerNum * qamMode;
                 }
 
+                puschAckAndCsiInfo[symbIndex].ackExsitFlag = 1;
+                puschAckAndCsiInfo[symbIndex].ackStartRe   = 0;
+                puschAckAndCsiInfo[symbIndex].ackDistance  = ackReRvdDistance * ackReDistance;
+                puschAckAndCsiInfo[symbIndex].ackReNum     = mReCnt;
                 symbIndex = symbIndex + 1;
-                if ((symbIndex == puschDemapParaTemp->secondDmrsIndex)||(symbIndex == puschDemapParaTemp->thirdDmrsIndex)){
+
+                if (((uint16_t)1<< symbIndex) & dmrsSymBitmap != 0){
                     symbIndex = symbIndex + 1;
                 }
-
-                puschDemapParaTemp->puschAckAndCsiPart1Info[symbIndex].ackExsitFlag = 1;
-                puschDemapParaTemp->puschAckAndCsiPart1Info[symbIndex].ackStartRe   = 0;
-                puschDemapParaTemp->puschAckAndCsiPart1Info[symbIndex].ackDistance  = ackReRvdDistance * ackReDistance;
-                puschDemapParaTemp->puschAckAndCsiPart1Info[symbIndex].ackReNum     = mReCnt;
             }
         }
     } 
-    else  /* step2: ACK资源直接映射 */
-    {
+    else{ /* step2: ACK资源直接映射 */
+        mAckCnt = 0;
         while (mAckCnt < nGAck) 
         {
             nMUciScBar[symbIndex] = nMUciSc;
-            if( nMUciScBar[symbIndex] > 0){
+            if (nMUciScBar[symbIndex] > 0){
                 if((nGAck - mAckCnt) >= nMUciScBar[symbIndex] * layerNum * qamMode){
                     ackReDistance = 1;
                     mReCnt        = nMUciScBar[symbIndex];
@@ -822,35 +905,42 @@ uint32_t L1PuschUciReLocationCalculate(L1PuschPduInfo *l1PuschUeInfo, PuschDemap
                     //ackRE[symbIndex][reIndex] = reIndex * ackReDistance;
                     mAckCnt = mAckCnt + layerNum * qamMode;
                 }
-                nMUciScBar[symbIndex] = nMUciScBar[symbIndex] - mReCnt;
-            }
-
-            symbIndex = symbIndex + 1;
-            if ((symbIndex == puschDemapParaTemp->secondDmrsIndex)||(symbIndex == puschDemapParaTemp->thirdDmrsIndex)){
+                //nMUciScBar[symbIndex] = nMUciScBar[symbIndex] - mReCnt;
+                puschAckAndCsiInfo[symbIndex].ackExsitFlag = 1;
+                puschAckAndCsiInfo[symbIndex].ackStartRe   = 0;
+                puschAckAndCsiInfo[symbIndex].ackDistance  = ackReDistance;
+                puschAckAndCsiInfo[symbIndex].ackReNum     = mReCnt;
+                ackReNum[symbIndex] = mReCnt;
                 symbIndex = symbIndex + 1;
-            }
 
-            puschDemapParaTemp->puschAckAndCsiPart1Info[symbIndex].ackExsitFlag = 1;
-            puschDemapParaTemp->puschAckAndCsiPart1Info[symbIndex].ackStartRe   = 0;
-            puschDemapParaTemp->puschAckAndCsiPart1Info[symbIndex].ackDistance  = ackReDistance;
-            puschDemapParaTemp->puschAckAndCsiPart1Info[symbIndex].ackReNum     = mReCnt;
+                if (((uint16_t)1<< symbIndex) & dmrsSymBitmap != 0){
+                    symbIndex = symbIndex + 1;
+                }
+            }
         }
     }
 
-    if(puschDemapParaTemp->csiPart1bit > 0){  /* step3: 第一部分part1资源位置计算 */
-        nGCsiPart1   = puschDemapParaTemp->enCodeCsiPart1Re * layerNum * qamMode;
+    if (puschResourceInfo->csiPart1bit > 0){  /* step3: 第一部分part1资源位置计算 */
+        nGCsiPart1   = puschResourceInfo->enCodeCsiPart1Re * layerNum * qamMode;
         
-        mCsiPart1Cnt = 0;
-        symbIndex    = l1PuschUeInfo->startSymbIndex; /* symbIndex 不能为dmrs符号 */
-        nMCsiPart1Sc = nMUciSc - puschDemapParaTemp->puschAckAndCsiPart1Info[symbIndex].ackRvdReNum;
-        while (nMCsiPart1Sc <= 0) {
-            symbIndex = symbIndex + 1; 
+        /* 找到第一个可用于承载CSI-Part1的符号索引 */
+        for (symbIndex = symbStart; symbIndex < (symbStart + symbNum); symbIndex++){
+            if (((uint16_t)1<< symbIndex) & dmrsSymBitmap != 0){ /* UCI不能映射到dmrs符号, 如果调度的符号为dmrs符号，顺移到下一个符号 */
+                nMUciSc = 0;
+            }
+
+            nMCsiPart1Sc = nMUciSc - ackReNumRvd[symbIndex] - ackReNum[symbIndex];
+            if (nMCsiPart1Sc > 0){ /* 小于0表示当前符号无可用RE给csiPart1，顺移到下一个符号 */
+                break; 
+            }
         }
-        
+
+        mCsiPart1Cnt = 0;
         while (mCsiPart1Cnt < nGCsiPart1)
         {
-            if(nMCsiPart1Sc > 0){
-                if((nGCsiPart1 - mCsiPart1Cnt) >= nMCsiPart1Sc * layerNum * qamMode){
+            nMCsiPart1Sc = nMUciSc - ackReNumRvd[symbIndex] - ackReNum[symbIndex]; /* 当前符号去除ACK后可用于传输CSI-Part2的RE数 */
+            if (nMCsiPart1Sc > 0){
+                if ((nGCsiPart1 - mCsiPart1Cnt) >= nMCsiPart1Sc * layerNum * qamMode){
                     csiPart1Distance = 1;
                     mReCnt           = nMCsiPart1Sc;
                 }
@@ -858,22 +948,38 @@ uint32_t L1PuschUciReLocationCalculate(L1PuschPduInfo *l1PuschUeInfo, PuschDemap
                     csiPart1Distance = nMCsiPart1Sc * layerNum * qamMode / (nGCsiPart1 - mCsiPart1Cnt);
                     mReCnt           = ceilDiv((nGCsiPart1 - mCsiPart1Cnt), layerNum * qamMode);
                 }
-            }
 
-            for(reIndex = 0; reIndex < mReCnt; reIndex++){
-                //csiPart1RE[symbIndex][reIndex] = reIndex * ackReDistance;
-                mCsiPart1Cnt = mCsiPart1Cnt + layerNum * qamMode;
-            }
+                for (reIndex = 0; reIndex < mReCnt; reIndex++){
+                    //csiPart1RE[symbIndex][reIndex] = reIndex * ackReDistance;
+                    mCsiPart1Cnt =+ layerNum * qamMode;
+                }
 
-            symbIndex = symbIndex + 1;
-            if ((symbIndex == puschDemapParaTemp->firstDmrsIndex) || (symbIndex == puschDemapParaTemp->secondDmrsIndex) || (symbIndex == puschDemapParaTemp->thirdDmrsIndex)){
+                puschAckAndCsiInfo[symbIndex].csiPart1ExsitFlag = 1;
+                puschAckAndCsiInfo[symbIndex].csiPart1Distance  = csiPart1Distance;
+                puschAckAndCsiInfo[symbIndex].csiPart1ReNum     = mReCnt;
+                if (puschAckAndCsiInfo[symbIndex].ackRvdExsitFlag == 1){
+                    if (puschAckAndCsiInfo[symbIndex].ackRvdDistance == 1){
+                        puschAckAndCsiInfo[symbIndex].csiPart1StartRe  = puschAckAndCsiInfo[symbIndex].ackRvdStartRe + puschAckAndCsiInfo[symbIndex].ackRvdReNum;
+                    }
+                    else{ /* puschAckAndCsiInfo[symbIndex].ackRvdDistance > 1 */
+                        puschAckAndCsiInfo[symbIndex].csiPart1StartRe  = puschAckAndCsiInfo[symbIndex].ackRvdStartRe + 1;
+                    }
+                }
+
+                if (puschAckAndCsiInfo[symbIndex].ackExsitFlag == 1){
+                    if (puschAckAndCsiInfo[symbIndex].ackDistance == 1){
+                        puschAckAndCsiInfo[symbIndex].csiPart1StartRe  = puschAckAndCsiInfo[symbIndex].ackStartRe + puschAckAndCsiInfo[symbIndex].ackReNum;
+                    }
+                    else{
+                        puschAckAndCsiInfo[symbIndex].csiPart1StartRe  = puschAckAndCsiInfo[symbIndex].ackStartRe + 1;
+                    }
+                }
+
                 symbIndex = symbIndex + 1;
+                if (((uint16_t)1<< symbIndex) & dmrsSymBitmap != 0){
+                    symbIndex = symbIndex + 1;
+                }
             }
-
-            puschDemapParaTemp->puschAckAndCsiPart1Info[symbIndex].csiPart1ExsitFlag = 1;
-            puschDemapParaTemp->puschAckAndCsiPart1Info[symbIndex].csiPart1StartRe   = 0;
-            puschDemapParaTemp->puschAckAndCsiPart1Info[symbIndex].csiPart1Distance  = csiPart1Distance;
-            puschDemapParaTemp->puschAckAndCsiPart1Info[symbIndex].csiPart1ReNum     = mReCnt;
         }
     }
 
@@ -949,363 +1055,360 @@ uint32_t L1PuschLdpcCbPartRowCalculate(PuschLdpcUePara *puschLdpcUePara, uint8_t
     return 0;
 }
 
-void PuschRMDecodeHacCfg(L1PuschPduInfo *l1PuschPduInfo, uint16_t uciLen ,uint8_t PduIdxInner, uint8_t msgType, uint16_t sfnNum, uint8_t slotNum, uint8_t cellIndex)
+uint32_t L1PuschUciCrcLengthCalculate(uint16_t ucibitlength, uint8_t *crcLength)
 {
-    uint8_t  pduNum;
-    uint8_t  totBit;
-    uint8_t  part1Bit;
-    uint8_t  maxCodeRate;
-    uint8_t  valQm;
-    PuschUciPara    *puschUciPara = NULL;
-    HacCfgHead      *hacHead      = NULL;
-    RMDecodePduInfo *rmInfo       = NULL;
-    LlrSegInfo      *llrSegInfo   = NULL;
-
-    hacHead = &(g_puschRMDecodeHacCfgParaDDR[cellIndex][slotNum][msgType].hacCfgHead);
-    pduNum  = hacHead->pduNum;
-    if(0 == pduNum)
+    if(ucibitlength > 0)
     {
-        hacHead->sfn     = sfnNum;
-        hacHead->slot    = slotNum;
-        hacHead->cellIdx = cellIndex;
-        hacHead->msgType = msgType;
-    }
-    puschUciPara = &(l1PuschPduInfo->puschUciPara);
-    rmInfo = &(g_puschRMDecodeHacCfgParaDDR[cellIndex][slotNum][msgType].rmPduInfo[pduNum]);
-    rmInfo->uciBitNum  = uciLen;
-    rmInfo->ueIdx      = PduIdxInner;
-    rmInfo->codeMethod = 32;
-    rmInfo->uciType    = 0;//待修改
-    rmInfo->uciBitNum  = uciLen;
-	if(Pusch_Uci_Ack == msgType)
-	{
-		rmInfo->llrNum     = 0;//待修改
-	}
-    else if(Pusch_Uci_CsiPart1 == msgType)
-    {
-		rmInfo->llrNum     = 0;//待修改
-    }
-    else if(Pusch_Uci_CsiPart2 == msgType)
-    {
-        rmInfo->llrNum    = 0;//待修改
-    }
-
-	if(Pusch_Uci_CsiPart2 == msgType)
-	{
-		;//待修改
-	}
-	else
-	{
-		rmInfo->llrSegNum = 1;
-		llrSegInfo = &rmInfo->llrSegInfo[0];
-		llrSegInfo->segStartAddr  = 0;//待修改
-		llrSegInfo->segCycNum     = 1;
-		llrSegInfo->segLlrNum     = rmInfo->llrNum;
-		llrSegInfo->segPeriod     = rmInfo->llrNum;
-	}
-
-    (hacHead->pduNum)++;
-}
-
-void PuschPolarDecodeHacCfg(L1PuschPduInfo *l1PuschPduInfo, uint16_t uciLen ,uint8_t PduIdxInner, uint8_t msgType, uint16_t sfnNum, uint8_t slotNum, uint8_t cellIndex)
-{
-    uint8_t  pduNum;
-    uint8_t  totBit;
-    uint8_t  part1Bit;
-    uint8_t  maxCodeRate;
-    uint8_t  valQm;
-    uint16_t K;
-    uint16_t n;
-    uint16_t n1;
-    uint16_t n2;
-	PuschUciPara       *puschUciPara = NULL;
-    HacCfgHead         *hacHead      = NULL;
-    PolarDecodePduInfo *polarInfo    = NULL;
-    LlrSegInfo         *llrSegInfo   = NULL;
-
-    hacHead = &(g_puschPolarDecodeHacCfgParaDDR[cellIndex][slotNum][msgType].hacCfgHead);
-    pduNum  = hacHead->pduNum;
-    if(0 == pduNum)
-    {
-        hacHead->sfn     = sfnNum;
-        hacHead->slot    = slotNum;
-        hacHead->cellIdx = cellIndex;
-        hacHead->msgType = msgType;
-    }
-
-    polarInfo = &(g_puschPolarDecodeHacCfgParaDDR[cellIndex][slotNum][msgType].polarPduInfo[pduNum]);
-    if((12 <= uciLen) && (19 >= uciLen))
-    {
-        K = uciLen + 6;
-    }
-    else
-    {
-        K = uciLen + 11;
-    }
-    
-    polarInfo->uciBitNum = uciLen;
-	
-	if(Pusch_Uci_Ack == msgType)
-	{
-		polarInfo->llrNum = 0;//待修改
-	}
-	 else if(Pusch_Uci_CsiPart1 == msgType)
-	{
-		polarInfo->llrNum = 0;//待修改
-	}
-	else if(Pusch_Uci_CsiPart2 == msgType)
-	{
-		polarInfo->llrNum = 0;//待修改
-	}
-    
-    if(((8 * (polarInfo->llrNum)) <= (9 * (2>>(log2Ceiling(polarInfo->llrNum) - 1))))
-        && ((16 * K) < (9 * (polarInfo->llrNum))))//E<=(9/8)*2^(Ceil(log2E)-1) and K/E<9/16
-    {
-        n1 = log2Ceiling(polarInfo->llrNum) - 1;
-    }
-    else
-    {
-        n1 = log2Ceiling(polarInfo->llrNum);
-    }
-    n2 = log2Ceiling(8 * K);
-    n = (n1 < n2) ? n1:n2;
-    n = (n < 10) ? n:10;
-    n = (n < 5) ? 5:n;
-    polarInfo->nVal = n;
-    polarInfo->sizeT = ceil((sqrt(8 * (polarInfo->llrNum) + 1) - 1)/2);
-
-	if(Pusch_Uci_CsiPart2 == msgType)
-	{
-		;//修改
-	}
-	else
-	{
-		llrSegInfo = &polarInfo->llrSegInfo[0];
-		llrSegInfo->segStartAddr  = 0;//待修改
-		llrSegInfo->segCycNum     = 1;
-		llrSegInfo->segLlrNum     = polarInfo->llrNum;
-		llrSegInfo->segPeriod     = polarInfo->llrNum;
-	}
-
-    (hacHead->pduNum)++;
-}
-
-uint32_t PuschACK1or2BitDecodeHandler()//待李雷雷提供ACK 1/2比特译码函数
-{
-    
-    return 0;
-}
-
-uint32_t PuschUCIParser()//ACK大于2比特，CSI Part1和CSI Part2解析
-{
-    uint16_t sfn;     
-    uint16_t slot;
-    uint16_t csiPart2BitLen;  
-    uint8_t  cellIdx;
-    uint8_t  pduNum;
-    uint8_t  codeType;
-    uint8_t  msgType;
-    uint8_t  pduIndex;
-    uint8_t  ueIdx;
-    uint8_t  numPart1Params;
-    uint16_t *map              = NULL;
-    uint8_t  *sizesPart1Params = NULL;
-    PuschPolarDecodeHacCfgPara   *puschPolarDecodeHacCfgPara   = NULL;
-    PuschRMDecodeHacCfgPara      *puschRMDecodeHacCfgPara      = NULL;
-    HacCfgHead                   *hacCfgHead                   = NULL;
-    PolarDecodePduInfo           *polarDecodePduInfo           = NULL;
-    RMDecodePduInfo              *rmDecodePduInfo              = NULL;
-    RMUeDecodeOut                *rmUeDecodeOut                = NULL;
-    PolarUeDecodeOut             *polarUeDecodeOut             = NULL;
-    PuschUciRst                  *puschUciRst                  = NULL;
-    FapiNrPushUciIndication      *fapiNrPushUciIndication      = NULL;
-    HARQInfoFmt23                *harqInfoFmt23                = NULL;
-	CSIpart1Info                 *csipart1Info                 = NULL;
-	CSIpart2Info                 *csipart2Info                 = NULL;
-    L1PuschPduInfo               *l1PuschPduInfo               = NULL;
-
-    //先解析消息头？  
-    sfn      =  0; //待从消息头获取    
-    slot     =  0; //待从消息头获取
-    cellIdx  =  0; //待从消息头获取  
-    pduNum   =  0; //待从消息头获取 
-    codeType =  0; //待从消息头获取，确认是RM还是Polar译码结果
-    msgType  =  0; //待从消息头获取，确认是ACK,CSI Part1还是CSI Part2  
-    
-    puschUciRst = &(g_puschUciRst[cellIdx][slot]);//UCI译码结果回写目的地址
-
-    if(0 == codeType)//RM
-    {
-        puschRMDecodeHacCfgPara = &(g_puschRMDecodeHacCfgParaDDR[cellIdx][slot][msgType]);//读取RM译码结果
-        hacCfgHead = &(puschRMDecodeHacCfgPara->hacCfgHead);
-        //hacCfgHead->增加校验？
-
-        for(pduIndex = 0; pduIndex < pduNum; pduIndex++)
-        {
-            rmDecodePduInfo = &(puschRMDecodeHacCfgPara->rmPduInfo[pduIndex]);
-            rmUeDecodeOut   = (RMUeDecodeOut *)(rmDecodePduInfo->OutputAddr);//UE输出结果地址
-            
-            ueIdx = rmDecodePduInfo->ueIdx;//待从配置参数获取,还需要转换为UCI上报对应的UE索引
-			if(0 == msgType)//ACK大于2比特
-			{
-				harqInfoFmt23 = &(puschUciRst->fapiNrPushUciIndication[ueIdx].harqInfoFmt23);
-				harqInfoFmt23->HarqCrc        = 0;//待补充
-				harqInfoFmt23->HarqBitLen     = rmDecodePduInfo->uciBitNum;
-				harqInfoFmt23->HarqPayload[0] = 0;//L2D到DDR的拷贝,待补充
-			}
-			else if(1 == msgType)//CSI Part1
-			{
-				csipart1Info = &(puschUciRst->fapiNrPushUciIndication[ueIdx].csipart1Info);
-				csipart1Info->CsiPart1Crc        = 0;//待补充
-				csipart1Info->CsiPart1BitLen     = rmDecodePduInfo->uciBitNum;
-				csipart1Info->CsiPart1Payload[0] = 0;//L2D到DDR的拷贝,待补充
-                if(l1PuschPduInfo->puschUciPara.flagCsiPart2)//如果存在CSI Part2
-                {
-                    //l1PuschPduInfo = ;//待补充
-                    //sizesPart1Params = ;//待补充
-                    //map              = ;//待补充
-                    //numPart1Params   = ;//待补充
-                    csiPart2BitLen = CalcCsiPart2BitLength(&(l1PuschPduInfo->part2InfoAddInV3), csipart1Info->CsiPart1Payload, sizesPart1Params, map, csipart1Info->CsiPart1BitLen, numPart1Params);
-                    if((RM_BIT_LENGTH_MIN <= csiPart2BitLen) && (RM_BIT_LENGTH_MAX >= csiPart2BitLen))
-                    {
-                        PuschRMDecodeHacCfg(l1PuschPduInfo, csiPart2BitLen, pduIndex, Pusch_Uci_CsiPart2, sfn, slot, cellIdx);
-                    }
-                    else if(POLAR_BIT_LENGTH_Max >= csiPart2BitLen)
-                    {
-                        PuschPolarDecodeHacCfg(l1PuschPduInfo, csiPart2BitLen, pduIndex, Pusch_Uci_CsiPart2, sfn, slot, cellIdx);
-                    } 
-                }
-			}
-			else if(2 == msgType)//CSI Part2
-			{
-				csipart2Info = &(puschUciRst->fapiNrPushUciIndication[ueIdx].csipart2Info);
-				csipart2Info->CsiPart2Crc        = 0;//待补充
-				csipart2Info->CsiPart2BitLen     = rmDecodePduInfo->uciBitNum;
-				csipart2Info->CsiPart2Payload[0] = 0;//L2D到DDR的拷贝,待补充
-			}
-			else
-			{
-				;//异常处理
-			}
+        if(ucibitlength > 360){
+            *crcLength = 11;
+        }
+        else if((ucibitlength < 360)&&(ucibitlength >=20)){
+            *crcLength = 11;
+        }
+        else if((ucibitlength <= 19)&&(ucibitlength >= 12)){
+            *crcLength = 6;
+        }
+        else{
+            *crcLength = 0;
         }
     }
-    else if(1 == codeType)//Polar
-    {
-        puschPolarDecodeHacCfgPara = &(g_puschPolarDecodeHacCfgParaDDR[cellIdx][slot][msgType]);//读取Polar译码结果
-        hacCfgHead = &(puschPolarDecodeHacCfgPara->hacCfgHead);
-        //hacCfgHead->增加校验？
+    return 0;
+}
 
-        for(pduIndex = 0; pduIndex < pduNum; pduIndex++)
-        {
-            polarDecodePduInfo = &(puschPolarDecodeHacCfgPara->polarPduInfo[pduIndex]);
-            polarUeDecodeOut   = (PolarUeDecodeOut *)(polarDecodePduInfo->OutputAddr);//UE输出结果地址
-            
-            ueIdx = polarDecodePduInfo->ueIdx;//待从配置参数获取,还需要转换为UCI上报对应的UE索引
-			if(0 == msgType)//ACK大于2比特
-			{
-				harqInfoFmt23 = &(puschUciRst->fapiNrPushUciIndication[ueIdx].harqInfoFmt23);
-				harqInfoFmt23->HarqCrc        = 0;//polarUeDecodeOut->待补充
-				harqInfoFmt23->HarqBitLen     = polarDecodePduInfo->uciBitNum;
-				harqInfoFmt23->HarqPayload[0] = 0;//polarUeDecodeOut,L2D到DDR的拷贝,待补充
-			}
-			else if(1 == msgType)//CSI Part1
-			{
-				csipart1Info = &(puschUciRst->fapiNrPushUciIndication[ueIdx].csipart1Info);
-				csipart1Info->CsiPart1Crc        = 0;//polarUeDecodeOut->待补充
-				csipart1Info->CsiPart1BitLen     = polarDecodePduInfo->uciBitNum;
-				csipart1Info->CsiPart1Payload[0] = 0;//polarUeDecodeOut,L2D到DDR的拷贝,待补充
-                if(l1PuschPduInfo->puschUciPara.flagCsiPart2)//如果存在CSI Part2
-                {
-                    //l1PuschPduInfo = ;//待补充
-                    //sizesPart1Params = ;//待补充
-                    //map              = ;//待补充
-                    //numPart1Params   = ;//待补充
-                    csiPart2BitLen = CalcCsiPart2BitLength(&(l1PuschPduInfo->part2InfoAddInV3), csipart1Info->CsiPart1Payload, sizesPart1Params, map, csipart1Info->CsiPart1BitLen, numPart1Params);
-                    if((RM_BIT_LENGTH_MIN <= csiPart2BitLen) && (RM_BIT_LENGTH_MAX >= csiPart2BitLen))
-                    {
-                        PuschRMDecodeHacCfg(l1PuschPduInfo, csiPart2BitLen, pduIndex, Pusch_Uci_CsiPart2, sfn, slot, cellIdx);
-                    }
-                    else if(POLAR_BIT_LENGTH_Max >= csiPart2BitLen)
-                    {
-                        PuschPolarDecodeHacCfg(l1PuschPduInfo, csiPart2BitLen, pduIndex, Pusch_Uci_CsiPart2, sfn, slot, cellIdx);
-                    } 
+uint32_t L1PuschDataTypeCalculate(L1PuschPduInfo *l1PuschUeInfo, uint8_t *dataFlag)
+{
+    uint16_t pduBitmap, harqAckBitLen, csiPart1BitLen, csiPart2Flag;
+
+    pduBitmap      = l1PuschUeInfo->pduBitMap;
+    harqAckBitLen  = l1PuschUeInfo->puschUciPara.harqAckBitLength;
+    csiPart1BitLen = l1PuschUeInfo->puschUciPara.csiPart1BitLength;
+    csiPart2Flag   = l1PuschUeInfo->puschUciPara.flagCsiPart2;
+
+    if ((pduBitmap & 0x3) == 1){      /* Data only */
+        *dataFlag = NR_ULSCH_WITHOUT_UCI;
+    }
+    else if ((pduBitmap & 0x3) == 2){ /* UCI only */
+        if (harqAckBitLen > 0) { /* HARQ-ACK 存在 */
+            if (csiPart1BitLen == 0){ /* 不存在Part 1，也不会有Part2，即 */
+                *dataFlag = NR_UCI_HARQ_ACK;
+            }
+            else { /* 存在Part1 需要再判断是否有part2 */
+                if(csiPart2Flag > 0){
+                    *dataFlag = NR_UCI_WITH_ALL;         /* HARQ-ACK CSI-Part1 + CSI-Part2 */
                 }
-			}
-			else if(2 == msgType)//CSI Part2
-			{
-				csipart2Info = &(puschUciRst->fapiNrPushUciIndication[ueIdx].csipart2Info);
-				csipart2Info->CsiPart2Crc        = 0;//polarUeDecodeOut->待补充
-				csipart2Info->CsiPart2BitLen     = polarDecodePduInfo->uciBitNum;
-				csipart2Info->CsiPart2Payload[0] = 0;//polarUeDecodeOut,L2D到DDR的拷贝,待补充
-			}
-			else
-			{
-				;//异常处理
-			}
+                else{
+                    *dataFlag = NR_UCI_WITHOUT_PART2;    /*  HARQ-ACK + CSI-Part1 */
+                }
+            }
+        }
+        else { /* HARQ-ACK 不存在, UCI only下一定有CSI-Part1，需要判断是否存在CSI-Part2 */
+            if (csiPart1BitLen > 0){
+                if(csiPart2Flag > 0){
+                    *dataFlag = NR_UCI_WITHOUT_HARQ_ACK; /* CSI-Part1 + CSI-Part2 */
+                }
+                else{
+                    *dataFlag = NR_UCI_CSI_PART1;        /* CSI-Part1 */
+                }
+            }
         }
     }
-    else
-    {
-        ;//异常
+    else if ((pduBitmap & 0x3) == 3){ /* Data + UCI */
+        if (csiPart2Flag > 0){
+            *dataFlag = NR_ULSCH_WITH_PART2;             /* DATA + UCI 存在 CSI-Part2 */
+        }
+        else{
+            *dataFlag = NR_ULSCH_WITHOUT_PART2;          /* DATA + UCI 不存在 CSI-Part2 */
+        }
     }
+    else{
+        return ERROR_CODE;
+    }
+
     return 0;
 }
 
-
-uint32_t PuschACKOver2BitParseHandler()
+uint32_t L1PuschCsiPart2ResCalculate(L1PuschPduInfo *l1PuschUeInfo, PuschResourceInfo *puschResourceInfo, PuschAckAndCsiInfo *puschAckAndCsiInfo, CsiPart2ParaInfo *csiPart2ParaInfo)
 {
-    printf("解析大于2比特的ACK译码结果\n");//ACK大于2比特
+    uint8_t  symbNum, startSymIndex, symbIndex, symIndexBitmap;
+    uint8_t  dmrsSymBitmap, qamModer, layerNum;
+    uint8_t  cdmNumNoData,dmrsRePerRB, csiPart2StartSymb, csiPart2EndSymb;
+    uint8_t  csiPart2Distance, harqAckBitLen;
+    uint16_t rbsize, dmrsDataReNum, mReCnt, reIndex;
+    uint16_t nMUciSc, nGCsiPart2,nMCsiPart2Sc, mCsiPart2Cnt;
+   
+    rbsize        = puschResourceInfo->rbNumAllRbg;
+    startSymIndex = l1PuschUeInfo->startSymbIndex;
+    symbNum       = l1PuschUeInfo->nrOfSymbols;
+    dmrsSymBitmap = l1PuschUeInfo->ulDmrsSymbPos;
+    qamModer      = l1PuschUeInfo->qamModOrder;
+    layerNum      = l1PuschUeInfo->nrOfLayers;
+    cdmNumNoData  = l1PuschUeInfo->numCdmGrpsNoData;
+    dmrsRePerRB   = l1PuschUeInfo->dmrsCfgType == 1 ? NR_DMRS_TYPE1_SC_PER_RB : NR_DMRS_TYPE2_SC_PER_RB;
+    harqAckBitLen = l1PuschUeInfo->puschUciPara.harqAckBitLength;
+  
+    nMUciSc = rbsize * N_SC_PER_PRB; /* 每个符号上的有效RE数，UCI不能在DMRS符号上传送 */
+    csiPart2StartSymb = startSymIndex;
+    /* 获取CSI-Part2的起始符号 */
+    for (symbIndex = startSymIndex; symbIndex < startSymIndex + symbNum; symbIndex++){
+        mCsiPart2Cnt = 0;
+        nGCsiPart2   = puschResourceInfo->enCodeCsiPart2Re * layerNum * qamModer;
+
+        if (harqAckBitLen > 2){
+            nMCsiPart2Sc = nMUciSc - puschAckAndCsiInfo[symbIndex].ackReNum - puschAckAndCsiInfo[symbIndex].csiPart1ReNum;
+        }
+        else{
+            nMCsiPart2Sc = nMUciSc - puschAckAndCsiInfo[symbIndex].csiPart1ReNum;
+        }
+        
+        symIndexBitmap = (1 << symbIndex);
+        if ((symIndexBitmap & dmrsSymBitmap) != 0){ /* Dmrs Symbol */
+            nMCsiPart2Sc = 0;
+            csiPart2ParaInfo->dmrsNumBfPart2++;
+        }
+
+        if (nMCsiPart2Sc > 0){ /* 找到UE的可用于CSI-Part2的第一个符号 */
+            break;
+        }
+        csiPart2StartSymb++;  /* 碰到 DMRS符号 符号数加1， nMCsiPart2Sc <= 0 符号数加1 */
+    }
     
-    PuschUCIParser();
-    
+    /* 获取CSI-Part2的截止符号，和每个符号上所占的RE数，以及每个符号上的RE间隔 */
+    csiPart2EndSymb = csiPart2StartSymb;
+    while (mCsiPart2Cnt < nGCsiPart2)
+    {
+        if (harqAckBitLen > 2){
+            nMCsiPart2Sc = nMUciSc - puschAckAndCsiInfo[csiPart2EndSymb].ackReNum - puschAckAndCsiInfo[csiPart2EndSymb].csiPart1ReNum;
+        }
+        else{
+            nMCsiPart2Sc = nMUciSc - puschAckAndCsiInfo[csiPart2EndSymb].csiPart1ReNum;
+        }
+        
+        if (nMCsiPart2Sc > 0){
+            if ((nGCsiPart2 - mCsiPart2Cnt) >= nMCsiPart2Sc * layerNum * qamModer){
+                csiPart2Distance = 1;
+                mReCnt           = nMCsiPart2Sc;
+            }
+            else{
+                csiPart2Distance = nMCsiPart2Sc * layerNum * qamModer / (nGCsiPart2 - mCsiPart2Cnt);
+                mReCnt           = ceilDiv((nGCsiPart2 - mCsiPart2Cnt), layerNum * qamModer);
+            }    
+        } 
+
+        for (reIndex = 0; reIndex < mReCnt; reIndex++){ /*  */
+            mCsiPart2Cnt = mCsiPart2Cnt + layerNum * qamModer;
+        }
+        
+        csiPart2ParaInfo->reDistance[csiPart2EndSymb]     = csiPart2Distance;  
+        csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb] = mReCnt;
+        csiPart2EndSymb++;
+
+        symIndexBitmap = (1 << csiPart2EndSymb);
+        if ((symIndexBitmap & dmrsSymBitmap) != 0){ /* Dmrs Symbol */
+            csiPart2EndSymb++;
+        }
+    } 
+
+    csiPart2ParaInfo->csiPart2StartSymb = csiPart2StartSymb;
+    csiPart2ParaInfo->csiPart2EndSymb   = csiPart2EndSymb - 1;
+
     return 0;
 }
 
-uint32_t PuschPart1AndLDPCParaCfgHandler()
+uint32_t L1PuschCsiPart2AndDataExtract(uint8_t dataFlag, L1PuschPduInfo *l1PuschUeInfo, PuschResourceInfo *puschResourceInfo, CsiPart2ParaInfo *csiPart2ParaInfo, PuschLlrSegmInfo *puschLlrSegmInfo)
 {
-    printf("配置Part1译码参数&&配置无Part2 UE的LDPC译码参数\n");//
+    uint8_t  segmIndex, segmNum, cdmGrpsNodata;
+    uint8_t  symIndexBitmap, symbIndex, ueLastSymbIndex;
+    uint8_t  csiPart2StartSymb ,csiPart2EndSymb;
+    uint16_t rbSize, dmrsReNumPerRB, dataReInDmrsSymb;
+    uint16_t dataReNumTemp, csiPart2ReNumTemp;
+    uint16_t dmrsSymBitmap;
+    uint16_t nMUciSc;
+    uint16_t csiPart2ReCnt[6] = { 0 };
+    uint16_t segmCycNum[6]    = { 0 };
+    uint16_t segmPeriod[6]    = { 0 };
+    uint16_t segmLlrNum[6]    = { 0 };
+    uint16_t segmAddrOffSet[6]= { 0 };
+    uint16_t dataReNumPerSymb[14] = { 0 };
+    uint32_t *csiPart2AndDataBaseAddr = NULL;
     
-    //配置CSI Part1译码参数
+    rbSize            = puschResourceInfo->rbNumAllRbg;
+    dmrsReNumPerRB    = puschResourceInfo->dmrsRePerRB;
+    dmrsSymBitmap     = l1PuschUeInfo->ulDmrsSymbPos;
+    cdmGrpsNodata     = l1PuschUeInfo->numCdmGrpsNoData;
+    ueLastSymbIndex   = l1PuschUeInfo->startSymbIndex + l1PuschUeInfo->nrOfSymbols - 1;
+    dataReInDmrsSymb  = rbSize * (N_SC_PER_PRB - dmrsReNumPerRB * cdmGrpsNodata);
+    csiPart2StartSymb = csiPart2ParaInfo->csiPart2StartSymb;
+    csiPart2EndSymb   = csiPart2ParaInfo->csiPart2EndSymb;
+    
+    /* 计算获取CSI-Part2&Data的分段和每段中的资源信息 */
+    nMUciSc = rbSize * N_SC_PER_PRB; /* 每个符号上的有效RE数，UCI不能在DMRS符号上传送 */  // 需要考虑符号上有CSI-Part1和Harq-Ack
+    if (dataFlag == NR_PUSCH_CSIPART2_EXT){
+        if (dataReInDmrsSymb == 0){/* DMRS符号无数据 */
+            if (csiPart2ParaInfo->reDistance[csiPart2EndSymb] > 1){ /* 最后一个符号为一类，其余符号为一类  */
+                csiPart2ReNumTemp = puschResourceInfo->enCodeCsiPart2Re - csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb] /* 除最后一个符号外其余RE全部连续,最后一个符号单独讨论 */;
+                puschLlrSegmInfo->segmNum = 2; 
+                puschLlrSegmInfo->puschLlrSegmPara[0].segmStartAddr = csiPart2AndDataBaseAddr;  /* 基地址起始就是Part2起始 */
+                puschLlrSegmInfo->puschLlrSegmPara[0].segmCycNum    = 1;
+                puschLlrSegmInfo->puschLlrSegmPara[0].segmPeriod    = csiPart2ReNumTemp;
+                puschLlrSegmInfo->puschLlrSegmPara[0].segmLlrNum    = csiPart2ReNumTemp;   
 
-    //配置无CSI Part2的UE的LDPC译码参数
+                puschLlrSegmInfo->puschLlrSegmPara[1].segmStartAddr = (uint32_t *)((uint8_t *)csiPart2AndDataBaseAddr + csiPart2ReNumTemp);   
+                puschLlrSegmInfo->puschLlrSegmPara[1].segmCycNum    = csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb]; /*  */
+                puschLlrSegmInfo->puschLlrSegmPara[1].segmPeriod    = csiPart2ParaInfo->reDistance[csiPart2EndSymb];
+                puschLlrSegmInfo->puschLlrSegmPara[1].segmLlrNum    = 1;
+            }
+            else {/* reDistance[csiPart2EndSymb] == 1 , 所有csi-Part2 RE连续 */
+                puschLlrSegmInfo->segmNum = 1;
+                puschLlrSegmInfo->puschLlrSegmPara[0].segmStartAddr = csiPart2AndDataBaseAddr;  /* 基地址起始就是Part2起始 */
+                puschLlrSegmInfo->puschLlrSegmPara[0].segmCycNum    = 1;
+                puschLlrSegmInfo->puschLlrSegmPara[0].segmPeriod    = puschResourceInfo->enCodeCsiPart2Re;
+                puschLlrSegmInfo->puschLlrSegmPara[0].segmLlrNum    = puschResourceInfo->enCodeCsiPart2Re;   
+            }
+        }
+        else {/* DMRS符号有数据 */
+            segmNum = 0;
+            segmAddrOffSet[0] = csiPart2ParaInfo->dmrsNumBfPart2 * dataReInDmrsSymb;
+            //csiPart2AndDataBaseAddr = (uint32_t *)((uint8_t *)csiPart2AndDataBaseAddr + segmAddrOffSet[0]);  /* 基地址 + 数据偏移为Part2起始 */  
+            for (symbIndex = csiPart2StartSymb; symbIndex < csiPart2EndSymb; symbIndex++){
+                csiPart2ReCnt[segmNum] += csiPart2ParaInfo->part2ReNumInSymb[symbIndex];
+                if (csiPart2ParaInfo->part2ReNumInSymb[symbIndex] == 0){ /* DMRS 符号, 根据统计规则, 首尾符号不会是DMRS符号 */  
+                    segmCycNum[segmNum] = 1;
+                    segmPeriod[segmNum] = csiPart2ReCnt[segmNum];
+                    segmLlrNum[segmNum] = csiPart2ReCnt[segmNum];
+                    segmNum++;
+                    segmAddrOffSet[segmNum] = dataReInDmrsSymb + csiPart2ReCnt[segmNum - 1];
+                }
+            }    
+
+            if (csiPart2ReCnt[segmNum] > 0){
+                if (csiPart2ParaInfo->reDistance[csiPart2EndSymb] > 1){
+                    segmCycNum[segmNum] = 1;
+                    segmPeriod[segmNum] = csiPart2ReCnt[segmNum];
+                    segmLlrNum[segmNum] = csiPart2ReCnt[segmNum];
+                    
+                    segmAddrOffSet[segmNum + 1] = csiPart2ReCnt[segmNum];
+                    segmCycNum[segmNum + 1]     = csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb];
+                    segmPeriod[segmNum + 1]     = csiPart2ParaInfo->reDistance[csiPart2EndSymb];
+                    segmLlrNum[segmNum + 1]     = 1;
+                }
+                else { /* csiPart2ParaInfo->reDistance[csiPart2EndSymb] == 1 */
+                    segmCycNum[segmNum] = 1;
+                    segmPeriod[segmNum] = csiPart2ReCnt[segmNum] + csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb];
+                    segmLlrNum[segmNum] = csiPart2ReCnt[segmNum] + csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb];
+                }
+            }
+            else { /* csiPart2ReCnt[segmNum] == 0 */ 
+                if (csiPart2ParaInfo->reDistance[csiPart2EndSymb] > 1){
+                    segmCycNum[segmNum] = csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb];
+                    segmPeriod[segmNum] = csiPart2ParaInfo->reDistance[csiPart2EndSymb];
+                    segmLlrNum[segmNum] = 1;
+                }
+                else { /* csiPart2ParaInfo->reDistance[csiPart2EndSymb] == 1 */
+                    segmCycNum[segmNum] = 1;
+                    segmPeriod[segmNum] = csiPart2ReCnt[segmNum] + csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb];
+                    segmLlrNum[segmNum] = csiPart2ReCnt[segmNum] + csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb];
+                }
+            }
+            
+            puschLlrSegmInfo->segmNum = segmNum + 1; 
+            puschLlrSegmInfo->puschLlrSegmPara[0].segmStartAddr = csiPart2AndDataBaseAddr; /* Data数据的第一个RE位置 */
+            for (segmIndex = 0; segmIndex < puschLlrSegmInfo->segmNum; segmIndex++){
+                puschLlrSegmInfo->puschLlrSegmPara[segmIndex].segmStartAddr = (uint32_t *)((uint8_t *)puschLlrSegmInfo->puschLlrSegmPara[segmIndex].segmStartAddr + segmAddrOffSet[segmIndex]);
+                puschLlrSegmInfo->puschLlrSegmPara[segmIndex].segmCycNum = segmCycNum[segmIndex];
+                puschLlrSegmInfo->puschLlrSegmPara[segmIndex].segmPeriod = segmPeriod[segmIndex];
+                puschLlrSegmInfo->puschLlrSegmPara[segmIndex].segmLlrNum = segmLlrNum[segmIndex]; 
+            }
+        }   
+    }
+    else {/* (dataFlag == NR_PUSCH_ULSCH_EXT) */
+        if (dataReInDmrsSymb == 0){/* DMRS 符号无数据 */
+            if (csiPart2ParaInfo->reDistance[csiPart2EndSymb] > 1){ /* CSIPart2最后一个符号的REdistance大于1，最后一个符号为一类，其余符号为一类 */
+                csiPart2ReNumTemp = puschResourceInfo->enCodeCsiPart2Re - csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb]; /* 除最后一个符号外其余RE全部连续,最后一个符号单独讨论 */;
+                if (csiPart2EndSymb == ueLastSymbIndex){ /* CsiPart2的最后一个符号也是ue调度的最后一个符号，只有一个segment */
+                    puschLlrSegmInfo->segmNum = 1; 
+                    puschLlrSegmInfo->puschLlrSegmPara[0].segmStartAddr = (uint32_t *)((uint8_t *)csiPart2AndDataBaseAddr + csiPart2ReNumTemp + 1);  /* Data数据的第一个RE位置 */
+                    puschLlrSegmInfo->puschLlrSegmPara[0].segmCycNum    = csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb] - 1;
+                    puschLlrSegmInfo->puschLlrSegmPara[0].segmPeriod    = csiPart2ParaInfo->reDistance[csiPart2EndSymb];
+                    puschLlrSegmInfo->puschLlrSegmPara[0].segmLlrNum    = csiPart2ParaInfo->reDistance[csiPart2EndSymb] - 1;   
+                }
+                else{ /* CsiPart2的最后一个符号不是ue调度的最后一个符号 ， 有两个segment */
+                    puschLlrSegmInfo->segmNum = 2; 
+                    puschLlrSegmInfo->puschLlrSegmPara[0].segmStartAddr = (uint32_t *)((uint8_t *)csiPart2AndDataBaseAddr + csiPart2ReNumTemp + 1);  /* Data数据的第一个RE位置 */
+                    puschLlrSegmInfo->puschLlrSegmPara[0].segmCycNum    = csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb] - 1;
+                    puschLlrSegmInfo->puschLlrSegmPara[0].segmPeriod    = csiPart2ParaInfo->reDistance[csiPart2EndSymb];
+                    puschLlrSegmInfo->puschLlrSegmPara[0].segmLlrNum    = csiPart2ParaInfo->reDistance[csiPart2EndSymb] - 1 ;  
+                    
+                    dataReNumTemp = (nMUciSc - puschLlrSegmInfo->puschLlrSegmPara[0].segmCycNum * puschLlrSegmInfo->puschLlrSegmPara[0].segmPeriod - 1) + nMUciSc * (ueLastSymbIndex - csiPart2EndSymb);
+                    puschLlrSegmInfo->puschLlrSegmPara[1].segmStartAddr = (uint32_t *)((uint8_t *)puschLlrSegmInfo->puschLlrSegmPara[0].segmStartAddr + puschLlrSegmInfo->puschLlrSegmPara[0].segmCycNum * puschLlrSegmInfo->puschLlrSegmPara[0].segmPeriod);  
+                    puschLlrSegmInfo->puschLlrSegmPara[1].segmCycNum    = 1;
+                    puschLlrSegmInfo->puschLlrSegmPara[1].segmPeriod    = dataReNumTemp;
+                    puschLlrSegmInfo->puschLlrSegmPara[1].segmLlrNum    = dataReNumTemp;  
+                }
+            }
+            else {/* reDistance[csiPart2EndSymb] == 1 , 所有csi-Part2 RE连续 */
+                dataReNumTemp = nMUciSc * (ueLastSymbIndex - csiPart2EndSymb + 1) - csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb];
+                puschLlrSegmInfo->segmNum = 1;
+                puschLlrSegmInfo->puschLlrSegmPara[0].segmStartAddr = (uint32_t *)((uint8_t *)csiPart2AndDataBaseAddr + puschResourceInfo->enCodeCsiPart2Re);  /* 基地址起始就是Part2起始 */
+                puschLlrSegmInfo->puschLlrSegmPara[0].segmCycNum    = 1;
+                puschLlrSegmInfo->puschLlrSegmPara[0].segmPeriod    = dataReNumTemp;
+                puschLlrSegmInfo->puschLlrSegmPara[0].segmLlrNum    = dataReNumTemp;   
+            }
+        }
+        else { /* DMRS符号有数据 */
+            segmNum = 1;
+            //csiPart2AndDataBaseAddr = (uint32_t *)((uint8_t *)csiPart2AndDataBaseAddr + segmAddrOffSet[0]);  /* 基地址 + Part2偏移为Data起始 */
+            if (csiPart2ParaInfo->dmrsNumBfPart2 > 0){ /* CSI-part2前面存在DMRS符号，即存在DATA数据，起始地址即Data的首地址 */
+                segmCycNum[segmNum]     = 1;
+                segmPeriod[segmNum]     = csiPart2ParaInfo->dmrsNumBfPart2 * dataReInDmrsSymb;
+                segmLlrNum[segmNum]     = csiPart2ParaInfo->dmrsNumBfPart2 * dataReInDmrsSymb;
+                segmAddrOffSet[segmNum] = 0;
+                segmNum++;   
+            }
+            
+            for (symbIndex = csiPart2StartSymb; symbIndex < csiPart2EndSymb; symbIndex++){
+                csiPart2ReCnt[segmNum] += csiPart2ParaInfo->part2ReNumInSymb[symbIndex];
+                if (csiPart2ParaInfo->part2ReNumInSymb[symbIndex] == 0){ /* DMRS 符号, 根据统计规则, 首尾符号不会是DMRS符号 */  
+                    segmCycNum[segmNum] = 1;
+                    segmPeriod[segmNum] = dataReInDmrsSymb;
+                    segmLlrNum[segmNum] = dataReInDmrsSymb;
+                    segmAddrOffSet[segmNum] = segmLlrNum[segmNum - 1] + csiPart2ReCnt[segmNum];  
+                    segmNum++; 
+                }    
+            }   
+            
+            if (csiPart2ParaInfo->reDistance[csiPart2EndSymb] > 1){
+                segmCycNum[segmNum]     = csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb] - 1;
+                segmPeriod[segmNum]     = csiPart2ParaInfo->reDistance[csiPart2EndSymb];
+                segmLlrNum[segmNum]     = csiPart2ParaInfo->reDistance[csiPart2EndSymb] - 1;
+                segmAddrOffSet[segmNum] = segmLlrNum[segmNum - 1] + csiPart2ReCnt[segmNum] + 1;
+
+                segmCycNum[segmNum + 1] = 1;
+                segmPeriod[segmNum + 1] = nMUciSc * (ueLastSymbIndex - csiPart2EndSymb + 1) - csiPart2ParaInfo->reDistance[csiPart2EndSymb] * (csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb] - 1) + 1;
+                segmLlrNum[segmNum + 1] = nMUciSc * (ueLastSymbIndex - csiPart2EndSymb + 1) - csiPart2ParaInfo->reDistance[csiPart2EndSymb] * (csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb] - 1) + 1;
+                segmAddrOffSet[segmNum + 1] = csiPart2ParaInfo->reDistance[csiPart2EndSymb] * (csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb] - 1) + 1;                
+            }
+            else { /* csiPart2ParaInfo->reDistance[csiPart2EndSymb] == 1 */
+                segmCycNum[segmNum]     = 1;
+                segmPeriod[segmNum]     = nMUciSc * (ueLastSymbIndex - csiPart2EndSymb + 1) - csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb];
+                segmLlrNum[segmNum]     = nMUciSc * (ueLastSymbIndex - csiPart2EndSymb + 1) - csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb];
+                segmAddrOffSet[segmNum] = segmLlrNum[segmNum - 1] + csiPart2ReCnt[segmNum] + csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb];
+            }
+            
+            puschLlrSegmInfo->segmNum = segmNum; 
+            puschLlrSegmInfo->puschLlrSegmPara[0].segmStartAddr = csiPart2AndDataBaseAddr; /* Data数据的第一个RE位置 */
+            for (segmIndex = 0; segmIndex < puschLlrSegmInfo->segmNum; segmIndex++){
+                puschLlrSegmInfo->puschLlrSegmPara[segmIndex].segmStartAddr = (uint32_t *)((uint8_t *)puschLlrSegmInfo->puschLlrSegmPara[segmIndex].segmStartAddr + segmAddrOffSet[segmIndex]);
+                puschLlrSegmInfo->puschLlrSegmPara[segmIndex].segmCycNum    = segmCycNum[segmIndex + 1];
+                puschLlrSegmInfo->puschLlrSegmPara[segmIndex].segmPeriod    = segmPeriod[segmIndex + 1];
+                puschLlrSegmInfo->puschLlrSegmPara[segmIndex].segmLlrNum    = segmLlrNum[segmIndex + 1]; 
+            }    
+        }
+    }
 
     return 0;
 }
 
-uint32_t PuschPart1ParsePart2AndLDPCParaCfgHandler()
-{
-    printf("解析Part1&&配置Part2译码参数&&配置含Part2的UE的LDPC译码参数\n");
-    
-    PuschUCIParser();//解析CSI Part1，顺便配置CSI Part2参数
-    
-    //配置含CSI Part2的UE的LDPC译码参数
 
-    return 0;
-}
-
-uint32_t PuschTriggerPart2AndLDPCDecodeHandler()//待确认接口后补充
-{
-    printf("trigger Polar/RM HAC启动Part2译码&&trigger LDPC HAC启动UL-Data译码\n");//
-    return 0;
-}
-
-uint32_t PuschParseCfgTriggerHandler()
-{
-    PuschPart1ParsePart2AndLDPCParaCfgHandler();
-
-    PuschTriggerPart2AndLDPCDecodeHandler();//待确认接口后补充
-    
-    return 0;
-}
-
-uint32_t PuschPart2ParseHandler()
-{
-    printf("解析PUSCH Part2\n");//PUSCH CSI part2
-    
-    PuschUCIParser();
-
-    return 0;
-}
 
 uint32_t PuschUciSendHandler()//待设计
 {
