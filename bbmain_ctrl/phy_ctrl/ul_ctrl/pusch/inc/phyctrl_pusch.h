@@ -29,6 +29,8 @@ enum PUSCH_UCI_EVENT{
 	Pusch_Part2_And_Data_Demap_Trigger_Event,
 	Pusch_Part2_Result_Trigger_Event,
 	Pusch_UCI_Packing_Over_Event,
+    ACK_1or2_Bit_Data_Trigger_Event,
+    ACK_Over2_Bit_Result_Trigger_Event,
     Pusch_Uci_Event_Num
 };
 

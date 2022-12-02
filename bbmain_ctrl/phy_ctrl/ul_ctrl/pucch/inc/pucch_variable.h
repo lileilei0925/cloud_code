@@ -41,7 +41,9 @@ PucchFmt01Rst     g_pucchFmt01Rst[MAX_CELL_NUM][SLOT_NUM_PER_FRAME];//放到DDR
 
 PucchFmt23Rst     g_pucchFmt23Rst[MAX_CELL_NUM][SLOT_NUM_PER_FRAME];//放到DDR
 
-FsmTable g_pucchUciTable[] =
+FSM g_pucchFSM[MAX_CELL_NUM][PUCCH_UCI_PING_PONG_NUM];
+
+FsmTable g_pucchTable[] =
 {
     //{当前状态S，                                  trigger事件E，                              handler函数H，                           转移后的状态S}
 	{Pucch_Uci_Idle_State,                         Pucch_Slot_Tast_Start_Event,                PucchPart1ParaCfgHandler,               Pucch_Wait_Part1_Result_State},//S0{E0,H0}->S1

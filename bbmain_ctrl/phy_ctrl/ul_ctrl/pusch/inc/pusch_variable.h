@@ -25,6 +25,7 @@ RMDecodeOut          g_puschRMDecodeOutL2[MAX_CELL_NUM][PUSCH_UCI_PING_PONG_NUM]
 CsiPart2ParaInfo    g_CsiPart2ParaInfo[MAX_CELL_NUM][SLOT_NUM_PER_FRAME][NR_PUSCH_MAX_UE_NUM_PER_SLOT] = { 0 };
 PuschAckAndCsiInfo  g_puschAckAndCsiInfo[MAX_CELL_NUM][SLOT_NUM_PER_FRAME][NR_PUSCH_MAX_UE_NUM_PER_SLOT][SYM_NUM_PER_SLOT] = { 0 };
 
+FSM g_puschUciFSM[MAX_CELL_NUM][PUSCH_UCI_PING_PONG_NUM];
 /* PUSCH UCI译码组包结果 */
 PuschUciRst     g_puschUciRst[MAX_CELL_NUM][SLOT_NUM_PER_FRAME];//放到DDR
 
