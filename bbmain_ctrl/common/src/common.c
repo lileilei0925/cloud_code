@@ -367,7 +367,7 @@ void findRbgNumAndSize (uint8_t *inputData, uint8_t dataNum, uint8_t *rbgNum, Nr
     *rbgNum = rbgCnt;
 }
 
-uint16_t CalcCsiPart2Length(UciInfoAddInV3 *uciInfoAddInV3, uint8_t *CsiPart1Payload, uint8_t *sizesPart1Params, uint16_t *map , uint16_t csiPart1BitLength, uint8_t numPart1Params)
+uint16_t CalcCsiPart2BitLength(UciInfoAddInV3 *uciInfoAddInV3, uint8_t *CsiPart1Payload, uint8_t *sizesPart1Params, uint16_t *map , uint16_t csiPart1BitLength, uint8_t numPart1Params)
 {
     uint16_t numPart2s;
     uint16_t paramOffsets;
