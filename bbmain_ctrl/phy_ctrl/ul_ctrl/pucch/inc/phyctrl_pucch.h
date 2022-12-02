@@ -1,6 +1,7 @@
 #pragma once
 #include "../../../../common/inc/common_typedef.h"
 #include "../../../../common/inc/common_macro.h"
+#include "../../../../common/inc/fapi_mac2phy_interface.h"
 
 #define MAX_RX_ANT_NUM 4
 #define MAX_OCC_NUM_FMT1 7
@@ -9,6 +10,16 @@
 #define MAX_DMRS_SYM_NUM 7
 #define PUC_FMT3_MAX_DMRS_NUM 4
 #define MAX_PUCCH_NUM 50    /* 待定 */
+#define PUCCH_UCI_PING_PONG_NUM 2
+#define MAX_PUCCH_FMT01_NUM 64    /* 待定 */
+#define MAX_PUCCH_FMT23_NUM 38
+
+enum PUCCH_FORMAT
+{
+    PUCCH_UCI_PART1 = 0,
+    PUCCH_UCI_PART2 = 1,  
+    PUCCH_UCI_PART_NUM
+ };
 
 enum PUCCH_FORMAT
 {
@@ -18,7 +29,23 @@ enum PUCCH_FORMAT
     PUCCH_FORMAT_3 = 3,    
     PUCCH_FORMAT_BUTT
  };
- 
+
+enum PUCCH_UCI_STATE{
+    Pucch_Uci_Idle_State = 0,
+    Pucch_Wait_Part1_Result_State,
+    Pucch_Wait_Part2_Result_State,
+    Pucch_Uci_Packing_State,
+    Pucch_Uci_State_Num
+};
+
+enum PUSCH_UCI_EVENT{
+	Pucch_Slot_Tast_Start_Event = 0,
+	Pucch_Part1_Result_Trigger_Event,
+	Pucch_Part2_Result_Trigger_Event,
+	Pucch_UCI_Packing_Over_Event,
+    Pucch_Uci_Event_Num
+};
+
 typedef struct
 {
 	uint8_t  pduIdxInner;                   /* 物理层内部使用的每个UE的索引 */
@@ -219,54 +246,6 @@ typedef struct
 
 typedef struct
 {
-	uint8_t		SRindication;					/* SR检测结果，0:未检测到SR,1:检测到SR */
-	uint8_t		SRconfidenceLevel;				/* SR检测置信度，0:置信,1:不置信,无效值255 */
-    uint8_t     rsv[2];
-}SRInfoFmt01;
-
-typedef struct
-{
-	uint16_t	SrBitLen;						/* SR比特长度，取值范围[1,8] */
-	uint8_t		SrPayload;						/* SR码流 */
-    uint8_t		rsv;						
-}SRInfoFmt234;//1DW
-
-typedef struct
-{
-	uint8_t		NumHarq;						/* HARQ比特个数，取值1或2 */
-	uint8_t		HarqconfidenceLevel;			/* HARQ检测置信度，0:置信,1:不置信,无效值255 */
-	uint8_t 	HarqValue[2];					/* HARQ解调结果，0:ACK,1:NACK,2:DTX */
-}HARQInfoFmt01;//1dw
-
-typedef struct
-{
-	uint8_t		HarqCrc;						/* HARQ CRC结果，0:pass,1:fail,2:not present */
-	uint8_t		rsv;
-	uint16_t	HarqBitLen;						/* HARQ比特长度，取值范围[1,1706] */
-	
-    uint8_t 	HarqPayload[216];				/* HARQ码流 */
-}HARQInfoFmt234;//55DW
-
-typedef struct
-{
-	uint8_t		CsiPart1Crc;					/* CsiPart1 CRC结果，0:pass,1:fail,2:not present */
-	uint8_t		rsv;
-	uint16_t	CsiPart1BitLen;					/* CsiPart1比特长度，取值范围[1,1706] */
-	
-    uint8_t 	CsiPart1Payload[216];			/* CsiPart1码流 */
-}CSIpart1Info;//55DW
-
-typedef struct
-{
-	uint8_t		CsiPart2Crc;					/* CsiPart2 CRC结果，0:pass,1:fail,2:not present */
-	uint8_t		rsv;
-	uint16_t	CsiPart2BitLen;					/* CsiPart2比特长度，取值范围[1,1706] */
-	
-    uint8_t 	CsiPart2Payload[216];			/* CsiPart2码流 */
-}CSIpart2Info;
-
-typedef struct
-{
 	uint8_t  pduBitmap;       					/* bit0:SR,bit1:HARQ,其他比特位清0。0:存在,1:不存在 */
     uint8_t  PucchFormat;						/* PUCCH格式,0: PUCCH Format0,1: PUCCH Format1 */
 	uint8_t  UL_CQI;							/* SNR,取值范围[0,255],代表-64dB到63dB,步长0.5dB，无效值255 */
@@ -291,7 +270,7 @@ typedef struct
 	uint8_t  UL_CQI;							/* SNR,取值范围[0,255],代表-64dB到63dB,步长0.5dB，无效值255 */
     uint8_t  rsv1;
 
-	uint32_t Handle;  							/* ？ARM侧无法区分，待定 */
+	uint32_t Handle; 
     
 	uint16_t RNTI;    							/* UE的RNTI */
 	uint16_t TA;								/* UE的TA值,取值范围[0,63],213协议4.2节,无效值65535 */
@@ -299,14 +278,14 @@ typedef struct
     uint16_t RSSI;								/* 取值范围[0,1280],步长0.1dB */
 	uint16_t rsv2;
 
-	SRInfoFmt234   srInfoFmt234;
+	SRInfoFmt23    srInfoFmt234;
 	
-	HARQInfoFmt234 harqInfoFmt234;
+	HARQInfoFmt23  harqInfoFmt234;
 	
 	CSIpart1Info   csipart1Info;
 	
 	CSIpart2Info   csipart2Info;
-}PucFmt234Rpt;
+}PucFmt23Rpt;
 
 typedef struct
 {
@@ -315,5 +294,37 @@ typedef struct
     uint8_t rsv[2];
 
 	PucFmt01Rpt  pucFmt01Rpt[MAX_PUCCH_NUM];
-	PucFmt234Rpt pucFmt234Rpt[MAX_PUCCH_NUM];
+	PucFmt23Rpt  pucFmt23Rpt[MAX_PUCCH_NUM];
 }PucFmtRpt;
+
+typedef struct
+{
+    HacCfgHead          hacCfgHead;
+
+	PolarDecodePduInfo  polarPduInfo[MAX_PUCCH_FMT23_NUM];    
+}PucchPolarDecodeHacCfgPara;
+
+typedef struct
+{
+    HacCfgHead          hacCfgHead;
+
+	RMDecodePduInfo     rmPduInfo[MAX_PUCCH_FMT23_NUM];    
+}PucchRMDecodeHacCfgPara;
+
+typedef struct 
+{
+    uint16_t sfnIndex;                                    /* system frame number [0: 1023] */
+    uint16_t slotIndex;                                   /* slot number [0: 159]  */
+    uint16_t uciNum;                                      
+    
+    FapiNrPucchFmt01Indication fapiNrPucchFmt01Indication[MAX_PUCCH_FMT01_NUM];
+}PucchFmt01Rst;
+
+typedef struct 
+{
+    uint16_t sfnIndex;                                    /* system frame number [0: 1023] */
+    uint16_t slotIndex;                                   /* slot number [0: 159]  */
+    uint16_t uciNum;                                      
+    
+    FapiNrPucchFmt23Indication fapiNrPucchFmt23Indication[MAX_PUCCH_FMT23_NUM];
+}PucchFmt23Rst;
