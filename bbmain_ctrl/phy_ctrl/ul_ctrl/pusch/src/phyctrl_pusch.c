@@ -11,7 +11,7 @@ uint32_t L1PuschUciReLocationCalculate(L1PuschPduInfo *l1PuschUeInfo, PuschResou
 uint32_t L1PuschLdpcCbPartRowCalculate(PuschLdpcUePara *puschLdpcUePara, uint8_t baseGraphType, uint16_t *cbPartRow);
 uint32_t L1PuschCsiPart2ResCalculate(L1PuschPduInfo *l1PuschUeInfo, PuschResourceInfo *puschResourceInfo, PuschAckAndCsiInfo *puschAckAndCsiInfo, CsiPart2ParaInfo *csiPart2ParaInfo);
 uint32_t L1PuschDataTypeCalculate(L1PuschPduInfo *l1PuschUeInfo, uint8_t *dataFlag);
-uint32_t L1PuschCsiPart2AndDataExtract(uint8_t dataFlag, L1PuschPduInfo *l1PuschUeInfo, PuschResourceInfo *puschResourceInfo, CsiPart2ParaInfo *csiPart2ParaInfo, PuschLlrSegmInfo *puschLlrSegmInfo);
+uint32_t L1PuschCsiPart2AndDataExtract(uint8_t dataFlag, L1PuschPduInfo *l1PuschUeInfo, PuschResourceInfo *puschResourceInfo, CsiPart2ParaInfo *csiPart2ParaInfo, LlrSegInfo *llrSegInfo);
 
 #if 1
 int main(void)
@@ -1214,20 +1214,20 @@ uint32_t L1PuschCsiPart2ResCalculate(L1PuschPduInfo *l1PuschUeInfo, PuschResourc
     return 0;
 }
 
-uint32_t L1PuschCsiPart2AndDataExtract(uint8_t dataFlag, L1PuschPduInfo *l1PuschUeInfo, PuschResourceInfo *puschResourceInfo, CsiPart2ParaInfo *csiPart2ParaInfo, PuschLlrSegmInfo *puschLlrSegmInfo)
+uint32_t L1PuschCsiPart2AndDataExtract(uint8_t dataFlag, L1PuschPduInfo *l1PuschUeInfo, PuschResourceInfo *puschResourceInfo, CsiPart2ParaInfo *csiPart2ParaInfo, LlrSegInfo *llrSegInfo)
 {
-    uint8_t  segmIndex, segmNum, cdmGrpsNodata;
+    uint8_t  segmIndex, segmNum, segmNumCnt, cdmGrpsNodata;
     uint8_t  symIndexBitmap, symbIndex, ueLastSymbIndex;
     uint8_t  csiPart2StartSymb ,csiPart2EndSymb;
     uint16_t rbSize, dmrsReNumPerRB, dataReInDmrsSymb;
     uint16_t dataReNumTemp, csiPart2ReNumTemp;
     uint16_t dmrsSymBitmap;
     uint16_t nMUciSc;
-    uint16_t csiPart2ReCnt[6] = { 0 };
-    uint16_t segmCycNum[6]    = { 0 };
-    uint16_t segmPeriod[6]    = { 0 };
-    uint16_t segmLlrNum[6]    = { 0 };
-    uint16_t segmAddrOffSet[6]= { 0 };
+    uint16_t csiPart2ReCnt[6]     = { 0 };
+    uint16_t segCycNum[6]         = { 0 };
+    uint16_t segPeriod[6]         = { 0 };
+    uint16_t segLlrNum[6]         = { 0 };
+    uint16_t segmAddrOffSet[6]    = { 0 };
     uint16_t dataReNumPerSymb[14] = { 0 };
     uint32_t *csiPart2AndDataBaseAddr = NULL;
     
@@ -1246,77 +1246,77 @@ uint32_t L1PuschCsiPart2AndDataExtract(uint8_t dataFlag, L1PuschPduInfo *l1Pusch
         if (dataReInDmrsSymb == 0){/* DMRS符号无数据 */
             if (csiPart2ParaInfo->reDistance[csiPart2EndSymb] > 1){ /* 最后一个符号为一类，其余符号为一类  */
                 csiPart2ReNumTemp = puschResourceInfo->enCodeCsiPart2Re - csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb] /* 除最后一个符号外其余RE全部连续,最后一个符号单独讨论 */;
-                puschLlrSegmInfo->segmNum = 2; 
-                puschLlrSegmInfo->puschLlrSegmPara[0].segmStartAddr = csiPart2AndDataBaseAddr;  /* 基地址起始就是Part2起始 */
-                puschLlrSegmInfo->puschLlrSegmPara[0].segmCycNum    = 1;
-                puschLlrSegmInfo->puschLlrSegmPara[0].segmPeriod    = csiPart2ReNumTemp;
-                puschLlrSegmInfo->puschLlrSegmPara[0].segmLlrNum    = csiPart2ReNumTemp;   
+                segmNumCnt = 2; 
+                llrSegInfo[0].segStartAddr = csiPart2AndDataBaseAddr;  /* 基地址起始就是Part2起始 */
+                llrSegInfo[0].segCycNum    = 1;
+                llrSegInfo[0].segPeriod    = csiPart2ReNumTemp;
+                llrSegInfo[0].segLlrNum    = csiPart2ReNumTemp;   
 
-                puschLlrSegmInfo->puschLlrSegmPara[1].segmStartAddr = (uint32_t *)((uint8_t *)csiPart2AndDataBaseAddr + csiPart2ReNumTemp);   
-                puschLlrSegmInfo->puschLlrSegmPara[1].segmCycNum    = csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb]; /*  */
-                puschLlrSegmInfo->puschLlrSegmPara[1].segmPeriod    = csiPart2ParaInfo->reDistance[csiPart2EndSymb];
-                puschLlrSegmInfo->puschLlrSegmPara[1].segmLlrNum    = 1;
+                llrSegInfo[1].segStartAddr = (uint32_t *)((uint8_t *)csiPart2AndDataBaseAddr + csiPart2ReNumTemp);   
+                llrSegInfo[1].segCycNum    = csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb]; /*  */
+                llrSegInfo[1].segPeriod    = csiPart2ParaInfo->reDistance[csiPart2EndSymb];
+                llrSegInfo[1].segLlrNum    = 1;
             }
             else {/* reDistance[csiPart2EndSymb] == 1 , 所有csi-Part2 RE连续 */
-                puschLlrSegmInfo->segmNum = 1;
-                puschLlrSegmInfo->puschLlrSegmPara[0].segmStartAddr = csiPart2AndDataBaseAddr;  /* 基地址起始就是Part2起始 */
-                puschLlrSegmInfo->puschLlrSegmPara[0].segmCycNum    = 1;
-                puschLlrSegmInfo->puschLlrSegmPara[0].segmPeriod    = puschResourceInfo->enCodeCsiPart2Re;
-                puschLlrSegmInfo->puschLlrSegmPara[0].segmLlrNum    = puschResourceInfo->enCodeCsiPart2Re;   
+                segmNumCnt = 1;
+                llrSegInfo[0].segStartAddr = csiPart2AndDataBaseAddr;  /* 基地址起始就是Part2起始 */
+                llrSegInfo[0].segCycNum    = 1;
+                llrSegInfo[0].segPeriod    = puschResourceInfo->enCodeCsiPart2Re;
+                llrSegInfo[0].segLlrNum    = puschResourceInfo->enCodeCsiPart2Re;   
             }
         }
         else {/* DMRS符号有数据 */
-            segmNum = 0;
+            segmNumCnt = 0;
             segmAddrOffSet[0] = csiPart2ParaInfo->dmrsNumBfPart2 * dataReInDmrsSymb;
             //csiPart2AndDataBaseAddr = (uint32_t *)((uint8_t *)csiPart2AndDataBaseAddr + segmAddrOffSet[0]);  /* 基地址 + 数据偏移为Part2起始 */  
             for (symbIndex = csiPart2StartSymb; symbIndex < csiPart2EndSymb; symbIndex++){
-                csiPart2ReCnt[segmNum] += csiPart2ParaInfo->part2ReNumInSymb[symbIndex];
+                csiPart2ReCnt[segmNumCnt] += csiPart2ParaInfo->part2ReNumInSymb[symbIndex];
                 if (csiPart2ParaInfo->part2ReNumInSymb[symbIndex] == 0){ /* DMRS 符号, 根据统计规则, 首尾符号不会是DMRS符号 */  
-                    segmCycNum[segmNum] = 1;
-                    segmPeriod[segmNum] = csiPart2ReCnt[segmNum];
-                    segmLlrNum[segmNum] = csiPart2ReCnt[segmNum];
-                    segmNum++;
-                    segmAddrOffSet[segmNum] = dataReInDmrsSymb + csiPart2ReCnt[segmNum - 1];
+                    segCycNum[segmNumCnt] = 1;
+                    segPeriod[segmNumCnt] = csiPart2ReCnt[segmNumCnt];
+                    segLlrNum[segmNumCnt] = csiPart2ReCnt[segmNumCnt];
+                    segmNumCnt++;
+                    segmAddrOffSet[segmNumCnt] = dataReInDmrsSymb + csiPart2ReCnt[segmNumCnt - 1];
                 }
             }    
 
-            if (csiPart2ReCnt[segmNum] > 0){
+            if (csiPart2ReCnt[segmNumCnt] > 0){
                 if (csiPart2ParaInfo->reDistance[csiPart2EndSymb] > 1){
-                    segmCycNum[segmNum] = 1;
-                    segmPeriod[segmNum] = csiPart2ReCnt[segmNum];
-                    segmLlrNum[segmNum] = csiPart2ReCnt[segmNum];
+                    segCycNum[segmNumCnt] = 1;
+                    segPeriod[segmNumCnt] = csiPart2ReCnt[segmNumCnt];
+                    segLlrNum[segmNumCnt] = csiPart2ReCnt[segmNumCnt];
                     
-                    segmAddrOffSet[segmNum + 1] = csiPart2ReCnt[segmNum];
-                    segmCycNum[segmNum + 1]     = csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb];
-                    segmPeriod[segmNum + 1]     = csiPart2ParaInfo->reDistance[csiPart2EndSymb];
-                    segmLlrNum[segmNum + 1]     = 1;
+                    segmAddrOffSet[segmNumCnt + 1] = csiPart2ReCnt[segmNumCnt];
+                    segCycNum[segmNumCnt + 1]     = csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb];
+                    segPeriod[segmNumCnt + 1]     = csiPart2ParaInfo->reDistance[csiPart2EndSymb];
+                    segLlrNum[segmNumCnt + 1]     = 1;
                 }
                 else { /* csiPart2ParaInfo->reDistance[csiPart2EndSymb] == 1 */
-                    segmCycNum[segmNum] = 1;
-                    segmPeriod[segmNum] = csiPart2ReCnt[segmNum] + csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb];
-                    segmLlrNum[segmNum] = csiPart2ReCnt[segmNum] + csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb];
+                    segCycNum[segmNumCnt] = 1;
+                    segPeriod[segmNumCnt] = csiPart2ReCnt[segmNumCnt] + csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb];
+                    segLlrNum[segmNumCnt] = csiPart2ReCnt[segmNumCnt] + csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb];
                 }
             }
-            else { /* csiPart2ReCnt[segmNum] == 0 */ 
+            else { /* csiPart2ReCnt[segmNumCnt] == 0 */ 
                 if (csiPart2ParaInfo->reDistance[csiPart2EndSymb] > 1){
-                    segmCycNum[segmNum] = csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb];
-                    segmPeriod[segmNum] = csiPart2ParaInfo->reDistance[csiPart2EndSymb];
-                    segmLlrNum[segmNum] = 1;
+                    segCycNum[segmNumCnt] = csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb];
+                    segPeriod[segmNumCnt] = csiPart2ParaInfo->reDistance[csiPart2EndSymb];
+                    segLlrNum[segmNumCnt] = 1;
                 }
                 else { /* csiPart2ParaInfo->reDistance[csiPart2EndSymb] == 1 */
-                    segmCycNum[segmNum] = 1;
-                    segmPeriod[segmNum] = csiPart2ReCnt[segmNum] + csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb];
-                    segmLlrNum[segmNum] = csiPart2ReCnt[segmNum] + csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb];
+                    segCycNum[segmNumCnt] = 1;
+                    segPeriod[segmNumCnt] = csiPart2ReCnt[segmNumCnt] + csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb];
+                    segLlrNum[segmNumCnt] = csiPart2ReCnt[segmNumCnt] + csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb];
                 }
             }
             
-            puschLlrSegmInfo->segmNum = segmNum + 1; 
-            puschLlrSegmInfo->puschLlrSegmPara[0].segmStartAddr = csiPart2AndDataBaseAddr; /* Data数据的第一个RE位置 */
-            for (segmIndex = 0; segmIndex < puschLlrSegmInfo->segmNum; segmIndex++){
-                puschLlrSegmInfo->puschLlrSegmPara[segmIndex].segmStartAddr = (uint32_t *)((uint8_t *)puschLlrSegmInfo->puschLlrSegmPara[segmIndex].segmStartAddr + segmAddrOffSet[segmIndex]);
-                puschLlrSegmInfo->puschLlrSegmPara[segmIndex].segmCycNum = segmCycNum[segmIndex];
-                puschLlrSegmInfo->puschLlrSegmPara[segmIndex].segmPeriod = segmPeriod[segmIndex];
-                puschLlrSegmInfo->puschLlrSegmPara[segmIndex].segmLlrNum = segmLlrNum[segmIndex]; 
+            segmNum = segmNumCnt + 1; 
+            llrSegInfo[0].segStartAddr = csiPart2AndDataBaseAddr; /* Data数据的第一个RE位置 */
+            for (segmIndex = 0; segmIndex < segmNum; segmIndex++){
+                llrSegInfo[segmIndex].segStartAddr = (uint32_t *)((uint8_t *)llrSegInfo[segmIndex].segStartAddr + segmAddrOffSet[segmIndex]);
+                llrSegInfo[segmIndex].segCycNum = segCycNum[segmIndex];
+                llrSegInfo[segmIndex].segPeriod = segPeriod[segmIndex];
+                llrSegInfo[segmIndex].segLlrNum = segLlrNum[segmIndex]; 
             }
         }   
     }
@@ -1325,89 +1325,88 @@ uint32_t L1PuschCsiPart2AndDataExtract(uint8_t dataFlag, L1PuschPduInfo *l1Pusch
             if (csiPart2ParaInfo->reDistance[csiPart2EndSymb] > 1){ /* CSIPart2最后一个符号的REdistance大于1，最后一个符号为一类，其余符号为一类 */
                 csiPart2ReNumTemp = puschResourceInfo->enCodeCsiPart2Re - csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb]; /* 除最后一个符号外其余RE全部连续,最后一个符号单独讨论 */;
                 if (csiPart2EndSymb == ueLastSymbIndex){ /* CsiPart2的最后一个符号也是ue调度的最后一个符号，只有一个segment */
-                    puschLlrSegmInfo->segmNum = 1; 
-                    puschLlrSegmInfo->puschLlrSegmPara[0].segmStartAddr = (uint32_t *)((uint8_t *)csiPart2AndDataBaseAddr + csiPart2ReNumTemp + 1);  /* Data数据的第一个RE位置 */
-                    puschLlrSegmInfo->puschLlrSegmPara[0].segmCycNum    = csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb] - 1;
-                    puschLlrSegmInfo->puschLlrSegmPara[0].segmPeriod    = csiPart2ParaInfo->reDistance[csiPart2EndSymb];
-                    puschLlrSegmInfo->puschLlrSegmPara[0].segmLlrNum    = csiPart2ParaInfo->reDistance[csiPart2EndSymb] - 1;   
+                    segmNum = 1; 
+                    llrSegInfo[0].segStartAddr = (uint32_t *)((uint8_t *)csiPart2AndDataBaseAddr + csiPart2ReNumTemp + 1);  /* Data数据的第一个RE位置 */
+                    llrSegInfo[0].segCycNum    = csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb] - 1;
+                    llrSegInfo[0].segPeriod    = csiPart2ParaInfo->reDistance[csiPart2EndSymb];
+                    llrSegInfo[0].segLlrNum    = csiPart2ParaInfo->reDistance[csiPart2EndSymb] - 1;   
                 }
                 else{ /* CsiPart2的最后一个符号不是ue调度的最后一个符号 ， 有两个segment */
-                    puschLlrSegmInfo->segmNum = 2; 
-                    puschLlrSegmInfo->puschLlrSegmPara[0].segmStartAddr = (uint32_t *)((uint8_t *)csiPart2AndDataBaseAddr + csiPart2ReNumTemp + 1);  /* Data数据的第一个RE位置 */
-                    puschLlrSegmInfo->puschLlrSegmPara[0].segmCycNum    = csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb] - 1;
-                    puschLlrSegmInfo->puschLlrSegmPara[0].segmPeriod    = csiPart2ParaInfo->reDistance[csiPart2EndSymb];
-                    puschLlrSegmInfo->puschLlrSegmPara[0].segmLlrNum    = csiPart2ParaInfo->reDistance[csiPart2EndSymb] - 1 ;  
+                    segmNum = 2; 
+                    llrSegInfo[0].segStartAddr = (uint32_t *)((uint8_t *)csiPart2AndDataBaseAddr + csiPart2ReNumTemp + 1);  /* Data数据的第一个RE位置 */
+                    llrSegInfo[0].segCycNum    = csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb] - 1;
+                    llrSegInfo[0].segPeriod    = csiPart2ParaInfo->reDistance[csiPart2EndSymb];
+                    llrSegInfo[0].segLlrNum    = csiPart2ParaInfo->reDistance[csiPart2EndSymb] - 1 ;  
                     
-                    dataReNumTemp = (nMUciSc - puschLlrSegmInfo->puschLlrSegmPara[0].segmCycNum * puschLlrSegmInfo->puschLlrSegmPara[0].segmPeriod - 1) + nMUciSc * (ueLastSymbIndex - csiPart2EndSymb);
-                    puschLlrSegmInfo->puschLlrSegmPara[1].segmStartAddr = (uint32_t *)((uint8_t *)puschLlrSegmInfo->puschLlrSegmPara[0].segmStartAddr + puschLlrSegmInfo->puschLlrSegmPara[0].segmCycNum * puschLlrSegmInfo->puschLlrSegmPara[0].segmPeriod);  
-                    puschLlrSegmInfo->puschLlrSegmPara[1].segmCycNum    = 1;
-                    puschLlrSegmInfo->puschLlrSegmPara[1].segmPeriod    = dataReNumTemp;
-                    puschLlrSegmInfo->puschLlrSegmPara[1].segmLlrNum    = dataReNumTemp;  
+                    dataReNumTemp = (nMUciSc - llrSegInfo[0].segCycNum * llrSegInfo[0].segPeriod - 1) + nMUciSc * (ueLastSymbIndex - csiPart2EndSymb);
+                    llrSegInfo[1].segStartAddr = (uint32_t *)((uint8_t *)llrSegInfo[0].segStartAddr + llrSegInfo[0].segCycNum * llrSegInfo[0].segPeriod);  
+                    llrSegInfo[1].segCycNum    = 1;
+                    llrSegInfo[1].segPeriod    = dataReNumTemp;
+                    llrSegInfo[1].segLlrNum    = dataReNumTemp;  
                 }
             }
             else {/* reDistance[csiPart2EndSymb] == 1 , 所有csi-Part2 RE连续 */
                 dataReNumTemp = nMUciSc * (ueLastSymbIndex - csiPart2EndSymb + 1) - csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb];
-                puschLlrSegmInfo->segmNum = 1;
-                puschLlrSegmInfo->puschLlrSegmPara[0].segmStartAddr = (uint32_t *)((uint8_t *)csiPart2AndDataBaseAddr + puschResourceInfo->enCodeCsiPart2Re);  /* 基地址起始就是Part2起始 */
-                puschLlrSegmInfo->puschLlrSegmPara[0].segmCycNum    = 1;
-                puschLlrSegmInfo->puschLlrSegmPara[0].segmPeriod    = dataReNumTemp;
-                puschLlrSegmInfo->puschLlrSegmPara[0].segmLlrNum    = dataReNumTemp;   
+                segmNum = 1;
+                llrSegInfo[0].segStartAddr = (uint32_t *)((uint8_t *)csiPart2AndDataBaseAddr + puschResourceInfo->enCodeCsiPart2Re);  /* 基地址起始就是Part2起始 */
+                llrSegInfo[0].segCycNum    = 1;
+                llrSegInfo[0].segPeriod    = dataReNumTemp;
+                llrSegInfo[0].segLlrNum    = dataReNumTemp;   
             }
         }
         else { /* DMRS符号有数据 */
-            segmNum = 1;
+            segmNumCnt = 1;
             //csiPart2AndDataBaseAddr = (uint32_t *)((uint8_t *)csiPart2AndDataBaseAddr + segmAddrOffSet[0]);  /* 基地址 + Part2偏移为Data起始 */
             if (csiPart2ParaInfo->dmrsNumBfPart2 > 0){ /* CSI-part2前面存在DMRS符号，即存在DATA数据，起始地址即Data的首地址 */
-                segmCycNum[segmNum]     = 1;
-                segmPeriod[segmNum]     = csiPart2ParaInfo->dmrsNumBfPart2 * dataReInDmrsSymb;
-                segmLlrNum[segmNum]     = csiPart2ParaInfo->dmrsNumBfPart2 * dataReInDmrsSymb;
-                segmAddrOffSet[segmNum] = 0;
-                segmNum++;   
+                segCycNum[segmNumCnt]     = 1;
+                segPeriod[segmNumCnt]     = csiPart2ParaInfo->dmrsNumBfPart2 * dataReInDmrsSymb;
+                segLlrNum[segmNumCnt]     = csiPart2ParaInfo->dmrsNumBfPart2 * dataReInDmrsSymb;
+                segmAddrOffSet[segmNumCnt] = 0;
+                segmNumCnt++;   
             }
             
             for (symbIndex = csiPart2StartSymb; symbIndex < csiPart2EndSymb; symbIndex++){
-                csiPart2ReCnt[segmNum] += csiPart2ParaInfo->part2ReNumInSymb[symbIndex];
+                csiPart2ReCnt[segmNumCnt] += csiPart2ParaInfo->part2ReNumInSymb[symbIndex];
                 if (csiPart2ParaInfo->part2ReNumInSymb[symbIndex] == 0){ /* DMRS 符号, 根据统计规则, 首尾符号不会是DMRS符号 */  
-                    segmCycNum[segmNum] = 1;
-                    segmPeriod[segmNum] = dataReInDmrsSymb;
-                    segmLlrNum[segmNum] = dataReInDmrsSymb;
-                    segmAddrOffSet[segmNum] = segmLlrNum[segmNum - 1] + csiPart2ReCnt[segmNum];  
-                    segmNum++; 
+                    segCycNum[segmNumCnt] = 1;
+                    segPeriod[segmNumCnt] = dataReInDmrsSymb;
+                    segLlrNum[segmNumCnt] = dataReInDmrsSymb;
+                    segmAddrOffSet[segmNumCnt] = segLlrNum[segmNumCnt - 1] + csiPart2ReCnt[segmNumCnt];  
+                    segmNumCnt++; 
                 }    
             }   
             
             if (csiPart2ParaInfo->reDistance[csiPart2EndSymb] > 1){
-                segmCycNum[segmNum]     = csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb] - 1;
-                segmPeriod[segmNum]     = csiPart2ParaInfo->reDistance[csiPart2EndSymb];
-                segmLlrNum[segmNum]     = csiPart2ParaInfo->reDistance[csiPart2EndSymb] - 1;
-                segmAddrOffSet[segmNum] = segmLlrNum[segmNum - 1] + csiPart2ReCnt[segmNum] + 1;
+                segCycNum[segmNumCnt]     = csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb] - 1;
+                segPeriod[segmNumCnt]     = csiPart2ParaInfo->reDistance[csiPart2EndSymb];
+                segLlrNum[segmNumCnt]     = csiPart2ParaInfo->reDistance[csiPart2EndSymb] - 1;
+                segmAddrOffSet[segmNumCnt] = segLlrNum[segmNumCnt - 1] + csiPart2ReCnt[segmNumCnt] + 1;
 
-                segmCycNum[segmNum + 1] = 1;
-                segmPeriod[segmNum + 1] = nMUciSc * (ueLastSymbIndex - csiPart2EndSymb + 1) - csiPart2ParaInfo->reDistance[csiPart2EndSymb] * (csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb] - 1) + 1;
-                segmLlrNum[segmNum + 1] = nMUciSc * (ueLastSymbIndex - csiPart2EndSymb + 1) - csiPart2ParaInfo->reDistance[csiPart2EndSymb] * (csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb] - 1) + 1;
-                segmAddrOffSet[segmNum + 1] = csiPart2ParaInfo->reDistance[csiPart2EndSymb] * (csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb] - 1) + 1;                
+                segCycNum[segmNumCnt + 1] = 1;
+                segPeriod[segmNumCnt + 1] = nMUciSc * (ueLastSymbIndex - csiPart2EndSymb + 1) - csiPart2ParaInfo->reDistance[csiPart2EndSymb] * (csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb] - 1) + 1;
+                segLlrNum[segmNumCnt + 1] = nMUciSc * (ueLastSymbIndex - csiPart2EndSymb + 1) - csiPart2ParaInfo->reDistance[csiPart2EndSymb] * (csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb] - 1) + 1;
+                segmAddrOffSet[segmNumCnt + 1] = csiPart2ParaInfo->reDistance[csiPart2EndSymb] * (csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb] - 1) + 1;                
             }
             else { /* csiPart2ParaInfo->reDistance[csiPart2EndSymb] == 1 */
-                segmCycNum[segmNum]     = 1;
-                segmPeriod[segmNum]     = nMUciSc * (ueLastSymbIndex - csiPart2EndSymb + 1) - csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb];
-                segmLlrNum[segmNum]     = nMUciSc * (ueLastSymbIndex - csiPart2EndSymb + 1) - csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb];
-                segmAddrOffSet[segmNum] = segmLlrNum[segmNum - 1] + csiPart2ReCnt[segmNum] + csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb];
+                segCycNum[segmNumCnt]     = 1;
+                segPeriod[segmNumCnt]     = nMUciSc * (ueLastSymbIndex - csiPart2EndSymb + 1) - csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb];
+                segLlrNum[segmNumCnt]     = nMUciSc * (ueLastSymbIndex - csiPart2EndSymb + 1) - csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb];
+                segmAddrOffSet[segmNumCnt] = segLlrNum[segmNumCnt - 1] + csiPart2ReCnt[segmNumCnt] + csiPart2ParaInfo->part2ReNumInSymb[csiPart2EndSymb];
             }
             
-            puschLlrSegmInfo->segmNum = segmNum; 
-            puschLlrSegmInfo->puschLlrSegmPara[0].segmStartAddr = csiPart2AndDataBaseAddr; /* Data数据的第一个RE位置 */
-            for (segmIndex = 0; segmIndex < puschLlrSegmInfo->segmNum; segmIndex++){
-                puschLlrSegmInfo->puschLlrSegmPara[segmIndex].segmStartAddr = (uint32_t *)((uint8_t *)puschLlrSegmInfo->puschLlrSegmPara[segmIndex].segmStartAddr + segmAddrOffSet[segmIndex]);
-                puschLlrSegmInfo->puschLlrSegmPara[segmIndex].segmCycNum    = segmCycNum[segmIndex + 1];
-                puschLlrSegmInfo->puschLlrSegmPara[segmIndex].segmPeriod    = segmPeriod[segmIndex + 1];
-                puschLlrSegmInfo->puschLlrSegmPara[segmIndex].segmLlrNum    = segmLlrNum[segmIndex + 1]; 
+            segmNum = segmNumCnt; 
+            llrSegInfo[0].segStartAddr = csiPart2AndDataBaseAddr; /* Data数据的第一个RE位置 */
+            for (segmIndex = 0; segmIndex < segmNum; segmIndex++){
+                llrSegInfo[segmIndex].segStartAddr = (uint32_t *)((uint8_t *)llrSegInfo[segmIndex].segStartAddr + segmAddrOffSet[segmIndex]);
+                llrSegInfo[segmIndex].segCycNum    = segCycNum[segmIndex + 1];
+                llrSegInfo[segmIndex].segPeriod    = segPeriod[segmIndex + 1];
+                llrSegInfo[segmIndex].segLlrNum    = segLlrNum[segmIndex + 1]; 
             }    
         }
     }
 
-    return 0;
+    return segmNum;
 }
-
 
 
 void PuschRMDecodeHacCfg(L1PuschPduInfo *l1PuschPduInfo, uint16_t uciLen ,uint8_t PduIdxInner, uint8_t msgType, uint16_t sfnNum, uint8_t slotNum, uint8_t cellIndex)
@@ -1417,10 +1416,13 @@ void PuschRMDecodeHacCfg(L1PuschPduInfo *l1PuschPduInfo, uint16_t uciLen ,uint8_
     uint8_t  part1Bit;
     uint8_t  maxCodeRate;
     uint8_t  valQm;
-    PuschUciPara    *puschUciPara = NULL;
-    HacCfgHead      *hacHead      = NULL;
-    RMDecodePduInfo *rmInfo       = NULL;
-    LlrSegInfo      *llrSegInfo   = NULL;
+    uint8_t  dataFlag;
+    PuschResourceInfo   *puschResourceInfo  = NULL;
+    PuschUciPara        *puschUciPara       = NULL;
+    CsiPart2ParaInfo    *csiPart2ParaInfo   = NULL;
+    HacCfgHead          *hacHead            = NULL;
+    RMDecodePduInfo     *rmInfo             = NULL;
+    LlrSegInfo          *llrSegInfo         = NULL;
 
     hacHead = &(g_puschRMDecodeHacCfgParaDDR[cellIndex][slotNum][msgType].hacCfgHead);
     pduNum  = hacHead->pduNum;
@@ -1436,33 +1438,23 @@ void PuschRMDecodeHacCfg(L1PuschPduInfo *l1PuschPduInfo, uint16_t uciLen ,uint8_
     rmInfo->uciBitNum  = uciLen;
     rmInfo->ueIdx      = PduIdxInner;
     rmInfo->codeMethod = 32;
-    rmInfo->uciType    = 0;//待修改
     rmInfo->uciBitNum  = uciLen;
-	if(Pusch_Uci_Ack == msgType)
-	{
-		rmInfo->llrNum     = 0;//待修改
-	}
-    else if(Pusch_Uci_CsiPart1 == msgType)
-    {
-		rmInfo->llrNum     = 0;//待修改
-    }
-    else if(Pusch_Uci_CsiPart2 == msgType)
-    {
-        rmInfo->llrNum    = 0;//待修改
-    }
 
 	if(Pusch_Uci_CsiPart2 == msgType)
-	{
-		;//待修改
+	{   
+        dataFlag  = ((l1PuschPduInfo->pduBitMap)&0x1);
+        csiPart2ParaInfo  = &(g_CsiPart2ParaInfo[cellIndex][sfnNum][PduIdxInner]);
+        puschResourceInfo = &(g_puschResourceInfo[cellIndex][sfnNum][PduIdxInner]);
+        rmInfo->llrSegNum = L1PuschCsiPart2AndDataExtract(dataFlag, l1PuschPduInfo, puschResourceInfo, csiPart2ParaInfo, &(rmInfo->llrSegInfo[0]));
 	}
 	else
 	{
 		rmInfo->llrSegNum = 1;
 		llrSegInfo = &rmInfo->llrSegInfo[0];
-		llrSegInfo->segStartAddr  = 0;//待修改
-		llrSegInfo->segCycNum     = 1;
-		llrSegInfo->segLlrNum     = rmInfo->llrNum;
-		llrSegInfo->segPeriod     = rmInfo->llrNum;
+		llrSegInfo->segStartAddr = 0;//待修改
+		llrSegInfo->segCycNum    = 1;
+		llrSegInfo->segLlrNum    = rmInfo->llrNum;
+		llrSegInfo->segPeriod    = rmInfo->llrNum;
 	}
 
     (hacHead->pduNum)++;
@@ -1479,10 +1471,13 @@ void PuschPolarDecodeHacCfg(L1PuschPduInfo *l1PuschPduInfo, uint16_t uciLen ,uin
     uint16_t n;
     uint16_t n1;
     uint16_t n2;
-	PuschUciPara       *puschUciPara = NULL;
-    HacCfgHead         *hacHead      = NULL;
-    PolarDecodePduInfo *polarInfo    = NULL;
-    LlrSegInfo         *llrSegInfo   = NULL;
+     uint8_t dataFlag;
+    PuschResourceInfo  *puschResourceInfo = NULL;
+	PuschUciPara       *puschUciPara      = NULL;
+    CsiPart2ParaInfo   *csiPart2ParaInfo  = NULL;
+    HacCfgHead         *hacHead           = NULL;
+    PolarDecodePduInfo *polarInfo         = NULL;
+    LlrSegInfo         *llrSegInfo        = NULL;
 
     hacHead = &(g_puschPolarDecodeHacCfgParaDDR[cellIndex][slotNum][msgType].hacCfgHead);
     pduNum  = hacHead->pduNum;
@@ -1503,21 +1498,7 @@ void PuschPolarDecodeHacCfg(L1PuschPduInfo *l1PuschPduInfo, uint16_t uciLen ,uin
     {
         K = uciLen + 11;
     }
-    
     polarInfo->uciBitNum = uciLen;
-	
-	if(Pusch_Uci_Ack == msgType)
-	{
-		polarInfo->llrNum = 0;//待修改
-	}
-	 else if(Pusch_Uci_CsiPart1 == msgType)
-	{
-		polarInfo->llrNum = 0;//待修改
-	}
-	else if(Pusch_Uci_CsiPart2 == msgType)
-	{
-		polarInfo->llrNum = 0;//待修改
-	}
     
     if(((8 * (polarInfo->llrNum)) <= (9 * (2>>(log2Ceiling(polarInfo->llrNum) - 1))))
         && ((16 * K) < (9 * (polarInfo->llrNum))))//E<=(9/8)*2^(Ceil(log2E)-1) and K/E<9/16
@@ -1537,7 +1518,10 @@ void PuschPolarDecodeHacCfg(L1PuschPduInfo *l1PuschPduInfo, uint16_t uciLen ,uin
 
 	if(Pusch_Uci_CsiPart2 == msgType)
 	{
-		;//待修改
+        dataFlag  = ((l1PuschPduInfo->pduBitMap)&0x1);
+        csiPart2ParaInfo  = &(g_CsiPart2ParaInfo[cellIndex][sfnNum][PduIdxInner]);
+        puschResourceInfo = &(g_puschResourceInfo[cellIndex][sfnNum][PduIdxInner]);
+        polarInfo->llrSegNum = L1PuschCsiPart2AndDataExtract(dataFlag, l1PuschPduInfo, puschResourceInfo, csiPart2ParaInfo, &(polarInfo->llrSegInfo[0]));
 	}
 	else
 	{
@@ -1722,13 +1706,13 @@ uint32_t PuschACKOver2BitParseHandler()
     return 0;
 }
 
-uint32_t PuschPart1AndLDPCParaCfgHandler()
+uint32_t PuschPart1AndLDPCParaCfgHandler()//是否与DSP参数计算放在一起待确认？
 {
-    printf("配置Part1译码参数&&配置无Part2 UE的LDPC译码参数\n");//
+    printf("配置Part1译码参数&&配置无Part2 UE的LDPC译码参数\n");
     
     //配置CSI Part1译码参数
 
-    //配置无CSI Part2的UE的LDPC译码参数
+    //配置不含CSI Part2的UE的LDPC译码参数
 
     return 0;
 }
@@ -1754,7 +1738,7 @@ uint32_t PuschParseCfgTriggerHandler()
 {
     PuschPart1ParsePart2AndLDPCParaCfgHandler();
 
-    PuschTriggerPart2AndLDPCDecodeHandler();//待确认接口后补充
+    PuschTriggerPart2AndLDPCDecodeHandler();
     
     return 0;
 }
@@ -1768,14 +1752,14 @@ uint32_t PuschPart2ParseHandler()
     return 0;
 }
 
-uint32_t PuschUciSendHandler()//待设计
+uint32_t PuschUciSendHandler()//待设计，收齐结果后发送(UCI HAC的译码结果，PUSCH测量)？
 {
     printf("给L2发送UCI\n");
     
     return 0;
 }
 
-uint32_t PuschUciFsmProc(uint32_t event, uint16_t sfnNum, uint16_t slotNum, uint16_t includePart2Flag, uint8_t cellIndex)
+uint32_t PuschUciFsmProc(uint32_t event, uint16_t sfnNum, uint16_t slotNum, uint8_t cellIndex)
 {
 
     /*待挪至slot任务启动时初始化
@@ -1784,7 +1768,7 @@ uint32_t PuschUciFsmProc(uint32_t event, uint16_t sfnNum, uint16_t slotNum, uint
     g_puschUciFSM[cellIndex][slotNum&0x1].size      = sizeof(g_puschUciTable)/sizeof(FsmTable);
     */
 
-    if(includePart2Flag)
+    if(g_puschCsiPart2Flag[cellIndex][slotNum])//本slot本小区含CSI Part2的UE，进入状态机流程
     {
         while(1)
         {
