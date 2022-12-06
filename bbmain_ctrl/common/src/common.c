@@ -3,6 +3,7 @@
 #include <string.h>
 #include "../inc/common_typedef.h"
 #include "../inc/common_macro.h"
+#include "../inc/phy_ctrl_common.h"
 #include "../../phy_ctrl/ul_ctrl/pusch/inc/phyctrl_pusch.h"
 /*******************************************************************************
 * 函数名称: do_brev
@@ -452,5 +453,117 @@ void FSM_EventHandle(FSM *fsm, uint32_t event)
     else
     {
         printf("状态转移异常\n");
+    }
+}
+
+void SendTlvMsg(TLV_MSG *tlvMsg, uint8_t *buffer, uint8_t *value)
+{ 
+	uint8_t  pduBitmap;
+	uint16_t pduSize;
+	uint16_t tempSize;
+	
+	FapiNrPucchFmt01Indication  *fapiNrPucchFmt01Indication = NULL;
+	FapiNrPucchFmt23Indication  *fapiNrPucchFmt23Indication = NULL;
+	FapiNrPushUciIndication 	*fapiNrPushUciIndication 	= NULL;
+	SRInfoFmt01                 *srInfoFmt01 	            = NULL;
+	SRInfoFmt23                 *srInfoFmt23 	            = NULL;
+	HARQInfoFmt01               *harqInfoFmt01	            = NULL;
+	HARQInfoFmt23               *harqInfoFmt23	            = NULL;
+	CSIpart1Info                *csipart1Info               = NULL;
+	CSIpart2Info                *csipart2Info               = NULL;
+
+	pduSize = 0;
+    /* 根据tlvBodyType对数据进行处理 */
+    switch(tlvMsg->tlvBody.PDUType) {
+        case PUSCH_UCI_INDICATION:
+			{
+				fapiNrPushUciIndication = (FapiNrPushUciIndication  *)value;
+				pduSize = sizeof(FapiNrPushUciIndication) - sizeof(HARQInfoFmt23) - sizeof(CSIpart1Info) - sizeof(CSIpart2Info);
+				memcpy(buffer,fapiNrPushUciIndication,pduSize);
+				pduBitmap = fapiNrPucchFmt23Indication->pduBitmap;
+				if(pduBitmap&0x2)//存在HARQ
+				{
+					harqInfoFmt23 = &(fapiNrPushUciIndication->harqInfoFmt23);
+					tempSize      = sizeof(HARQInfoFmt23) - (48 - (harqInfoFmt23->HarqBitLen + 7)>>3);
+					memcpy((buffer + pduSize),&(fapiNrPushUciIndication->harqInfoFmt23),tempSize);
+					pduSize += tempSize;
+				}
+				if(pduBitmap&0x4)//存在CSI Part1
+				{
+					csipart1Info = &(fapiNrPushUciIndication->csipart1Info);
+					tempSize     = sizeof(CSIpart1Info) - (48 - (csipart1Info->CsiPart1BitLen + 7)>>3);
+					memcpy((buffer + pduSize),&(fapiNrPushUciIndication->csipart1Info),tempSize);
+					pduSize += tempSize;
+				}
+				if(pduBitmap&0x8)//存在CSI Part2
+				{
+					csipart2Info = &(fapiNrPushUciIndication->csipart2Info);
+					tempSize     = sizeof(CSIpart2Info) - (48 - (csipart2Info->CsiPart2BitLen + 7)>>3);
+					memcpy((buffer + pduSize),&(fapiNrPushUciIndication->csipart2Info),tempSize);
+					pduSize += tempSize;
+				}
+			}
+		break;
+        case PUCCH_FMT01_INDICATION:
+            {
+                fapiNrPucchFmt01Indication = (FapiNrPucchFmt01Indication  *)value;
+				pduSize = sizeof(FapiNrPucchFmt01Indication) - sizeof(SRInfoFmt01) - sizeof(HARQInfoFmt01);
+				memcpy(buffer,fapiNrPucchFmt01Indication,pduSize);
+				pduBitmap = fapiNrPucchFmt01Indication->pduBitmap;
+				if(pduBitmap&0x1)//存在SR
+				{
+				    tempSize = sizeof(SRInfoFmt01);
+					memcpy((buffer + pduSize),&(fapiNrPucchFmt01Indication->srInfoFmt01),tempSize);
+					pduSize += tempSize;
+				}
+				if(pduBitmap&0x2)//存在HARQ
+				{
+					harqInfoFmt01 = &(fapiNrPucchFmt01Indication->harqInfoFmt01);
+					tempSize      = sizeof(HARQInfoFmt01) - (2 - harqInfoFmt01->NumHarq);
+					memcpy((buffer + pduSize),&(fapiNrPucchFmt01Indication->harqInfoFmt01),tempSize);
+					pduSize += tempSize;
+				}                   
+            }
+            break;
+		case PUCCH_FMT23_INDICATION:
+            {
+                fapiNrPucchFmt23Indication = (FapiNrPucchFmt23Indication  *)value;
+				pduSize = sizeof(FapiNrPucchFmt23Indication) - sizeof(SRInfoFmt23) - sizeof(HARQInfoFmt23) - sizeof(CSIpart1Info) - sizeof(CSIpart2Info);
+				memcpy(buffer,fapiNrPucchFmt23Indication,pduSize);
+				pduBitmap = fapiNrPucchFmt23Indication->pduBitmap;
+				if(pduBitmap&0x1)//存在SR
+				{
+				    srInfoFmt23 = &(fapiNrPucchFmt23Indication->srInfoFmt23);
+				    tempSize    = sizeof(SRInfoFmt23) - 1;
+					memcpy((buffer + pduSize),&(fapiNrPucchFmt23Indication->srInfoFmt23),tempSize);
+					pduSize += tempSize;
+				}
+				if(pduBitmap&0x2)//存在HARQ
+				{
+					harqInfoFmt23 = &(fapiNrPucchFmt23Indication->harqInfoFmt23);
+					tempSize      = sizeof(HARQInfoFmt23) - (48 - (harqInfoFmt23->HarqBitLen + 7)>>3);
+					memcpy((buffer + pduSize),&(fapiNrPucchFmt23Indication->harqInfoFmt23),tempSize);
+					pduSize += tempSize;
+				}
+				if(pduBitmap&0x4)//存在CSI Part1
+				{
+					csipart1Info = &(fapiNrPucchFmt23Indication->csipart1Info);
+				    tempSize     = sizeof(CSIpart1Info) - (48 - (csipart1Info->CsiPart1BitLen + 7)>>3);
+					memcpy((buffer + pduSize),&(fapiNrPucchFmt23Indication->csipart1Info),tempSize);
+					pduSize += tempSize;
+				}
+				if(pduBitmap&0x8)//存在CSI Part2
+				{
+					csipart2Info = &(fapiNrPucchFmt23Indication->csipart2Info);
+				    tempSize     = sizeof(CSIpart2Info) - (48 - (csipart2Info->CsiPart2BitLen + 7)>>3);
+					memcpy((buffer + pduSize),&(fapiNrPucchFmt23Indication->csipart2Info),tempSize);
+					pduSize += tempSize;
+				}
+            }
+            break;
+        default:
+            break;
+			
+		tlvMsg->tlvBody.PDUSize = pduSize;
     }
 }

@@ -156,6 +156,28 @@ typedef struct FSM{
     uint32_t size;//表的项数
 }FSM;
 
+typedef struct TLV_HEAD
+{
+    uint16_t SFN;         
+    uint16_t Slot;         
+    uint16_t NumUCIs;      
+}TLV_HEAD;
+
+typedef struct TLV_BODY
+{
+    uint16_t PDUType;           // TLV 消息tag（消息编号id），根据此tag解析value
+    uint16_t PDUSize;      		// TLV 消息值的长度
+    uint16_t tlvBodyValue[0];   // TLV 消息值
+}TLV_BODY;
+
+typedef struct TLV_MSG
+{
+    struct TLV_HEAD tlvHead;
+    struct TLV_BODY tlvBody;
+}TLV_MSG;
+
 uint32_t          g_ulTtiMessageTempBuff[2000] = { 0 };            /* ULTTIMessage 本地buffer */
 UlPduMappingInfo  g_ulPduMappingInfo[MAX_CELL_NUM][200] = { 0 };   /* 暂时假设有200个PDU */
 L1CellConfigInfo  g_cellConfigPara[MAX_CELL_NUM] = { 0 };
+
+uint8_t Buffer[65536] = {0};//64k
