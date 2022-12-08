@@ -9,7 +9,9 @@
 #define SC_NUM_PER_RB 12
 #define MAX_DMRS_SYM_NUM 7
 #define PUC_FMT3_MAX_DMRS_NUM 4
-#define MAX_PUCCH_NUM 50    /* 待定 */
+#define MAX_PUCCH_FMT0_1_NUM    (64)
+#define MAX_PUCCH_FMT2_3_NUM    (38)
+#define MAX_PUCCH_NUM           (MAX_PUCCH_FMT0_1_NUM + MAX_PUCCH_FMT2_3_NUM)
 #define PUCCH_UCI_PING_PONG_NUM 2
 #define MAX_PUCCH_FMT01_NUM 64    /* 待定 */
 #define MAX_PUCCH_FMT23_NUM 38
@@ -80,12 +82,11 @@ typedef struct
 
 typedef struct
 {
-    uint8_t  pduIdxInner;               /* 物理层内部使用的每个UE的索引 */
-	uint8_t  srBitLen;                  /* SR比特数，取值[0,4] */
-    uint8_t  rsvd[2];
-	uint16_t harqBitLength;	            /* HARQ的payload,取值[0,1706]除了1 */
-    uint16_t csiPart1BitLength;         /* CSI part1的payload,取值[0,1706] */
-    uint32_t *scrambSeqAddr[HOP_NUM];   /* 加扰序列在DDR中的存放地址,TODO:根据HAC存放确定是否需要2个hop的首地址 */
+    uint8_t  pduIdxInner;        /* 物理层内部使用的每个UE的索引 */
+    uint8_t  rsvd;
+    uint16_t bitNum;            /* SR&HARQ&CSI part1三者bit数之和 */
+    uint32_t *scrambSeqAddr;    /* 加扰序列在DDR中的存放地址 */
+    uint32_t *llrAddr;          /* DSP处理完的LLR数据的存放地址，供HAC取数进行译码 */
 }PucFmt2Param;
 
 typedef struct
@@ -97,12 +98,9 @@ typedef struct
 typedef struct
 {
     uint8_t pduIdxInner;        /* 物理层内部使用的每个UE的索引 */
-	uint8_t pi2bpsk;		    /* pi/2-BPSK是否使能标志，取值0:不使能，使用QPSK，1:使能，使用pi/2-BPSK */
-	uint8_t srBitLen;           /* SR比特数，取值[0,4] */
-    uint8_t part2Exist;         /* CSI part2是否存在标志，0：不存在，1：存在 */
-	
-    uint16_t harqBitLength;	    /* HARQ的payload,取值[0,1706]除了1 */
-    uint16_t csiPart1BitLength; /* CSI part1的payload,取值[0,1706] */
+    bool    pi2bpsk;            /* pi/2-BPSK是否使能标志，取值0:不使能，使用QPSK，1:使能，使用pi/2-BPSK */
+    bool    addDmrsEnable;        /* 附加导频是否使能标志，取值0:不使能，1:使能 */
+    uint8_t rsvd;
 	
     uint8_t  dmrsSymIdx[HOP_NUM][PUC_FMT3_MAX_DMRS_NUM];  /* 按照跳频指示的fmt3导频符号索引*/
 	uint8_t  cyclicShift[HOP_NUM][PUC_FMT3_MAX_DMRS_NUM]; /* 按照跳频指示的fmt3导频符号的循环移位，符号间紧排 */
@@ -113,34 +111,38 @@ typedef struct
     Fmt3UciLlrBitmap  part1LlrBitmap[SYM_NUM_PER_SLOT];
     Fmt3UciLlrBitmap  part2LlrBitmap[SYM_NUM_PER_SLOT];
 
-    uint32_t *scrambSeqAddr[HOP_NUM];/* 加扰序列在DDR中的存放地址，TODO:根据HAC存放确定是否需要2个hop的首地址 */
+    uint32_t *scrambSeqAddr;/* 加扰序列在DDR中的存放地址，TODO:根据HAC存放确定是否需要2个hop的首地址 */
 }PucFmt3Param;
+
+
+typedef struct
+{
+    /* frequency domain */
+    uint16_t prbStart;      /* PRB起始索引，取值[0,274] */
+    uint16_t prbSize;       /* PRB个数，取值[1,16] */
+
+    /* time domain */
+    uint8_t startSymIdx;    /* PUC所占符号中起始符号索引，取值[0,13] */
+    uint8_t symNum;         /* 本跳符号个数，fmt0/2取值[1,2]，fmt1/3/4取值[4,14] */
+    uint8_t dmrsSymNum;     /* 导频符号个数,取值[1-7] */
+    uint8_t uciSymNum;      /* 数据符号个数,取值[1-7] */
+
+    /* PUC data在DDR中的存放地址 */
+    uint32_t *dataStartAddr;
+
+    /* ZC基序列或PN序列在DDR中的存放地址:
+       fmt0数据/fmt1数据和导频/fmt3导频使用ZC序列,某hop内,各符号天线上的ZC基序列相同;
+       fmt2导频使用PN序列,数组的2个元素分别为2个符号的PN序列的地址 */
+    uint32_t *baseSeqAddr;
+}PucHopParam;
 
 typedef struct
 {
     uint8_t pucFormat; 	            /* PUCCH格式，取值0/1/2/3，暂不支持格式 4 */
     uint8_t rxAntNum;	            /* 基站接收天线个数，取值2/4 */
-
-    /* frequency domain */
-    uint16_t prbStart; 			    /* PRB起始索引，取值[0,274] */
-    uint16_t prbSize; 			    /* PRB个数，取值[1,16] */
-    uint8_t  intraSlotFreqHopping;  /* 时隙内跳频是否使能标志，0:不使能,1:使能 */
-	uint8_t  secondHopSymIdx; 	    /* 跳频后符号索引，取值[1,13] */
-    uint16_t secondHopPrb; 		    /* 跳频后起始RB索引，取值[0,274] */
-
-    /* time domain */
-    uint8_t startSymIdx;  		    /* 起始符号索引，取值[0,13] */
-    uint8_t symNum; 			    /* 符号个数，fmt0/2取值[1,2]，fmt1/3/4取值[4,14] */
-	uint8_t dmrsSymNum[HOP_NUM];    /* 导频符号个数,取值[1-7] */
-    uint8_t uciSymNum[HOP_NUM];     /* 数据符号个数,取值[1-7] */
-
-    /* PUC data在DDR中的存放地址 */
-    uint32_t *dataStartAddr[HOP_NUM];  
-    
-    /* ZC基序列或PN序列在DDR中的存放地址:
-       fmt0数据/fmt1数据和导频/fmt3导频使用ZC序列,某hop内,各符号天线上的ZC基序列相同;
-       fmt2导频使用PN序列,数组的2个元素分别为2个符号的PN序列的地址 */
-    uint32_t *baseSeqAddr[HOP_NUM]; 
+    uint8_t rsvd;
+    uint8_t hopNum;
+    PucHopParam hopParam[HOP_NUM];  /* 不跳频时，参数在数组0 */
 
     /* 各format需要的参数 */
     union{

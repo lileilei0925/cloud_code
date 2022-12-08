@@ -4,6 +4,9 @@
 
 L1PuschParaPduInfo  g_puschParaInfoOut[MAX_CELL_NUM] = { 0 };/* Pusch 参数本地buffer */
 NrPuschCePara       g_puschUeRbgInfo[NR_PUSCH_MAX_UE_NUM_PER_SLOT][NR_PUSCH_MAX_PRG_NUM] = { 0 }; /* 16个ue，137个Rbg */
+PuschResourceInfo   g_puschResourceInfo[MAX_CELL_NUM][SLOT_NUM_PER_FRAME][MAX_PUSCH_PDU_NUM];//放到DDR
+
+uint8_t g_puschCsiPart2Flag[MAX_CELL_NUM][SLOT_NUM_PER_FRAME] = {0};
 
 /* PUSCH UCI译码参数 */
 PuschPolarDecodeHacCfgPara  g_puschPolarDecodeHacCfgParaDDR[MAX_CELL_NUM][SLOT_NUM_PER_FRAME][Pusch_Uci_Type_Num];//放到DDR
@@ -11,7 +14,6 @@ PuschRMDecodeHacCfgPara     g_puschRMDecodeHacCfgParaDDR[MAX_CELL_NUM][SLOT_NUM_
 
 PuschPolarDecodeHacCfgPara  g_puschPolarDecodeHacCfgParal2[MAX_CELL_NUM][PUSCH_UCI_PING_PONG_NUM][Pusch_Uci_Type_Num];//放到L2
 PuschRMDecodeHacCfgPara     g_puschRMDecodeHacCfgParaL2[MAX_CELL_NUM][PUSCH_UCI_PING_PONG_NUM][Pusch_Uci_Type_Num];//放到L2
-
 /* PUSCH UCI译码输入数据 */
 //PUSCH Demap输出规划和如何摆放？待规划
 
@@ -43,9 +45,6 @@ uint8_t  g_puschDmrsSymbNum[MAX_CELL_NUM][SLOT_NUM_PER_FRAME][NR_PUSCH_MAX_UE_NU
 uint8_t  g_puschDmrsSymbIndex[MAX_CELL_NUM][SLOT_NUM_PER_FRAME][NR_PUSCH_MAX_UE_NUM_PER_SLOT][NR_PUSCH_MAX_DRMS_NUM] = { 0xFF };
 uint8_t  g_puschK0Coeff[NR_BASE_GRAPH_NUM][NR_RVID_NUM] = {{0,17,33,56}, {0,13,25,43}};
 uint32_t g_UePart2AndDataAddr[MAX_CELL_NUM][NR_PUSCH_MAX_UE_NUM_PER_SLOT] = { 0 }; /* 暂定，临时使用 */
-
-RMDecodeHacCfgPara    g_rmDecodeHacCfgPara[MAX_CELL_NUM];      /* RM译码参数配置 */ 
-PolarDecodeHacCfgPara g_polarDecodeHacCfgPara[MAX_CELL_NUM]; /* Polar译码参数配置 */ 
 
 /*38.212 Table 5.3.2-1: Sets of LDPC lifting size  */
 uint16_t g_liftSizeTable[8][8] = {{2,  4,  8,  16,  32,  64,  128, 256},

@@ -43,6 +43,14 @@ enum RM_TYPE
     RM_TYPE_NUM
  };
 
+enum TLV_BODY_TYPE
+{
+    PUSCH_UCI_INDICATION    = 0,  
+    PUCCH_FMT01_INDICATION  = 1,  
+	PUCCH_FMT23_INDICATION  = 2,
+	TLV_BODY_TYPE_NUM
+};
+
 #define FRAME_DUPLEX_TYPE_FDD        0
 #define FRAME_DUPLEX_TYPE_TDD        1
 #define SLOT_NUM_PER_FRAME           20

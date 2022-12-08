@@ -73,7 +73,7 @@ uint32_t MessageUlTtiRequestParse(uint8_t cellIndex, uint8_t *srcUlSlotMesagesBu
         }
         
 		/* 本小区pucch相关变量初始化 */
-        memset(&g_armPucParam, 0, sizeof(ArmPucParam));
+        memset(&g_armPucParam, 0, MAX_CELL_NUM * SLOT_NUM_PER_FRAME * sizeof(ArmPucParam));
     
         /******************** Slot Messages Ul_TTI.request信息 parsing *******************/
         UlTtiRequestHeadInfo *ulRequestHead = (UlTtiRequestHeadInfo *)g_ulTtiMessageTempBuff;
@@ -113,12 +113,12 @@ uint32_t MessageUlTtiRequestParse(uint8_t cellIndex, uint8_t *srcUlSlotMesagesBu
                 case UL_PDU_TYPE_PUCCH:
                     /* code */
                     fapipucchPduParaIn = (FapiNrMsgPucchPduInfo *)((uint8_t *)pduHead + sizeof(PduHeadInfo));
-                    fapipucchpduInfo   = g_armPucParam.FapiPucchPduInfo + pduCntPerType[2];
+                    fapipucchpduInfo   = g_armPucParam[cellIndex][slotIndex].FapiPucchPduInfo + pduCntPerType[2];
                     memcpy(fapipucchpduInfo, fapipucchPduParaIn, sizeof(FapiNrMsgPucchPduInfo));
                     formatType      = fapipucchPduParaIn->formatType;
-                    pucchfmtpdunum  = g_armPucParam.pucchfmtpdunum[formatType]; 
-                    g_armPucParam.pucchfmtpduIdxInner[formatType][pucchfmtpdunum] = pduCntPerType[2];
-                    g_armPucParam.pucchfmtpdunum[formatType]++;
+                    pucchfmtpdunum  = g_armPucParam[cellIndex][slotIndex].pucchfmtpdunum[formatType]; 
+                    g_armPucParam[cellIndex][slotIndex].pucchfmtpduIdxInner[formatType][pucchfmtpdunum] = pduCntPerType[2];
+                    g_armPucParam[cellIndex][slotIndex].pucchfmtpdunum[formatType]++;
                     pduCntPerType[2]++;
                     break;
         
