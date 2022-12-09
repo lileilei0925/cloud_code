@@ -98,8 +98,8 @@ typedef struct
 typedef struct
 {
     uint8_t pduIdxInner;        /* 物理层内部使用的每个UE的索引 */
-    bool    pi2bpsk;            /* pi/2-BPSK是否使能标志，取值0:不使能，使用QPSK，1:使能，使用pi/2-BPSK */
-    bool    addDmrsEnable;        /* 附加导频是否使能标志，取值0:不使能，1:使能 */
+    uint8_t pi2bpsk;            /* pi/2-BPSK是否使能标志，取值0:不使能，使用QPSK，1:使能，使用pi/2-BPSK */
+    uint8_t addDmrsEnable;      /* 附加导频是否使能标志，取值0:不使能，1:使能 */
     uint8_t rsvd;
 	
     uint8_t  dmrsSymIdx[HOP_NUM][PUC_FMT3_MAX_DMRS_NUM];  /* 按照跳频指示的fmt3导频符号索引*/

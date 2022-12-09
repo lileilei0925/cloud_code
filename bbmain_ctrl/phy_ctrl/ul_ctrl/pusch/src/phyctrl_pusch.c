@@ -1752,7 +1752,7 @@ uint32_t PuschPart2ParseHandler()
     return 0;
 }
 
-uint32_t PuschUciSendHandler()//待设计，收齐结果后发送(UCI HAC的译码结果，PUSCH测量)？
+uint32_t PuschUciSendHandler()//待设计，收齐结果后发送(UCI HAC的译码结果)？
 {
     printf("给L2发送UCI\n");
     

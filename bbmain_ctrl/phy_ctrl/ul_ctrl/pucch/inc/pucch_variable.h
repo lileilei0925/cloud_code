@@ -10,6 +10,11 @@ uint8_t g_NvValue[HOP_NUM];                               //2hop
 uint8_t g_NcsValue[SYM_NUM_PER_SLOT];                     //14symbol
 uint8_t g_part1ReNum[SYM_NUM_PER_SLOT];                   //14symbol
 
+uint8_t g_pucchFmt01RptNum[MAX_CELL_NUM][SLOT_NUM_PER_FRAME];//放到DDR
+uint8_t g_pucchFmt23RptNum[MAX_CELL_NUM][SLOT_NUM_PER_FRAME];//放到DDR
+uint8_t g_pucchFmt01RptIndex[MAX_CELL_NUM][SLOT_NUM_PER_FRAME][MAX_PUCCH_NUM];//放到DDR
+uint8_t g_pucchFmt23RptIndex[MAX_CELL_NUM][SLOT_NUM_PER_FRAME][MAX_PUCCH_NUM];//放到DDR
+
 uint8_t g_pucchCsiPart2Flag[MAX_CELL_NUM][SLOT_NUM_PER_FRAME] = {0};
 
 uint32_t g_fmt23dataScrambuff[144];                       //fmt23数据符号扰码生成缓存
