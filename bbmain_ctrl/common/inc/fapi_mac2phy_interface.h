@@ -367,8 +367,8 @@ typedef struct
     uint16_t PucchFormat;                       /* PUCCH格式，0：格式0,1：格式1 */
     uint8_t  UL_CQI;							/* SNR,取值范围[0,255],代表-64dB到63dB,步长0.5dB，无效值255 */
     
-    uint16_t TA;								/* UE的TA值,取值范围[0,63],213协议4.2节,无效值65535 */
-    uint16_t RSSI;								/* 取值范围[0,1280],步长0.1dB */
+    uint16_t TA;								/* UE的TA值,取值范围[0,63],213协议4.2节,无效值65535。固定填无效值65535 */
+    uint16_t RSSI;								/* 取值范围[0,1280],步长0.1dB,无效值65535。固定填无效值65535 */
 	
     SRInfoFmt01    srInfoFmt01;
 

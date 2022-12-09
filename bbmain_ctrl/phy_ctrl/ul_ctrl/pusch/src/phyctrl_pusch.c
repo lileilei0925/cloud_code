@@ -1408,7 +1408,6 @@ uint32_t L1PuschCsiPart2AndDataExtract(uint8_t dataFlag, L1PuschPduInfo *l1Pusch
     return segmNum;
 }
 
-
 void PuschRMDecodeHacCfg(L1PuschPduInfo *l1PuschPduInfo, uint16_t uciLen ,uint8_t PduIdxInner, uint8_t msgType, uint16_t sfnNum, uint8_t slotNum, uint8_t cellIndex)
 {
     uint8_t  pduNum;
@@ -1770,7 +1769,7 @@ uint32_t PuschUciFsmProc(uint32_t event, uint16_t sfnNum, uint16_t slotNum, uint
 
     if(g_puschCsiPart2Flag[cellIndex][slotNum])//本slot本小区含CSI Part2的UE，进入状态机流程
     {
-        while(1)
+        while(1)//待修改为上报结果收集完成即退出
         {
             printf("state:%d\n",g_puschUciFSM[cellIndex][slotNum&0x1].curState);
             //scanf("%d", &event);
@@ -1788,7 +1787,6 @@ uint32_t PuschUciFsmProc(uint32_t event, uint16_t sfnNum, uint16_t slotNum, uint
                 case ACK_1or2_Bit_Data_Trigger_Event:
                     PuschACK1or2BitDecodeHandler();
                     break;
-
                 case ACK_Over2_Bit_Result_Trigger_Event:
                     PuschACKOver2BitParseHandler();
                     break;
@@ -1799,7 +1797,7 @@ uint32_t PuschUciFsmProc(uint32_t event, uint16_t sfnNum, uint16_t slotNum, uint
     }
     else
     {
-        while(1)
+        while(1)//待修改为上报结果收集完成即退出
         {
             printf("state:%d\n",g_puschUciFSM[cellIndex][slotNum&0x1].curState);
             //scanf("%d", &event);
@@ -1823,6 +1821,7 @@ uint32_t PuschUciFsmProc(uint32_t event, uint16_t sfnNum, uint16_t slotNum, uint
                 default:
                     break;
             }
+
         }
     }
 

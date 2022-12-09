@@ -111,6 +111,46 @@ void PucchNcsandUVCalc(uint8_t SlotIdx, uint16_t PucchHoppingId,uint8_t GroupHop
     }
 }
 
+void PucchFmt01RptPreFill(FapiNrMsgPucchPduInfo *fapipucchpduInfo, FapiNrPucchFmt01Indication *fapiNrPucchFmt01Indication)
+{
+    uint8_t isSrExistFlag;
+    uint8_t isHarqExistFlag;
+
+    isSrExistFlag   = fapipucchpduInfo->srFlag;
+    isHarqExistFlag = (0 == fapipucchpduInfo->bitLenHarq) ? 0:1;
+
+    fapiNrPucchFmt01Indication->Handle      = fapipucchpduInfo->handle;
+    fapiNrPucchFmt01Indication->pduBitmap   = (isHarqExistFlag<<1) + isSrExistFlag;
+    fapiNrPucchFmt01Indication->PucchFormat = fapipucchpduInfo->formatType;
+    fapiNrPucchFmt01Indication->RNTI        = fapipucchpduInfo->ueRnti;
+    fapiNrPucchFmt01Indication->TA          = 0xffff;
+    fapiNrPucchFmt01Indication->RSSI        = 0xffff;
+    fapiNrPucchFmt01Indication->harqInfoFmt01.NumHarq = (fapipucchpduInfo->bitLenHarq);
+}
+
+void PucchFmt23RptPreFill(FapiNrMsgPucchPduInfo *fapipucchpduInfo, FapiNrPucchFmt23Indication *fapiNrPucchFmt23Indication)
+{
+    uint8_t isSrExistFlag;
+    uint8_t isHarqExistFlag;
+    uint8_t isCsiPart1ExistFlag;
+    uint8_t isCsiPart2ExistFlag;
+
+    isSrExistFlag       = (0 == fapipucchpduInfo->srFlag) ? 0:1;
+    isHarqExistFlag     = (0 == fapipucchpduInfo->bitLenHarq) ? 0:1;
+    isCsiPart1ExistFlag = (0 == fapipucchpduInfo->csiPart1BitLength) ? 0:1;
+    isCsiPart2ExistFlag = (0 == fapipucchpduInfo->uciInfoAddInV3.numPart2s) ? 0:1;
+    
+    fapiNrPucchFmt23Indication->Handle                      = fapipucchpduInfo->handle;
+    fapiNrPucchFmt23Indication->pduBitmap                   = (isCsiPart2ExistFlag<<3) + (isCsiPart1ExistFlag<<2) + (isHarqExistFlag<<1) + isSrExistFlag;
+    fapiNrPucchFmt23Indication->RNTI                        = fapipucchpduInfo->ueRnti;
+    fapiNrPucchFmt23Indication->PucchFormat                 = fapipucchpduInfo->formatType;
+    fapiNrPucchFmt23Indication->TA                          = 0xffff;
+    fapiNrPucchFmt23Indication->RSSI                        = 0xffff;
+    fapiNrPucchFmt23Indication->srInfoFmt23.SrBitLen        = fapipucchpduInfo->srFlag;
+    fapiNrPucchFmt23Indication->harqInfoFmt23.HarqBitLen    = fapipucchpduInfo->bitLenHarq;
+    fapiNrPucchFmt23Indication->csipart1Info.CsiPart1BitLen = fapipucchpduInfo->csiPart1BitLength;
+}
+
 void PucchFmt0PduParse(PucParam *pucParam, FapiNrMsgPucchPduInfo *fapipucchpduInfo, uint8_t intraSlotFreqHopping, uint8_t groupOrSequenceHopping, uint16_t pduIndex, uint8_t slotNum)
 {
     uint8_t SymbIdx;
@@ -823,6 +863,7 @@ void UlTtiRequestPucchFmt023Pduparse(ArmPucParam *armPucParam, PucParam *pucPara
     uint8_t  pucchindex;
     uint8_t  groupOrSequenceHopping;
     uint8_t  intraSlotFreqHopping; 
+    uint8_t  rptIndex;
     FapiNrMsgPucchPduInfo *fapipucchpduInfo;
 
     fapipucchpduInfo = &(armPucParam->FapiPucchPduInfo[pduIndex]);
@@ -859,14 +900,23 @@ void UlTtiRequestPucchFmt023Pduparse(ArmPucParam *armPucParam, PucParam *pucPara
 	{
 		case PUCCH_FORMAT_0:
 			PucchFmt0PduParse(pucParam, fapipucchpduInfo, intraSlotFreqHopping, groupOrSequenceHopping, pduIndex, slotNum);
+
+            rptIndex = g_pucchFmt01RptNum[cellIndex][slotNum];
+            PucchFmt01RptPreFill(fapipucchpduInfo, &(g_pucchFmt01Rst[cellIndex][slotNum].fapiNrPucchFmt01Indication[rptIndex]));
             g_pucchFmt01RptIndex[cellIndex][slotNum][pduIndex] = g_pucchFmt01RptNum[cellIndex][slotNum]++;
 			break;
 		case PUCCH_FORMAT_2:
 			PucchFmt2PduParse(pucParam, fapipucchpduInfo, intraSlotFreqHopping, pduIndex, sfnNum, slotNum, cellIndex);
+            
+            rptIndex = g_pucchFmt23RptNum[cellIndex][slotNum];
+            PucchFmt23RptPreFill(fapipucchpduInfo, &(g_pucchFmt23Rst[cellIndex][slotNum].fapiNrPucchFmt23Indication[rptIndex]));
             g_pucchFmt23RptIndex[cellIndex][slotNum][pduIndex] = g_pucchFmt23RptNum[cellIndex][slotNum]++;
 			break;
 		case PUCCH_FORMAT_3:
 			PucchFmt3PduParse(pucParam, fapipucchpduInfo, intraSlotFreqHopping, pduIndex, groupOrSequenceHopping, sfnNum, slotNum, cellIndex);
+
+            rptIndex = g_pucchFmt23RptNum[cellIndex][slotNum];
+            PucchFmt23RptPreFill(fapipucchpduInfo, &(g_pucchFmt23Rst[cellIndex][slotNum].fapiNrPucchFmt23Indication[rptIndex]));
             g_pucchFmt23RptIndex[cellIndex][slotNum][pduIndex] = g_pucchFmt23RptNum[cellIndex][slotNum]++;
 			break;
 		default:
@@ -889,6 +939,7 @@ void UlTtiRequestPucchFmt1Pduparse(ArmPucParam *armPucParam, PucParam *pucParam,
     uint8_t  MinUserOcc;
     uint8_t  MinUserOccIdx;
     uint8_t  pucchuserNumPerOcc;
+    uint8_t  rptIndex;
     FapiNrMsgPucchPduInfo *fapipucchpduInfo = NULL;
     PucFmt1Param          *fmt1Param        = NULL;
     Fmt1ParamOcc          *fmt1ParamOcc     = NULL;
@@ -924,6 +975,8 @@ void UlTtiRequestPucchFmt1Pduparse(ArmPucParam *armPucParam, PucParam *pucParam,
         {
             pucchpduIndex    = armPucParam->pucchpduIndexinGroup[pucchpduGroupCnt][OccIdx][pucchindex];
             fapipucchpduInfo = &(armPucParam->FapiPucchPduInfo[pucchpduIndex]);
+            rptIndex = g_pucchFmt01RptNum[cellIndex][slotNum];
+            PucchFmt01RptPreFill(fapipucchpduInfo, &(g_pucchFmt01Rst[cellIndex][slotNum].fapiNrPucchFmt01Indication[rptIndex]));
             g_pucchFmt01RptIndex[cellIndex][slotNum][pucchpduIndex] = g_pucchFmt01RptNum[cellIndex][slotNum]++;
             for(SymbIdx = (fapipucchpduInfo->StartSymbolIndex); SymbIdx < ((fapipucchpduInfo->StartSymbolIndex) + (fapipucchpduInfo->numSymbols)); SymbIdx++)
             {   
@@ -1327,7 +1380,7 @@ uint32_t PucchUciFsmProc(uint32_t event, uint16_t sfnNum, uint16_t slotNum, uint
 
     if(g_pucchCsiPart2Flag[cellIndex][slotNum])//本slot本小区含CSI Part2的UE，进入状态机流程
     {
-        while(1)
+        while(1)//待修改为上报结果收集完成即退出
         {
             printf("state:%d\n",g_pucchFSM[cellIndex][slotNum&0x1].curState);
             //scanf("%d", &event);
@@ -1348,7 +1401,7 @@ uint32_t PucchUciFsmProc(uint32_t event, uint16_t sfnNum, uint16_t slotNum, uint
     }
     else
     {
-        while(1)
+        while(1)//待修改为上报结果收集完成即退出
         {
             printf("state:%d\n",g_pucchFSM[cellIndex][slotNum&0x1].curState);
             //scanf("%d", &event);
