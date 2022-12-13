@@ -13,7 +13,7 @@ uint32_t L1PuschCsiPart2ResCalculate(L1PuschPduInfo *l1PuschUeInfo, PuschResourc
 uint32_t L1PuschDataTypeCalculate(L1PuschPduInfo *l1PuschUeInfo, uint8_t *dataFlag);
 uint32_t L1PuschCsiPart2AndDataExtract(uint8_t dataFlag, L1PuschPduInfo *l1PuschUeInfo, PuschResourceInfo *puschResourceInfo, CsiPart2ParaInfo *csiPart2ParaInfo, LlrSegInfo *llrSegInfo);
 
-#if 1
+#if 0
 int main(void)
 {
     uint32_t a = 40;
@@ -1780,10 +1780,8 @@ uint32_t PuschUciFsmProc(uint32_t event, uint16_t sfnNum, uint16_t slotNum, uint
                 case Pusch_Part2_And_Data_Demap_Trigger_Event:
                 case Pusch_Part2_Result_Trigger_Event:
                 case Pusch_UCI_Packing_Over_Event:
-                {
                     FSM_EventHandle(&g_puschUciFSM[cellIndex][slotNum&0x1], event);//状态机
                     break;
-                }
                 case ACK_1or2_Bit_Data_Trigger_Event:
                     PuschACK1or2BitDecodeHandler();
                     break;
