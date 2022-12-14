@@ -761,9 +761,8 @@ void CalcPart1ReNum(FapiNrMsgPucchPduInfo *fapipucchpduInfo, PucFmt3Param *fmt3P
     }
 }
 
-void CalcLlrBlockInfo(FapiNrMsgPucchPduInfo *fapipucchpduInfo, PucFmt3Param *fmt3Param, uint16_t uciLen, uint8_t valQm, uint16_t uciPart2Enable)
+void CalcLlrBlockInfo(FapiNrMsgPucchPduInfo *fapipucchpduInfo, PucFmt3Param *fmt3Param, uint16_t uciLen, uint8_t valQm, uint8_t uciSymNum, uint16_t uciPart2Enable)
 {	
-    uint8_t  numSymbols;
     uint8_t  symbIdx;
 	uint8_t  part1BlockNum;
     uint8_t  part2BlockNum;
@@ -778,7 +777,6 @@ void CalcLlrBlockInfo(FapiNrMsgPucchPduInfo *fapipucchpduInfo, PucFmt3Param *fmt
 	isPreSymPart2 = 0;
 	llrNumCnt     = 0;
 	llrNumPerSym  = (12 * (fapipucchpduInfo->prbSize) * valQm);
-    numSymbols    = fapipucchpduInfo->numSymbols;
 	if(uciPart2Enable)
     {   
         part1BlockNum = 0;
@@ -791,7 +789,7 @@ void CalcLlrBlockInfo(FapiNrMsgPucchPduInfo *fapipucchpduInfo, PucFmt3Param *fmt
         memset(fmt3Param->part1LlrPos, 0, sizeof(Fmt3UciLlrPos) * MAX_PUCCH_3_BLOCK_NUM);
         memset(fmt3Param->part2LlrPos, 0, sizeof(Fmt3UciLlrPos) * MAX_PUCCH_3_BLOCK_NUM);
 
-        CalcPart1ReNum(fapipucchpduInfo, fmt3Param, uciLen);
+        CalcPart1ReNum(fapipucchpduInfo, fmt3Param, uciLen, valQm);
 
         for(symbIdx = 0; symbIdx < SYM_NUM_PER_SLOT; symbIdx++)
         {
@@ -850,11 +848,11 @@ void CalcLlrBlockInfo(FapiNrMsgPucchPduInfo *fapipucchpduInfo, PucFmt3Param *fmt
     {
         fmt3Param->part1BlockNum = 1;
         fmt3Param->part1LlrPos[0].llrStart    = 0;
-        fmt3Param->part1LlrPos[0].llrDuration = llrNumPerSym * (numSymbols - (pucParam->hopParam[0].dmrsSymNum) - (pucParam->hopParam[0].dmrsSymNum));
+        fmt3Param->part1LlrPos[0].llrDuration = llrNumPerSym * uciSymNum;
     }
 }
 
-void CalcFmt3SymInfo(PucParam *pucParam, PucFmt3Param *fmt3Param, uint8_t m0, uint8_t numSymbols, uint8_t intraSlotFreqHopping, uint8_t addDmrsFlag)
+void CalcFmt3SymInfo(PucParam *pucParam, PucFmt3Param *fmt3Param, uint8_t m0, uint8_t numSymbols, uint8_t startSymbolIndex, uint8_t intraSlotFreqHopping, uint8_t addDmrsFlag)
 {
     uint8_t symNum[HOP_NUM];
     uint8_t dmrsSymNum[HOP_NUM];
@@ -869,8 +867,8 @@ void CalcFmt3SymInfo(PucParam *pucParam, PucFmt3Param *fmt3Param, uint8_t m0, ui
                 pucParam->hopParam[1].dmrsSymNum = (0 == intraSlotFreqHopping) ? 0:1;
                 fmt3Param->dmrsSymIdx[0][0]  = (0 == intraSlotFreqHopping) ? 1:0;
                 fmt3Param->dmrsSymIdx[1][0]  = (0 == intraSlotFreqHopping) ? 0:2;
-                fmt3Param->cyclicShift[0][0] = (m0 + *(g_NcsValue +(fmt3Param->dmrsSymIdx[0][0])) % SC_NUM_PER_RB;
-                fmt3Param->cyclicShift[1][0] = (m0 + *(g_NcsValue +(fmt3Param->dmrsSymIdx[1][0])) % SC_NUM_PER_RB;
+                fmt3Param->cyclicShift[0][0] = (m0 + *(g_NcsValue +(fmt3Param->dmrsSymIdx[0][0])) % SC_NUM_PER_RB);
+                fmt3Param->cyclicShift[1][0] = (m0 + *(g_NcsValue +(fmt3Param->dmrsSymIdx[1][0])) % SC_NUM_PER_RB);
                 break;
             }
         case 5:
@@ -1031,8 +1029,8 @@ void CalcFmt3SymInfo(PucParam *pucParam, PucFmt3Param *fmt3Param, uint8_t m0, ui
 
     symNum[0]  = (0 == intraSlotFreqHopping) ? numSymbols : (numSymbols>>1);
 	symNum[1]  = (numSymbols - symNum[0]);
-    pucParam->hopParam[0].startSymIdx = (fapipucchpduInfo->StartSymbolIndex);
-    pucParam->hopParam[1].startSymIdx = (0 == intraSlotFreqHopping) ? 0 : ((fapipucchpduInfo->StartSymbolIndex) + symNum[0]);
+    pucParam->hopParam[0].startSymIdx = startSymbolIndex;
+    pucParam->hopParam[1].startSymIdx = (0 == intraSlotFreqHopping) ? 0 : (startSymbolIndex + symNum[0]);
     for(hopIdx = 0; hopIdx < (intraSlotFreqHopping + 1); hopIdx++)
     {
         dmrsSymNum[hopIdx] = pucParam->hopParam[hopIdx].dmrsSymNum;
@@ -1052,6 +1050,7 @@ void PucchFmt3PduParse(PucParam *pucParam, FapiNrMsgPucchPduInfo *fapipucchpduIn
 	uint8_t  addDmrsFlag;
     uint8_t  maxCodeRate;
     uint8_t  numSymbols;
+    uint8_t  uciSymNum;
     bool     uciPart2Enable;
     uint8_t  valQm;
 	uint8_t  symNum[HOP_NUM];
@@ -1066,7 +1065,7 @@ void PucchFmt3PduParse(PucParam *pucParam, FapiNrMsgPucchPduInfo *fapipucchpduIn
 	uint32_t SequenceLen = 0;
 	PucFmt3Param *fmt3Param = NULL;
     
-    valQm          = 2 - (fapipucchpduInfo->pi2bpsk);
+    valQm          = 2 - (fapipucchpduInfo->pi2BpskFlag);
     uciLen         = (fapipucchpduInfo->srFlag) + (fapipucchpduInfo->bitLenHarq) + (fapipucchpduInfo->csiPart1BitLength);
 	addDmrsFlag    = fapipucchpduInfo->addDmrsFlag;
     maxCodeRate    = (fapipucchpduInfo->pucchParaAddInV3.maxCodeRate)&0x7;
@@ -1087,9 +1086,10 @@ void PucchFmt3PduParse(PucParam *pucParam, FapiNrMsgPucchPduInfo *fapipucchpduIn
 	PseudoRandomSeqGen(g_fmt23dataScrambuff, Cinit, SequenceLen, 0);
 
     numSymbols = fapipucchpduInfo->numSymbols;
-    CalcFmt3SymInfo(pucParam, fmt3Param, (fapipucchpduInfo->initCyclicShift), numSymbols, intraSlotFreqHopping, addDmrsFlag);
+    CalcFmt3SymInfo(pucParam, fmt3Param, (fapipucchpduInfo->initCyclicShift), numSymbols, (fapipucchpduInfo->StartSymbolIndex), intraSlotFreqHopping, addDmrsFlag);
 
-    CalcLlrBlockInfo(fapipucchpduInfo, fmt3Param, uciLen, valQm, uciPart2Enable);
+    uciSymNum  = (numSymbols - (pucParam->hopParam[0].dmrsSymNum) - (pucParam->hopParam[0].dmrsSymNum));
+    CalcLlrBlockInfo(fapipucchpduInfo, fmt3Param, uciLen, valQm, uciSymNum, uciPart2Enable);
 	
     //fmt3Param->scrambSeqAddr[HOP_NUM];           /* 加扰序列在DDR中的存放地址，TODO:根据HAC存放确定是否需要2个hop的首地址 */
 
@@ -1669,4 +1669,235 @@ uint32_t PucchUciFsmProc(uint32_t event, uint16_t sfnNum, uint16_t slotNum, uint
     }
 
     return 0;
+}
+
+void pucchFmt0Pack(FapiNrPucchFmt01Indication *fapiNrPucchFmt01Indication, PucchFmt0Rpt  *pucchFmt0Rpt, FapiNrMsgPucchPduInfo *fapiPucchPduInfo)
+{
+    uint8_t pduBitmap;
+    uint8_t mcsValue;
+    uint8_t numHarq;
+    uint8_t srIndication;
+    uint8_t harqValue[2];
+    bool    srExistFlag;
+    bool    harqExistFlag;
+    bool    isDtx;
+    SRInfoFmt01   *srInfoFmt01   = NULL;
+	HARQInfoFmt01 *harqInfoFmt01 = NULL;
+
+    pduBitmap     = (fapiNrPucchFmt01Indication->pduBitmap);
+    numHarq       = (fapiPucchPduInfo->bitLenHarq);
+    srExistFlag   = pduBitmap&0x1;
+    harqExistFlag = (pduBitmap>>1)&0x1;
+    
+    isDtx    = pucchFmt0Rpt->isDtx;
+    mcsValue = pucchFmt0Rpt->mcsValue;
+    if(srExistFlag)//暂时不考虑抽头，即offset取值为0
+    {
+		if(0 == numHarq)
+		{
+			srIndication = (1 - isDtx);
+		}
+		else if(1 == numHarq)
+		{
+			switch (mcsValue)
+			{
+				case 0:
+					srIndication = 0;
+					harqValue[0] = 0;
+					break;
+				case 6:
+					srIndication = 0;
+					harqValue[0] = 1;
+					break;
+				case 3:
+					srIndication = 1;
+					harqValue[0] = 0;
+					break;
+				case 9:
+					srIndication = 1;
+					harqValue[0] = 1;
+		
+					break;
+				default:
+					break;
+			}
+		}
+		else if(2 == numHarq)
+		{
+			switch (mcsValue)
+			{
+				case 0:
+					srIndication = 0;
+					harqValue[0] = 0;
+					harqValue[1] = 0;
+					break;
+				case 3:
+					srIndication = 0;
+					harqValue[0] = 0;
+					harqValue[1] = 1;
+					break;
+				case 6:
+					srIndication = 0;
+					harqValue[0] = 1;
+					harqValue[1] = 1;
+					break;
+				case 9:
+					srIndication = 0;
+					harqValue[0] = 1;
+					harqValue[1] = 0;
+					break;
+				case 1:
+					srIndication = 1;
+					harqValue[0] = 0;
+					harqValue[1] = 0;
+					break;
+				case 4:
+					srIndication = 1;
+					harqValue[0] = 0;
+					harqValue[1] = 1;
+					break;
+				case 7:
+					srIndication = 1;
+					harqValue[0] = 1;
+					harqValue[1] = 1;
+					break;
+				case 10:
+					srIndication = 1;
+					harqValue[0] = 1;
+					harqValue[1] = 0;
+					break;
+				default:
+					break;
+			}
+		}
+    }
+    else
+    {
+		switch(mcsValue)
+		{
+			case 0:
+				harqValue[0] = 0;
+				harqValue[1] = 0;
+				break;
+			case 3:
+				harqValue[0] = 0;//顺序待确认
+				harqValue[1] = 1;
+				break;
+			case 6:
+				harqValue[0] = 1;
+				harqValue[1] = 1;
+				break;
+			case 9:
+				harqValue[0] = 1;//顺序待确认
+				harqValue[1] = 0;
+				break;
+			default:
+				break;
+		}
+    }
+
+    if(srExistFlag)
+    {
+        srInfoFmt01 = &(fapiNrPucchFmt01Indication->srInfoFmt01);
+        srInfoFmt01->SRconfidenceLevel = 0xff;
+        srInfoFmt01->SRindication      = (0 == isDtx) ? srIndication:0;
+    }
+
+    if(harqExistFlag)
+    {
+        harqInfoFmt01 = &(fapiNrPucchFmt01Indication->harqInfoFmt01);
+        harqInfoFmt01->HarqconfidenceLevel  = 0xff;
+        harqInfoFmt01->HarqValue[0]         = (0 == isDtx) ? harqValue[0]:2;
+        harqInfoFmt01->HarqValue[1]         = (0 == isDtx) ? harqValue[1]:2;
+        harqInfoFmt01->NumHarq              = numHarq;
+    }
+    fapiNrPucchFmt01Indication->UL_CQI = 0;//pucchFmt0Rpt->snr;线性转dB并转换，待算法方案确认后修改
+   
+}
+
+void pucchFmt1Pack(FapiNrPucchFmt01Indication *fapiNrPucchFmt01Indication, PucchFmt1Rpt  *pucchFmt1Rpt, FapiNrMsgPucchPduInfo *fapiPucchPduInfo)
+{
+    uint8_t pduBitmap;
+    uint8_t numHarq;
+    uint8_t srIndication;
+    uint8_t harqValue[2];
+    bool    srExistFlag;
+    bool    harqExistFlag;
+    bool    isDtx;
+    SRInfoFmt01   *srInfoFmt01   = NULL;
+	HARQInfoFmt01 *harqInfoFmt01 = NULL;
+
+    pduBitmap     = (fapiNrPucchFmt01Indication->pduBitmap);
+    numHarq       = (fapiPucchPduInfo->bitLenHarq);
+    srExistFlag   = pduBitmap&0x1;
+    harqExistFlag = (pduBitmap>>1)&0x1;
+    
+    isDtx = pucchFmt1Rpt->isDtx;
+    if(srExistFlag)
+    {
+        srInfoFmt01 = &(fapiNrPucchFmt01Indication->srInfoFmt01);
+        srInfoFmt01->SRconfidenceLevel = 0xff;
+        srInfoFmt01->SRindication      = (0 == isDtx) ? 1:0;
+    }
+
+    if(harqExistFlag)
+    {
+        harqValue[0] = pucchFmt1Rpt->uciDecodeValue[0];
+        harqValue[1] = pucchFmt1Rpt->uciDecodeValue[1];
+        harqInfoFmt01 = &(fapiNrPucchFmt01Indication->harqInfoFmt01);
+        harqInfoFmt01->HarqconfidenceLevel  = 0xff;
+        harqInfoFmt01->HarqValue[0]         = (0 == isDtx) ? harqValue[0]:2;
+        harqInfoFmt01->HarqValue[1]         = (0 == isDtx) ? harqValue[1]:2;
+        harqInfoFmt01->NumHarq              = pucchFmt1Rpt->uciBitNum;
+    }
+    fapiNrPucchFmt01Indication->UL_CQI = 0;//pucchFmt0Rpt->snr;线性转dB并转换，待算法方案确认后修改
+}
+
+void pucchFmt01Rpt(uint16_t sfnNum, uint16_t slotNum, uint8_t cellIndex)
+{
+	uint8_t  uciNum;
+	uint8_t  uciNumCnt;
+    uint8_t  pucchFmt0Num;
+    uint8_t  pucchFmt1Num;
+    uint8_t  pduIndex;
+    uint8_t  rptIndex;
+	PucchFmt01Rst              *pucchFmt01Rst              = NULL;
+    FapiNrPucchFmt01Indication *fapiNrPucchFmt01Indication = NULL;
+	PucchRpt                   *pucchRpt                   = NULL;
+	PucchFmt0Rpt               *pucchFmt0Rpt               = NULL;
+    PucchFmt1Rpt               *pucchFmt1Rpt               = NULL;
+    FapiNrMsgPucchPduInfo      *fapiPucchPduInfo           = NULL;
+	
+	pucchFmt01Rst = &g_pucchFmt01Rst[cellIndex][slotNum];
+    //pucchRpt    = ;待赋值
+    uciNum        = 0;
+    pucchFmt0Num  = pucchRpt->pucchFmt0Num;
+    pucchFmt1Num  = pucchRpt->pucchFmt1Num;
+	for(uciNumCnt = 0; uciNumCnt < pucchFmt0Num; uciNumCnt++)
+	{
+        pucchFmt0Rpt      = &(pucchRpt->pucchFmt0Rpt[uciNumCnt]);
+        pduIndex          = pucchFmt0Rpt->pduIdxInner;
+        fapiPucchPduInfo  = &(g_armPucParam[cellIndex][slotNum].FapiPucchPduInfo[pduIndex]);
+        rptIndex          = g_pucchFmt01RptIndex[cellIndex][slotNum][pduIndex];
+        fapiNrPucchFmt01Indication = &(pucchFmt01Rst->fapiNrPucchFmt01Indication[rptIndex]);
+        pucchFmt0Pack(fapiNrPucchFmt01Indication, pucchFmt0Rpt, fapiPucchPduInfo);
+	}
+
+    for(uciNumCnt = 0; uciNumCnt < pucchFmt1Num; uciNumCnt++)
+	{
+		fapiNrPucchFmt01Indication = &(pucchFmt01Rst->fapiNrPucchFmt01Indication[uciNum++]);
+        pucchFmt1Rpt               = &(pucchRpt->pucchFmt1Rpt[uciNumCnt]);
+        
+        pucchFmt1Rpt      = &(pucchRpt->pucchFmt1Rpt[uciNumCnt]);
+        pduIndex          = pucchFmt1Rpt->pduIdxInner;
+        fapiPucchPduInfo  = &(g_armPucParam[cellIndex][slotNum].FapiPucchPduInfo[pduIndex]);
+        rptIndex          = g_pucchFmt01RptIndex[cellIndex][slotNum][pduIndex];
+        fapiNrPucchFmt01Indication = &(pucchFmt01Rst->fapiNrPucchFmt01Indication[rptIndex]);
+        pucchFmt1Pack(fapiNrPucchFmt01Indication, pucchFmt1Rpt, fapiPucchPduInfo);
+	}
+
+    //转换
+
+    //发送
+
 }

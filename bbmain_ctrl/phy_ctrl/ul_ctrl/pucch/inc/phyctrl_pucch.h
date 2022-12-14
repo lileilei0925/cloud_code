@@ -284,7 +284,7 @@ typedef struct
 typedef struct
 {
 	uint8_t PucFmt01Num;
-	uint8_t PucFmt234Num;
+	uint8_t PucFmt23Num;
     uint8_t rsv[2];
 
 	PucFmt01Rpt  pucFmt01Rpt[MAX_PUCCH_NUM];
