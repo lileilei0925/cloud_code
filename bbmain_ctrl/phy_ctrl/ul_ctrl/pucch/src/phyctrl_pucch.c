@@ -1885,9 +1885,7 @@ void pucchFmt01Rpt(uint16_t sfnNum, uint16_t slotNum, uint8_t cellIndex)
 
     for(uciNumCnt = 0; uciNumCnt < pucchFmt1Num; uciNumCnt++)
 	{
-		fapiNrPucchFmt01Indication = &(pucchFmt01Rst->fapiNrPucchFmt01Indication[uciNum++]);
-        pucchFmt1Rpt               = &(pucchRpt->pucchFmt1Rpt[uciNumCnt]);
-        
+		fapiNrPucchFmt01Indication = &(pucchFmt01Rst->fapiNrPucchFmt01Indication[uciNum++]); 
         pucchFmt1Rpt      = &(pucchRpt->pucchFmt1Rpt[uciNumCnt]);
         pduIndex          = pucchFmt1Rpt->pduIdxInner;
         fapiPucchPduInfo  = &(g_armPucParam[cellIndex][slotNum].FapiPucchPduInfo[pduIndex]);
@@ -1897,6 +1895,7 @@ void pucchFmt01Rpt(uint16_t sfnNum, uint16_t slotNum, uint8_t cellIndex)
 	}
 
     //转换
+    SendTlvMsg(&(g_pucchTlvMsg[cellIndex][slotNum][PUCCH_PART1]), g_pucchRptBuffer[cellIndex][slotNum][PUCCH_PART1], fapiNrPucchFmt01Indication);
 
     //发送
 

@@ -16,6 +16,7 @@
 #define MAX_PUCCH_FMT01_NUM 64    /* 待定 */
 #define MAX_PUCCH_FMT23_NUM 38
 #define MAX_PUCCH_3_BLOCK_NUM  10
+#define PUCCH_RPT_BUFFER_SIZE  (1024*8)
 
 enum PUCCH_FORMAT
 {
