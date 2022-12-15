@@ -8,6 +8,8 @@ typedef  int                int32_t;
 typedef  unsigned char      uint8_t;
 typedef  char               int8_t;
 typedef  unsigned char      bool;
+typedef  unsigned long long uint64_t;  
+typedef  long long          int64_t;  
 typedef  float              float32;
 
 #endif

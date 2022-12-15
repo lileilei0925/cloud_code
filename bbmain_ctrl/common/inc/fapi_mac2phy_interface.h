@@ -6,7 +6,7 @@
 typedef struct 
 {
     uint8_t  trpScheme;                /* This field shall be set to 0, to identify that this table is used */
-    uint16_t numPRGs;                  /* Number of PRGs spanning this allocation */
+    uint16_t prgsNum;                  /* Number of PRGs spanning this allocation */
     uint16_t prgSize;                  /* Size in RBs of a precoding resource block group */
     uint8_t  digBfInterface;           /* Number of logical antenna ports (parallel streams) resulting from the Rx combining */
     uint16_t beamIndex[];              /* For number of PRGs and each digBFInterface. The size is numPRGs*digBfInterface */
@@ -17,9 +17,9 @@ typedef struct
     uint32_t handle;                   /* An opaque handle returned in the RACH.indication*/
     uint8_t  prachCfgScope;            /* 0: for PHY ID 0; 1: for current PHY ID*/
     uint16_t prachResCfgIndex;         /* The PRACH configuration for which this PRACH PDU is signaled */
-    uint8_t  numFdRa;                  /* Number of frequency domain occasions, starting with indexFdRa*/
+    uint8_t  fdRaNum;                  /* Number of frequency domain occasions, starting with indexFdRa*/
     uint8_t  startPreambleIndex;       /* Start of preamble logical index. Value:0-63; 255: all preambles from the PRACH configuration*/
-    uint8_t  numPreambleIndices;       /* Number of preamble logical indices. Value:0-63; 255: all preambles from the PRACH configuration*/
+    uint8_t  preambleIndicesNum;       /* Number of preamble logical indices. Value:0-63; 255: all preambles from the PRACH configuration*/
 } PrachParaAddInV3;
 
 typedef struct 
@@ -30,12 +30,12 @@ typedef struct
 
 typedef struct 
 {
-    uint16_t          physCellID;        /* corresponding to N_cell_ID Value：0-1007 */
-    uint8_t           numPrachOcas;      /* Number of time-domain PRACH occasions Value 1-7 */
-    uint8_t           prachFormat;       /* RACH format information for the PRACH occasions Value 0=0;1=1;2=2;3=3;4=A1;5=A2;6=A3;7=B1;8=B4;9=C0;10=C2;11=A1/B1;12=A2/B2;13=A3/B3*/
-    uint8_t           indexFdRa;         /* Frequency domain occasion index Value:0-7 */
-    uint8_t           prachStartSymbol;  /* Starting symbol for the first PRACH TD occasion in the current PRACH FD occasion*/
-    uint16_t          numCs;             /* Zero-correlation zone configuration number Value: 0-419*/
+    uint16_t          physCellID;       /* corresponding to N_cell_ID Value：0-1007 */
+    uint8_t           prachOcasNum;     /* Number of time-domain PRACH occasions Value 1-7 */
+    uint8_t           prachFormat;      /* RACH format information for the PRACH occasions Value 0=0;1=1;2=2;3=3;4=A1;5=A2;6=A3;7=B1;8=B4;9=C0;10=C2;11=A1/B1;12=A2/B2;13=A3/B3*/
+    uint8_t           indexFdRa;        /* Frequency domain occasion index Value:0-7 */
+    uint8_t           prachStartSymbol; /* Starting symbol for the first PRACH TD occasion in the current PRACH FD occasion*/
+    uint16_t          csNum;            /* Zero-correlation zone configuration number Value: 0-419*/
     RxBeamformingInfo rxBeamFormingInfo;/* The beamforming PDU is included in the PRACH */
     PrachParaAddInV3  prachParaInV3;    /* PRACH Maintenance Parameters added in FAPIv3 */
 } FapiNrMsgPrachPduInfo;
@@ -54,7 +54,7 @@ typedef struct
     uint8_t        harqProcessId;      /* HARQ process number Value: 0 ->15*/
     uint8_t        newData;            /* Value: 0: retransmission, 1: new data, i.e. initial transmission*/
     uint32_t       nTBSzie;            /* Transmit block size */
-    uint32_t       numCb;              /* Number of CBs in the TB */
+    uint32_t       cbNum;              /* Number of CBs in the TB */
     uint8_t        cbPresentAndPose[]; /* CB is present in the current retx of the PUSCH. 1=PRESENT, 0=NOT PRESENT. uint8_t[ceil(numCb/8)] */
 }PuschDataInfo;
 
@@ -71,7 +71,7 @@ typedef struct
 
 typedef struct 
 {
-    uint8_t        numPtrsPorts;                /* Number of UL PTRS ports Value: 1->2 */
+    uint8_t        ptrsPortsNum;                /* Number of UL PTRS ports Value: 1->2 */
     PtrsPortInfo   ptrsPortInfo[PTRS_PORT_NUM]; 
     uint8_t        ptrsTimeDensity;             /* PT-RS time density.Value: 0: 1, 1: 2, 2: 4 */
     uint8_t        ptrsFreqDensity;             /* PT-RS frequency density. Value: 0: 2, 1: 4 */
@@ -101,7 +101,7 @@ typedef struct
 typedef struct 
 {
     uint16_t       priority;                          /* Priority of the part 2 report */
-    uint8_t        numPart1Params;                    /* Number of Part 1 parameters that influence the size of this part 2; values [1:4] in FAPI v3*/
+    uint8_t        part1ParamsNum;                    /* Number of Part 1 parameters that influence the size of this part 2; values [1:4] in FAPI v3*/
     uint16_t       paramOffsets[MAX_PART1_PAPR_NUM];  /* Ordered list of parameter offsets (offset from 0 = first bit of part1); The real size is numPart1Params */
     uint8_t        paramSizes[MAX_PART1_PAPR_NUM];    /* Bitsizes of part 1 param in the same order as paramOffsets; The real size is numPart1Params */
     uint16_t       part2SizeMapIndex;                 /* Index of one of the maps configured Table 3-40, for determining the size of a part2, from the part 1 parameter values */
@@ -110,7 +110,7 @@ typedef struct
 /* Uci information for determining UCI Part1 to Part2 correspondence, added in FAPIv3 */
 typedef struct 
 {
-    uint16_t        numPart2s;               /* Max number of UCI part2 that could be included in the CSI report. Value: 0 -> 100 */
+    uint16_t        part2sNum;               /* Max number of UCI part2 that could be included in the CSI report. Value: 0 -> 100 */
     Part2ReportInfo part2ReportInfo[1];
 }UciInfoAddInV3;
 
@@ -138,7 +138,7 @@ typedef struct
     uint16_t         dmrsScrambleId;         /* PUSCH DMRS Scrambling-ID. It is only valid when the transform precoding for PUSCH is disabled */
     uint16_t         puschDmrsId;            /* PUSCH DMRS ID */
     uint8_t          nSCID;                  /* DMRS sequence initialization, It is only valid when the transform precoding for PUSCH is disabled */
-    uint8_t          numDmrsCdmGrpsNoData;   /* Number of DM-RS CDM groups without data */
+    uint8_t          dmrsCdmGrpsNoDataNum;   /* Number of DM-RS CDM groups without data */
     uint16_t         dmrsPort;               /* Bitmap occupying the 12 LSBs with: bit 0: antenna port 1000, bit 11: antenna port 1011,and for each bit. 0: DMRS port not used,1: DMRS port used*/
     /* Pusch Allocation in frequency domain */
     uint8_t          resourceAlloc;          /* Resource Allocation Type. 0: Type 0, 1: Type 1 */
@@ -276,11 +276,11 @@ typedef struct
 	
 typedef struct 
 {	
-    uint16_t        handle;             /* Handle for the UL_TTI.request RACH PDU to which this report is linked */
+    uint32_t        handle;             /* Handle for the UL_TTI.request RACH PDU to which this report is linked */
     uint8_t         startSymbolIndex;   /* The index of first symbol of the PRACH TD occasion */
     uint8_t         slotIndex;          /* The index of first slot of the PRACH TD occasion in a system frame */
     uint8_t         raIndex;            /* The index of the received PRACH frequency domain */
-    uint8_t         avgRssi;            /* Average value of RSSI in dB */
+    uint16_t        avgRssi;            /* Average value of RSSI in dB */
     uint8_t         avgSnr;             /* Average value of SNR in dB */
     uint8_t         numPreambles;       /* Number of detected preambles in the PRACH occasion */
     PrachMeasPerId  prachMesaPerId[];   /* For each preamble */
@@ -367,8 +367,8 @@ typedef struct
     uint16_t PucchFormat;                       /* PUCCH格式，0：格式0,1：格式1 */
     uint8_t  UL_CQI;							/* SNR,取值范围[0,255],代表-64dB到63dB,步长0.5dB，无效值255 */
     
-    uint16_t TA;								/* UE的TA值,取值范围[0,63],213协议4.2节,无效值65535。固定填无效值65535 */
-    uint16_t RSSI;								/* 取值范围[0,1280],步长0.1dB,无效值65535。固定填无效值65535 */
+    uint16_t TA;								/* UE的TA值,取值范围[0,63],213协议4.2节,无效值65535 */
+    uint16_t RSSI;								/* 取值范围[0,1280],步长0.1dB */
 	
     SRInfoFmt01    srInfoFmt01;
 

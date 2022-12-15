@@ -96,8 +96,7 @@ typedef struct
 } Part2InfoAddInV3;
 
 typedef struct
-{
-	uint16_t pduIndex;          
+{          
     uint16_t pduBitMap;               /* Bit 0: puschData; Bit 1:puschUci; Bit 2: puschPtrs; Bit 3: dftsOfdm; All other bits reserved*/
     uint16_t ueRnti;                  /* The RNTI used for identifying the UE when receiving the PDU*/
     uint32_t handle;                  /* An opaque handling returned in the Rx_Data.indication and/or UCI.indication message*/

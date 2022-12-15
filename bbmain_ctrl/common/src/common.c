@@ -381,7 +381,7 @@ uint16_t CalcCsiPart2BitLength(UciInfoAddInV3 *uciInfoAddInV3, uint8_t *CsiPart1
     
     numPart2s         = 1;//uciInfoAddInV3->numPart2s;暂时只支持1个CSI report
     part2ReportInfo   = uciInfoAddInV3->part2ReportInfo;
-    if(numPart1Params != part2ReportInfo->numPart1Params)
+    if(numPart1Params != part2ReportInfo->part1ParamsNum)
     {
         return 0;
     }

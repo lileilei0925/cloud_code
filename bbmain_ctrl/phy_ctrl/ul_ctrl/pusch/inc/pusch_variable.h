@@ -2,11 +2,11 @@
 #include "phyctrl_pusch.h"
 #include "../src/phyctrl_pusch.c"
 
-L1PuschParaPduInfo  g_puschParaInfoOut[MAX_CELL_NUM] = { 0 };/* Pusch 参数本地buffer */
+L1PuschParaPduInfo  g_puschParaInfoOut[MAX_CELL_NUM][SLOT_NUM_PER_FRAME] = { 0 };/* Pusch 参数本地buffer */
 NrPuschCePara       g_puschUeRbgInfo[NR_PUSCH_MAX_UE_NUM_PER_SLOT][NR_PUSCH_MAX_PRG_NUM] = { 0 }; /* 16个ue，137个Rbg */
 PuschResourceInfo   g_puschResourceInfo[MAX_CELL_NUM][SLOT_NUM_PER_FRAME][MAX_PUSCH_PDU_NUM];//放到DDR
 
-uint8_t g_puschCsiPart2Flag[MAX_CELL_NUM][SLOT_NUM_PER_FRAME] = {0};
+uint8_t g_puschCsiPart2Flag[MAX_CELL_NUM][SLOT_NUM_PER_FRAME] = { 0 };
 
 /* PUSCH UCI译码参数 */
 PuschPolarDecodeHacCfgPara  g_puschPolarDecodeHacCfgParaDDR[MAX_CELL_NUM][SLOT_NUM_PER_FRAME][Pusch_Uci_Type_Num];//放到DDR

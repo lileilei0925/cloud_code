@@ -34,7 +34,6 @@ int main(void)
 }
 #endif
 
-
 uint32_t L1PuschDmrsPara2PnGenHac(int8_t cellIndex, L1PuschParaPduInfo *l1PuschParaPduInfo, PuschPnGenPara *dmrsPnGenPara)
 {
     uint8_t  ueIndex, ueNum;
@@ -1694,7 +1693,6 @@ uint32_t PuschUCIParser()//ACK大于2比特，CSI Part1和CSI Part2解析
     }
     return 0;
 }
-
 
 uint32_t PuschACKOver2BitParseHandler()
 {

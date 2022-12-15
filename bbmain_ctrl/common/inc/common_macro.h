@@ -62,8 +62,8 @@ enum TLV_BODY_TYPE
 
 #define    PRACH_ZC_LEN_139          139
 #define    PRACH_ZC_LEN_839          839
-#define    PRACH_FFT_LEN_139         256
-#define    PRACH_FFT_LEN_839         1536
+#define    PRACH_FFT_LEN_256         1
+#define    PRACH_FFT_LEN_1536        0
 
 #define    PRACH_FORMAT_0            0
 #define    PRACH_FORMAT_1            1
@@ -85,6 +85,9 @@ enum TLV_BODY_TYPE
 #define    PRACH_CONFIG_TABLE_SIZE   256
 #define    MAX_PRACH_FDM_NUM         2
 #define    MAX_PRACH_TDM_NUM         2
+#define    MAX_PRACH_OCCASION_NUM    MAX_PRACH_FDM_NUM * MAX_PRACH_TDM_NUM
+#define    MAX_DET_WIN_NUM           3
+#define    MAX_ROOT_PER_OCCASION     32
 
 #define    UNRESTRICTED              0
 #define    RESTRICTED_TYPE_A         1

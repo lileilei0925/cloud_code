@@ -5,8 +5,8 @@
 
 uint32_t MessageUlTtiRequestParse(uint8_t cellIndex, uint8_t *srcUlSlotMesagesBuff);
 uint32_t UlTtiRequestMessageSizeCalc (uint8_t *srcUlSlotMesagesBuff);
-uint32_t UlTtiRequestPrachPduparse(FapiNrMsgPrachPduInfo *fapiPrachPduInfoIn, L1PrachPduInfo *l1PrachPduOut, uint16_t pudIndex);
-uint32_t UlTtiRequestPuschPduparse(FapiNrMsgPuschPduInfo *fapiPuschPduInfoIn, L1PuschPduInfo *l1PuschPduOut, uint16_t pudIndex);
+uint32_t UlTtiRequestPrachPduparse(FapiNrMsgPrachPduInfo *fapiPrachPduInfoIn, L1PrachPduInfo *l1PrachPduOut);
+uint32_t UlTtiRequestPuschPduparse(FapiNrMsgPuschPduInfo *fapiPuschPduInfoIn, L1PuschPduInfo *l1PuschPduOut);
 
 #define DurationCalcInSlot(sfn1, sfn2, slot1, slot2, u)     ({ uint16_t slotNum = ((1<<u) * 10); ((((sfn2 - sfn1 + 1024) & 0x3ff) * slotNum) + (slot2 - slot1));})
 
@@ -20,8 +20,6 @@ int main(void)
   //uint32_t c = sizeof(SrsRpt);//8742
   uint32_t c = sizeof(ArmSrsRpt);//8872
   
-  
-
   printf("c = %d;\n",c);
   printf("___Hello World___;\n");
 
@@ -44,7 +42,7 @@ uint32_t MessageUlTtiRequestParse(uint8_t cellIndex, uint8_t *srcUlSlotMesagesBu
     PucParam              *pucParam            = NULL;
     PucParam              *srsParam            = NULL;
 
-    uint16_t sfnNum,slotNum,ulPduNum;
+    uint16_t sfnIndex,slotIndex,ulPduNum;
     uint16_t pduNumPerType[MAX_UL_PDU_TYPES] = { 0 };
     uint16_t pduCntPerType[MAX_UL_PDU_TYPES] = { 0 };
     uint16_t pduType, pduSize;
@@ -84,10 +82,10 @@ uint32_t MessageUlTtiRequestParse(uint8_t cellIndex, uint8_t *srcUlSlotMesagesBu
         ueGroupNum = ulRequestHead->ueGroupNum;
         memcpy(&pduNumPerType[0], &ulRequestHead->pduNumPerType[0], sizeof(uint16_t) * MAX_UL_PDU_TYPES);
 
-        L1PrachParaPduInfo  *l1PrachParaPduInfoOut = &g_prachParaInfoOut[cellIndex];
+        L1PrachParaPduInfo  *l1PrachParaPduInfoOut = &g_prachParaInfoOut[cellIndex][slotIndex];
         l1PrachParaPduInfoOut->sfnIndex  = sfnIndex;
         l1PrachParaPduInfoOut->slotIndex = slotIndex;
-        L1PuschParaPduInfo  *l1PuschParaPduInfoOut = &g_puschParaInfoOut[cellIndex];
+        L1PuschParaPduInfo  *l1PuschParaPduInfoOut = &g_puschParaInfoOut[cellIndex][slotIndex];
         l1PuschParaPduInfoOut->sfnIndex  = sfnIndex;
         l1PuschParaPduInfoOut->slotIndex = slotIndex;
 
@@ -98,15 +96,15 @@ uint32_t MessageUlTtiRequestParse(uint8_t cellIndex, uint8_t *srcUlSlotMesagesBu
             {
                 case UL_PDU_TYPE_PRACH:
                     fapiPrachPduParaIn = (FapiNrMsgPrachPduInfo *)((uint8_t *)pduHead + sizeof(PduHeadInfo));
-                    l1PrachPduInfo     =  &l1PrachParaPduInfoOut->l1PrachPduInfo[pduCntPerType[0]];
-                    UlTtiRequestPrachPduparse (fapiPrachPduParaIn, l1PrachPduInfo, pduIndex);
+                    l1PrachPduInfo     = &l1PrachParaPduInfoOut->l1PrachPduInfo[pduCntPerType[0]];
+                    UlTtiRequestPrachPduparse (fapiPrachPduParaIn, l1PrachPduInfo);
                     pduCntPerType[0]++;
                     break;
 
                 case UL_PDU_TYPE_PUSCH:
                     fapiPuschPduParaIn = (FapiNrMsgPuschPduInfo *)((uint8_t *)pduHead + sizeof(PduHeadInfo));
                     l1PuschPduInfo     =  &l1PuschParaPduInfoOut->l1PuschPduInfo[pduCntPerType[1]];
-                    UlTtiRequestPuschPduparse(fapiPuschPduParaIn, l1PuschPduInfo, pduIndex);
+                    UlTtiRequestPuschPduparse(fapiPuschPduParaIn, l1PuschPduInfo);
                     pduCntPerType[1]++;
                     break;
 
@@ -193,45 +191,49 @@ uint32_t UlTtiRequestMessageSizeCalc (uint8_t *srcUlSlotMesagesBuff)
     return ulTtirequestMessageSize;
 }
 
-uint32_t UlTtiRequestPrachPduparse(FapiNrMsgPrachPduInfo *fapiPrachPduInfoIn, L1PrachPduInfo *l1PrachPduOut, uint16_t pudIndex)
+uint32_t UlTtiRequestPrachPduparse(FapiNrMsgPrachPduInfo *fapiPrachPduInfoIn, L1PrachPduInfo *l1PrachPduOut)
 {
     uint16_t prgIndex;
     uint8_t  digitalBfNum, digitalBfIndex;
     uint16_t *beamIndex = NULL;
+    RxBeamformingInfo *rxBeamformingInfo = NULL;
+    PrachParaAddInV3  *prachParaAddInV3  = NULL;
 
-    l1PrachPduOut->pduIndex           = pudIndex;
-    l1PrachPduOut->phyCellID          = fapiPrachPduInfoIn->physCellID;
-    l1PrachPduOut->prachTdOcasNum     = fapiPrachPduInfoIn->prachOcasNum;
-    l1PrachPduOut->prachFormat        = fapiPrachPduInfoIn->prachFormat;
-    l1PrachPduOut->PrachFdmIndex      = fapiPrachPduInfoIn->indexFdRa;
-    l1PrachPduOut->prachStartSymb     = fapiPrachPduInfoIn->prachStartSymbol;
-    l1PrachPduOut->ncsValue           = fapiPrachPduInfoIn->csNum;
-
-    l1PrachPduOut->handle             = fapiPrachPduInfoIn->prachParaInV3.handle;
-    l1PrachPduOut->prachCfgScope      = fapiPrachPduInfoIn->prachParaInV3.prachCfgScope;
-    l1PrachPduOut->prachResCfgIndex   = fapiPrachPduInfoIn->prachParaInV3.prachResCfgIndex;
-    l1PrachPduOut->prachFdmNum        = fapiPrachPduInfoIn->prachParaInV3.fdRaNum;
-    l1PrachPduOut->startPreambleIndex = fapiPrachPduInfoIn->prachParaInV3.startPreambleIndex;
-    l1PrachPduOut->preambleIndicesNum = fapiPrachPduInfoIn->prachParaInV3.preambleIndicesNum;
-
-    l1PrachPduOut->trpScheme          = fapiPrachPduInfoIn->rxBeamFormingInfo.trpScheme;
-    l1PrachPduOut->prgNum             = fapiPrachPduInfoIn->rxBeamFormingInfo.prgsNum;
-    l1PrachPduOut->prgSize            = fapiPrachPduInfoIn->rxBeamFormingInfo.prgSize;
-    l1PrachPduOut->digitalBfNum       = fapiPrachPduInfoIn->rxBeamFormingInfo.digBfInterface;
-
+    l1PrachPduOut->phyCellID      = fapiPrachPduInfoIn->physCellID;
+    l1PrachPduOut->prachTdOcasNum = fapiPrachPduInfoIn->prachOcasNum;
+    l1PrachPduOut->prachFormat    = fapiPrachPduInfoIn->prachFormat;
+    l1PrachPduOut->PrachFdmIndex  = fapiPrachPduInfoIn->indexFdRa;
+    l1PrachPduOut->prachStartSymb = fapiPrachPduInfoIn->prachStartSymbol;
+    l1PrachPduOut->ncsValue       = fapiPrachPduInfoIn->csNum;
+    
+    /* beamforming Information parsing */
+    rxBeamformingInfo = (RxBeamformingInfo *)((uint16_t *)&fapiPrachPduInfoIn->csNum + 1);
+    l1PrachPduOut->trpScheme    = rxBeamformingInfo->trpScheme;
+    l1PrachPduOut->prgNum       = rxBeamformingInfo->prgsNum;
+    l1PrachPduOut->prgSize      = rxBeamformingInfo->prgSize;
+    l1PrachPduOut->digitalBfNum = rxBeamformingInfo->digBfInterface;
     digitalBfNum = l1PrachPduOut->digitalBfNum;
     for (prgIndex = 0; prgIndex < l1PrachPduOut->prgNum; prgIndex++){
-        beamIndex = (uint16_t *)&fapiPrachPduInfoIn->rxBeamFormingInfo.beamIndex[0] + prgIndex * digitalBfNum;
+        beamIndex = (uint16_t *)&rxBeamformingInfo->beamIndex[0] + prgIndex * digitalBfNum;
         for (digitalBfIndex = 0; digitalBfIndex < digitalBfNum; digitalBfIndex++){
-            l1PrachPduOut->beamIndex[prgIndex][digitalBfIndex] = *beamIndex;
+            l1PrachPduOut->beamIndex[prgIndex * digitalBfNum + digitalBfIndex] = *beamIndex;
             beamIndex++;
         }
     }
 
+    /* Fapi Prach v3 Information parsing */
+    prachParaAddInV3 = (PrachParaAddInV3 *)((uint8_t *)&rxBeamformingInfo->beamIndex[0] + sizeof(uint16_t)*prgIndex*digitalBfNum);
+    l1PrachPduOut->handle             = prachParaAddInV3->handle;
+    l1PrachPduOut->prachCfgScope      = prachParaAddInV3->prachCfgScope;
+    l1PrachPduOut->prachResCfgIndex   = prachParaAddInV3->prachResCfgIndex;
+    l1PrachPduOut->prachFdmNum        = prachParaAddInV3->fdRaNum;
+    l1PrachPduOut->startPreambleIndex = prachParaAddInV3->startPreambleIndex;
+    l1PrachPduOut->preambleIndicesNum = prachParaAddInV3->preambleIndicesNum;
+
     return 0;
 }
 
-uint32_t UlTtiRequestPuschPduparse(FapiNrMsgPuschPduInfo *fapiPuschPduInfoIn, L1PuschPduInfo *l1PuschPduOut, uint16_t pudIndex)
+uint32_t UlTtiRequestPuschPduparse(FapiNrMsgPuschPduInfo *fapiPuschPduInfoIn, L1PuschPduInfo *l1PuschPduOut)
 {
     uint8_t digitalBfNum, digitalBfIndex, prgIndex;
     uint8_t cbPresentNum, part2Idx, part1ParamsNum, part1ParaIdx;
@@ -245,7 +247,6 @@ uint32_t UlTtiRequestPuschPduparse(FapiNrMsgPuschPduInfo *fapiPuschPduInfoIn, L1
     PuschParaAddInV3  *puschParaAddInV3  = NULL;
     UciInfoAddInV3    *uciInfoAddInV3    = NULL;
 
-    l1PuschPduOut->pduIndex           = pudIndex;
     l1PuschPduOut->pduBitMap          = fapiPuschPduInfoIn->pduBitmap;
     l1PuschPduOut->ueRnti             = fapiPuschPduInfoIn->ueRnti;
     l1PuschPduOut->handle             = fapiPuschPduInfoIn->handle;
