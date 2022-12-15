@@ -10,6 +10,11 @@ uint8_t g_NvValue[HOP_NUM];                               //2hop
 uint8_t g_NcsValue[SYM_NUM_PER_SLOT];                     //14symbol
 uint8_t g_part1ReNum[SYM_NUM_PER_SLOT];                   //14symbol
 
+uint8_t g_pucchFmt01RptNum[MAX_CELL_NUM][SLOT_NUM_PER_FRAME];//放到DDR
+uint8_t g_pucchFmt23RptNum[MAX_CELL_NUM][SLOT_NUM_PER_FRAME];//放到DDR
+uint8_t g_pucchFmt01RptIndex[MAX_CELL_NUM][SLOT_NUM_PER_FRAME][MAX_PUCCH_NUM];//放到DDR
+uint8_t g_pucchFmt23RptIndex[MAX_CELL_NUM][SLOT_NUM_PER_FRAME][MAX_PUCCH_NUM];//放到DDR
+
 uint8_t g_pucchCsiPart2Flag[MAX_CELL_NUM][SLOT_NUM_PER_FRAME] = {0};
 
 uint32_t g_fmt23dataScrambuff[144];                       //fmt23数据符号扰码生成缓存
@@ -22,28 +27,33 @@ PucchPara    g_PucchPara[MAX_CELL_NUM];                      /* Pucch armtodsp�
 ArmPucParam  g_armPucParam[MAX_CELL_NUM][SLOT_NUM_PER_FRAME] = {0};                         /* Pucch 参数本地buffer */ //放到DDR
 
 /* PUCCH UCI译码参数 */
-PucchPolarDecodeHacCfgPara  g_pucchPolarDecodeHacCfgParaDDR[MAX_CELL_NUM][SLOT_NUM_PER_FRAME][PUCCH_UCI_PART_NUM];//放到DDR
-PucchRMDecodeHacCfgPara     g_pucchRMDecodeHacCfgParaDDR[MAX_CELL_NUM][SLOT_NUM_PER_FRAME][PUCCH_UCI_PART_NUM];//放到DDR
+PucchPolarDecodeHacCfgPara  g_pucchPolarDecodeHacCfgParaDDR[MAX_CELL_NUM][SLOT_NUM_PER_FRAME][PUCCH_PART_NUM];//放到DDR
+PucchRMDecodeHacCfgPara     g_pucchRMDecodeHacCfgParaDDR[MAX_CELL_NUM][SLOT_NUM_PER_FRAME][PUCCH_PART_NUM];//放到DDR
 
 uint16_t g_pucchCsiPart2BitLength[MAX_CELL_NUM][SLOT_NUM_PER_FRAME][MAX_PUCCH_NUM];//保存格式3 CSI Part2比特长度,UE间松排
 
-PucchPolarDecodeHacCfgPara  g_pucchPolarDecodeHacCfgParal2[MAX_CELL_NUM][PUCCH_UCI_PING_PONG_NUM][PUCCH_UCI_PART_NUM];//放到L2
-PucchRMDecodeHacCfgPara     g_pucchRMDecodeHacCfgParaL2[MAX_CELL_NUM][PUCCH_UCI_PING_PONG_NUM][PUCCH_UCI_PART_NUM];//放到L2
+PucchPolarDecodeHacCfgPara  g_pucchPolarDecodeHacCfgParal2[MAX_CELL_NUM][PUCCH_UCI_PING_PONG_NUM][PUCCH_PART_NUM];//放到L2
+PucchRMDecodeHacCfgPara     g_pucchRMDecodeHacCfgParaL2[MAX_CELL_NUM][PUCCH_UCI_PING_PONG_NUM][PUCCH_PART_NUM];//放到L2
 
 /* PUCCH UCI译码输入数据 */
 //PUCCH输出规划和如何摆放？待规划
 
 /* PUCCH UCI译码输出 */
-PolarDecodeOut       g_pucchPolarDecodeOutDDR[MAX_CELL_NUM][SLOT_NUM_PER_FRAME][PUCCH_UCI_PART_NUM];//放到DDR
-RMDecodeOut          g_pucchRMDecodeOutDDR[MAX_CELL_NUM][SLOT_NUM_PER_FRAME][PUCCH_UCI_PART_NUM];//放到DDR
+PolarDecodeOut       g_pucchPolarDecodeOutDDR[MAX_CELL_NUM][SLOT_NUM_PER_FRAME][PUCCH_PART_NUM];//放到DDR
+RMDecodeOut          g_pucchRMDecodeOutDDR[MAX_CELL_NUM][SLOT_NUM_PER_FRAME][PUCCH_PART_NUM];//放到DDR
 
-PolarDecodeOut       g_pucchPolarDecodeOutL2[MAX_CELL_NUM][PUCCH_UCI_PING_PONG_NUM][PUCCH_UCI_PART_NUM];//放到L2
-RMDecodeOut          g_pucchRMDecodeOutL2[MAX_CELL_NUM][PUCCH_UCI_PING_PONG_NUM][PUCCH_UCI_PART_NUM];//放到L2
+PolarDecodeOut       g_pucchPolarDecodeOutL2[MAX_CELL_NUM][PUCCH_UCI_PING_PONG_NUM][PUCCH_PART_NUM];//放到L2
+RMDecodeOut          g_pucchRMDecodeOutL2[MAX_CELL_NUM][PUCCH_UCI_PING_PONG_NUM][PUCCH_PART_NUM];//放到L2
 
 /* PUCCH UCI译码组包结果 */
 PucchFmt01Rst     g_pucchFmt01Rst[MAX_CELL_NUM][SLOT_NUM_PER_FRAME];//放到DDR
 
 PucchFmt23Rst     g_pucchFmt23Rst[MAX_CELL_NUM][SLOT_NUM_PER_FRAME];//放到DDR
+
+
+TLV_MSG g_pucchTlvMsg[MAX_CELL_NUM][SLOT_NUM_PER_FRAME][PUCCH_PART_NUM];
+
+uint8_t g_pucchRptBuffer[MAX_CELL_NUM][SLOT_NUM_PER_FRAME][PUCCH_PART_NUM][PUCCH_RPT_BUFFER_SIZE];
 
 FSM g_pucchFSM[MAX_CELL_NUM][PUCCH_UCI_PING_PONG_NUM];
 

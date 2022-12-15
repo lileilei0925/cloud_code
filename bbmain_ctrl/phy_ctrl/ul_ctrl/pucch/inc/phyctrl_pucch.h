@@ -15,13 +15,8 @@
 #define PUCCH_UCI_PING_PONG_NUM 2
 #define MAX_PUCCH_FMT01_NUM 64    /* 待定 */
 #define MAX_PUCCH_FMT23_NUM 38
-
-enum PUCCH_FORMAT
-{
-    PUCCH_UCI_PART1 = 0,
-    PUCCH_UCI_PART2 = 1,  
-    PUCCH_UCI_PART_NUM
- };
+#define MAX_PUCCH_3_BLOCK_NUM  10
+#define PUCCH_RPT_BUFFER_SIZE  (1024*8)
 
 enum PUCCH_FORMAT
 {
@@ -32,6 +27,13 @@ enum PUCCH_FORMAT
     PUCCH_FORMAT_BUTT
  };
 
+ enum PUCCH_PART
+{
+    PUCCH_PART1    =  0,
+    PUCCH_PART2    =  1, 
+    PUCCH_PART_NUM
+ };
+
 enum PUCCH_UCI_STATE{
     Pucch_Uci_Idle_State = 0,
     Pucch_Wait_Part1_Result_State,
@@ -40,7 +42,7 @@ enum PUCCH_UCI_STATE{
     Pucch_Uci_State_Num
 };
 
-enum PUSCH_UCI_EVENT{
+enum PUCCH_UCI_EVENT{
 	Pucch_Slot_Tast_Start_Event = 0,
 	Pucch_Part1_Result_Trigger_Event,
 	Pucch_Part2_Result_Trigger_Event,
@@ -50,9 +52,10 @@ enum PUSCH_UCI_EVENT{
 
 typedef struct
 {
-	uint8_t  pduIdxInner;                   /* 物理层内部使用的每个UE的索引 */
-    uint8_t  uciBitNum;  					/* UCI的payload,取值[1,2] */
-	uint8_t  cyclicShift[SYM_NUM_PER_SLOT]; /* 38.211协议 6.3.2.2.2计算得到的各符号α值，取值[0,11] */
+    uint8_t pduIdxInner;    /* 物理层内部使用的每个UE的索引 */
+    uint8_t rsvd[3];
+    uint16_t mcsBitMap;     /* ARM发送需要检测的MCS值给DSP，通过bitmap指示，bit0对应mcs=0，依次类推，bit0-bit11有效 */
+    uint8_t cyclicShift[SYM_NUM_PER_SLOT];  /* 38.211协议 6.3.2.2.2计算得到的各符号α值，取值[0,11] */
 }PucFmt0Param;
 
 typedef struct
@@ -65,18 +68,18 @@ typedef struct
 
 typedef struct
 {
-    uint16_t    ueTapBitMap[SYM_NUM_PER_SLOT];        /* 当前OCC所有ue在某OFDM符号上的alpha值的bitmap，如alpha值为3，那么bit3设为1;alpha等于(N_SC_PER_PRB - m0)mod(N_SC_PER_PRB) */
-    uint8_t     rsvd[2];
-    uint8_t     timeDomainOccIdx;                     /* 时域OCC的索引值，取值[0,6] */
-    uint8_t     userNumPerOcc;                        /* 每个OCC上复用的用户数，协议规定最多12个，实际最多6个，取值[1,6] */
-    Fmt1UEParam fmt1UEParam[MAX_USER_NUM_PER_OCC];    /* 当前OCC上fmt1 UE参数 */
+    uint16_t ueTapBitMap;       /* 所有ue的alpha值(0-11)的bitmap，如alpha为3，那么bit3设为1; alpha = ((NR_SC_NUM_PER_RB - m0 ) mod NR_SC_NUM_PER_RB) */
+    uint8_t rsvd[2];
+    uint8_t timeDomainOccIdx;   /* 时域OCC的索引值，取值[0,6] */
+    uint8_t userNumPerOcc;      /* 每个OCC上复用的用户数，协议规定最多12个，实际最多6个，取值[1,6] */
+    Fmt1UEParam fmt1UEParam[MAX_USER_NUM_PER_OCC];/* 当前OCC上fmt1 UE参数 */
 }Fmt1ParamOcc;
 
 typedef struct
-{  
-    uint8_t cyclicShift[SYM_NUM_PER_SLOT];      /* 38.211协议 6.3.2.2.2计算得到的各符号α值，取值[0,11]，注意不用加m0和mcs */
-    uint8_t occNum;                             /* occ数目 */
-    uint8_t MinUserOccIdx;                      /* 复用用户数最少的OCC在数组中的索引 */
+{
+    uint8_t cyclicShift[SYM_NUM_PER_SLOT];   /* 38.211协议 6.3.2.2.2计算得到的各符号α值，取值[0,11]，注意不用加m0和mcs,数组内符号索引为fmt1所占符号 */
+    uint8_t occNum;         /* occ数目 */
+    uint8_t minUserOccIdx;  /* 复用用户数最少的OCC在数组中的索引,如果多个OCC上的用户数相同，取最小occ index的OCC在数组中的索引 */
     Fmt1ParamOcc fmt1ParamOcc[MAX_OCC_NUM_FMT1];/* fmt1 OCC级参数 */
 }PucFmt1Param;
 
@@ -91,27 +94,28 @@ typedef struct
 
 typedef struct
 {
-	uint16_t LlrStart;          /* UCI起始RE位置，取值[0,] */
-    uint16_t LlrDuration;       /* UCI占用的RE数，取值[0,192] */
-}Fmt3UciLlrBitmap;
+    uint16_t llrStart;       /* 某符号中，LLR在此PUCCH format3所占RE中的起始位置 */
+    uint16_t llrDuration;    /* LLR持续数目，即所占连续RE数目 */
+}Fmt3UciLlrPos;
 
 typedef struct
 {
     uint8_t pduIdxInner;        /* 物理层内部使用的每个UE的索引 */
     bool    pi2bpsk;            /* pi/2-BPSK是否使能标志，取值0:不使能，使用QPSK，1:使能，使用pi/2-BPSK */
-    bool    addDmrsEnable;        /* 附加导频是否使能标志，取值0:不使能，1:使能 */
-    uint8_t rsvd;
-	
-    uint8_t  dmrsSymIdx[HOP_NUM][PUC_FMT3_MAX_DMRS_NUM];  /* 按照跳频指示的fmt3导频符号索引*/
-	uint8_t  cyclicShift[HOP_NUM][PUC_FMT3_MAX_DMRS_NUM]; /* 按照跳频指示的fmt3导频符号的循环移位，符号间紧排 */
+    bool    addDmrsEnable;      /* 附加导频是否使能标志，取值0:不使能，1:使能 */
+    uint8_t rsvd1;
+    uint8_t dmrsSymIdx[HOP_NUM][PUC_FMT3_MAX_DMRS_NUM];
+    uint8_t cyclicShift[HOP_NUM][PUC_FMT3_MAX_DMRS_NUM];    /* 38.211协议 6.3.2.2.2计算得到的各符号α值 */
 
-    uint16_t part1SymBitmap;    /* UCI part1占用符号的比特位图，bit0到bit13有效 */
-    uint16_t part2SymBitmap;    /* UCI part2占用符号的比特位图，bit0到bit13有效 */
+    uint8_t rsvd2;
+    bool    uciPart2Enable;
+    uint8_t part1BlockNum;
+    uint8_t part2BlockNum;
+    Fmt3UciLlrPos part1LlrPos[MAX_PUCCH_3_BLOCK_NUM];
+    Fmt3UciLlrPos part2LlrPos[MAX_PUCCH_3_BLOCK_NUM];
 
-    Fmt3UciLlrBitmap  part1LlrBitmap[SYM_NUM_PER_SLOT];
-    Fmt3UciLlrBitmap  part2LlrBitmap[SYM_NUM_PER_SLOT];
-
-    uint32_t *scrambSeqAddr;/* 加扰序列在DDR中的存放地址，TODO:根据HAC存放确定是否需要2个hop的首地址 */
+    uint32_t *scrambSeqAddr;    /* 加扰序列在DDR中的存放地址 */
+    uint32_t *llrAddr[2];       /* DSP处理完的LLR数据的存放地址，供HAC取数进行译码，2代表2part */
 }PucFmt3Param;
 
 
@@ -119,7 +123,7 @@ typedef struct
 {
     /* frequency domain */
     uint16_t prbStart;      /* PRB起始索引，取值[0,274] */
-    uint16_t prbSize;       /* PRB个数，取值[1,16] */
+    uint8_t prbSize;       /* PRB个数，取值[1,16] */
 
     /* time domain */
     uint8_t startSymIdx;    /* PUC所占符号中起始符号索引，取值[0,13] */
@@ -170,9 +174,10 @@ typedef struct
 
 typedef struct
 {
-    uint8_t MrcIrcFlag;     /* 算法参数，MRC/IRC模式，取值0:MRC,1:IRC,2: MRC/IRC自适应 */ 
-    uint8_t rsvd[3];
-    uint16_t beta;          /* 算法参数，对角拉齐因子，取值范围待定 */
+    uint8_t MrcIrcFlag; /* 算法参数，MRC/IRC模式，取值0:MRC,1:IRC,2: MRC/IRC自适应 */
+    uint8_t rsvd;
+    uint16_t Epsilon;       /* 算法参数，MRC/IRC切换门限系数，默认值是3，定点为768，(0,16,8) */
+    uint16_t beta;          /* 算法参数，对角加载系数，浮点为0.0005，定点为0x0083，(0,16,-2) */
     uint16_t segNum;        /* 算法参数，RB个数按照粒度Ruu Granularity分为seg的个数，取值范围待定 */
     uint32_t threshold;     /* 算法参数，DTX检测门限，取值范围待定 */
 }PucFmt23AlgoParam;
@@ -182,17 +187,13 @@ typedef struct
     uint8_t pucchNum;       /* PUCCH总个数 */
 	uint8_t rsvd[3];
 
-    uint8_t fmt0Num; 
-    uint8_t fmt0Idx[MAX_PUCCH_NUM]; /* 在pucParam[MAX_PUCCH_NUM]中的索引 */
-    uint8_t fmt1Num; 
-    uint8_t fmt1Idx[MAX_PUCCH_NUM];
-    uint8_t fmt2Num; 
-    uint8_t fmt2Idx[MAX_PUCCH_NUM]; /* 考虑先处理format2/3,DSP处理好后发给HAC继续处理 */
-    uint8_t fmt3Num; 
-    uint8_t fmt3Idx[MAX_PUCCH_NUM];
-    
-    PucFmt0AlgoParam  fmt0AlgoParam; 
-    PucFmt1AlgoParam  fmt1AlgoParam; 
+    uint8_t fmt0Num;
+    uint8_t fmt1Num;
+    uint8_t fmt2Num;
+    uint8_t fmt3Num;
+
+    PucFmt0AlgoParam fmt0AlgoParam;
+    PucFmt1AlgoParam fmt1AlgoParam;
     PucFmt23AlgoParam fmt2AlgoParam;
     PucFmt23AlgoParam fmt3AlgoParam;
 	
@@ -201,22 +202,12 @@ typedef struct
 
 typedef struct
 {
-    uint8_t pucchfmtpdunum[PUCCH_FORMAT_BUTT];                                               /* 本小区pucch fmt0/1/2/3的PDU个数 */
-    uint8_t pucchfmtpduIdxInner[PUCCH_FORMAT_BUTT][MAX_PUCCH_NUM];                           /* 本小区pucch fmt0/1/2/3的PDU内部索引 */
-
-    uint8_t pucchNumpersym[SYM_NUM_PER_SLOT];               		                         /* 本小区按符号统计的PUCCH个数 */
-    
-    uint8_t pucchIndex[SYM_NUM_PER_SLOT][MAX_PUCCH_NUM];    		                         /* 本小区按符号统计的PUCCH索引 */
-
-    uint8_t pucchNum;  
-    uint8_t pucchpduGroupNum;                                                                /* 本小区PUCCH fmt1的组数 */                                            
-    uint8_t pucchpduNumPerGroup[MAX_PUCCH_NUM];                                              /* 本小区PUCCH fmt1每组统计的PDU个数 */
-    
-    uint8_t pucchuserNumPerOcc[MAX_PUCCH_NUM][MAX_OCC_NUM_FMT1];                             /* 本小区PUCCH fmt1每组按OCC统计的UE个数 */
-    uint8_t pucchpduIndexinGroup[MAX_PUCCH_NUM][MAX_OCC_NUM_FMT1][MAX_USER_NUM_PER_OCC];     /* 本小区PUCCH fmt1各组内各OCC值相同用户对应的PDU索引值 */
-
-    FapiNrMsgPucchPduInfo FapiPucchPduInfo[MAX_PUCCH_NUM];       	                         /* 本小区pucch的PDU信息 */
-}ArmPucParam;
+    uint8_t pduIdxInner;
+    uint8_t mcsValue;       /* DSP检出的MCS的值 */
+    uint8_t rsvd;
+    bool    isDtx;          /* DTX状态：1：DTX; 0:非DTX */
+    int32_t snr;            /* SNR，线性值，由ARM转成FAPI需要的单位 */
+}PucchFmt0Rpt;
 
 typedef struct
 {
@@ -224,26 +215,28 @@ typedef struct
     uint8_t rsvd[3];
     uint8_t uciBitNum;          /* UCI比特个数，取值1或2 */
     uint8_t uciDecodeValue[2];  /* UCI解调结果, 每个bit保存到uint8_t中 */
-    uint8_t dtxFlag;            /* DTX状态：1：DTX; 0:非DTX */
+    bool    isDtx;              /* DTX状态：1：DTX; 0:非DTX */
     int32_t snr;                /* SNR，线性值，由ARM转成FAPI需要的单位 */
-}PucchFmt01Rpt;
+}PucchFmt1Rpt;
 
 typedef struct
 {
     uint8_t pduIdxInner;
     uint8_t rsvd[2];
-    uint8_t dtxFlag;    /* DTX状态：1：DTX; 0:非DTX */
+    bool    isDtxM;     /* DSP计算的DTXm状态：1：DTX; 0:非DTX */
     int32_t snr;        /* SNR，线性值，由ARM转成FAPI需要的单位  */
 }PucchFmt23Rpt;
 
 typedef struct
 {
-	uint8_t PucchFmt01Num;
-	uint8_t PucchFmt23Num;
+    uint8_t pucchFmt0Num;
+    uint8_t pucchFmt1Num;
+    uint8_t pucchFmt23Num;
     uint8_t rsv[2];
 
-	PucchFmt01Rpt pucchFmt01Rpt[MAX_PUCCH_NUM];
-	PucchFmt23Rpt pucchFmt23Rpt[MAX_PUCCH_NUM];
+    PucchFmt0Rpt pucchFmt0Rpt[MAX_PUCCH_FMT0_1_NUM];
+    PucchFmt1Rpt pucchFmt1Rpt[MAX_PUCCH_FMT0_1_NUM];
+    PucchFmt23Rpt pucchFmt23Rpt[MAX_PUCCH_FMT2_3_NUM];
 }PucchRpt;
 
 typedef struct
@@ -292,12 +285,31 @@ typedef struct
 typedef struct
 {
 	uint8_t PucFmt01Num;
-	uint8_t PucFmt234Num;
+	uint8_t PucFmt23Num;
     uint8_t rsv[2];
 
 	PucFmt01Rpt  pucFmt01Rpt[MAX_PUCCH_NUM];
 	PucFmt23Rpt  pucFmt23Rpt[MAX_PUCCH_NUM];
 }PucFmtRpt;
+
+typedef struct
+{
+    uint8_t pucchfmtpdunum[PUCCH_FORMAT_BUTT];                                               /* 本小区pucch fmt0/1/2/3的PDU个数 */
+    uint8_t pucchfmtpduIdxInner[PUCCH_FORMAT_BUTT][MAX_PUCCH_NUM];                           /* 本小区pucch fmt0/1/2/3的PDU内部索引 */
+
+    uint8_t pucchNumpersym[SYM_NUM_PER_SLOT];               		                         /* 本小区按符号统计的PUCCH个数 */
+    
+    uint8_t pucchIndex[SYM_NUM_PER_SLOT][MAX_PUCCH_NUM];    		                         /* 本小区按符号统计的PUCCH索引 */
+
+    uint8_t pucchNum;  
+    uint8_t pucchpduGroupNum;                                                                /* 本小区PUCCH fmt1的组数 */                                            
+    uint8_t pucchpduNumPerGroup[MAX_PUCCH_NUM];                                              /* 本小区PUCCH fmt1每组统计的PDU个数 */
+    
+    uint8_t pucchuserNumPerOcc[MAX_PUCCH_NUM][MAX_OCC_NUM_FMT1];                             /* 本小区PUCCH fmt1每组按OCC统计的UE个数 */
+    uint8_t pucchpduIndexinGroup[MAX_PUCCH_NUM][MAX_OCC_NUM_FMT1][MAX_USER_NUM_PER_OCC];     /* 本小区PUCCH fmt1各组内各OCC值相同用户对应的PDU索引值 */
+
+    FapiNrMsgPucchPduInfo FapiPucchPduInfo[MAX_PUCCH_NUM];       	                         /* 本小区pucch的PDU信息 */
+}ArmPucParam;
 
 typedef struct
 {
