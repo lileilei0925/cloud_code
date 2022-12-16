@@ -46,6 +46,9 @@ uint8_t  g_puschDmrsSymbIndex[MAX_CELL_NUM][SLOT_NUM_PER_FRAME][NR_PUSCH_MAX_UE_
 uint8_t  g_puschK0Coeff[NR_BASE_GRAPH_NUM][NR_RVID_NUM] = {{0,17,33,56}, {0,13,25,43}};
 uint32_t g_UePart2AndDataAddr[MAX_CELL_NUM][NR_PUSCH_MAX_UE_NUM_PER_SLOT] = { 0 }; /* 暂定，临时使用 */
 
+uint8_t g_puschUciRptNum[MAX_CELL_NUM][SLOT_NUM_PER_FRAME];//放到DDR
+uint8_t g_puschUciRptIndex[MAX_CELL_NUM][SLOT_NUM_PER_FRAME][NR_PUSCH_MAX_UE_NUM_PER_SLOT];//放到DDR
+
 /*38.212 Table 5.3.2-1: Sets of LDPC lifting size  */
 uint16_t g_liftSizeTable[8][8] = {{2,  4,  8,  16,  32,  64,  128, 256},
                                   {3,  6,  12, 24,  48,  96,  192, 384},

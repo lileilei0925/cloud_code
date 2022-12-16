@@ -22,7 +22,7 @@
 #define RM_BIT_LENGTH_MIN            3
 #define RM_BIT_LENGTH_MAX            11
 #define POLAR_BIT_LENGTH_MIN         12
-#define POLAR_BIT_LENGTH_Max         359
+#define POLAR_BIT_LENGTH_MAX         359
 
 
 enum UCI_TYPE

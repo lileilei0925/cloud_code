@@ -126,7 +126,7 @@ void PucchFmt23RptPreFill(FapiNrMsgPucchPduInfo *fapipucchpduInfo, FapiNrPucchFm
     isSrExistFlag       = (0 == fapipucchpduInfo->srFlag) ? 0:1;
     isHarqExistFlag     = (0 == fapipucchpduInfo->bitLenHarq) ? 0:1;
     isCsiPart1ExistFlag = (0 == fapipucchpduInfo->csiPart1BitLength) ? 0:1;
-    isCsiPart2ExistFlag = (0 == fapipucchpduInfo->uciInfoAddInV3.numPart2s) ? 0:1;
+    isCsiPart2ExistFlag = (0 == fapipucchpduInfo->uciInfoAddInV3.part2sNum) ? 0:1;
     
     fapiNrPucchFmt23Indication->Handle                      = fapipucchpduInfo->handle;
     fapiNrPucchFmt23Indication->pduBitmap                   = (isCsiPart2ExistFlag<<3) + (isCsiPart1ExistFlag<<2) + (isHarqExistFlag<<1) + isSrExistFlag;
@@ -228,7 +228,7 @@ void PucchRMDecodeHacCfg(FapiNrMsgPucchPduInfo *fapipucchpduInfo, uint16_t uciLe
         else if(PUCCH_FORMAT_3 == (fapipucchpduInfo->formatType))
         {
             totBit = 12 * (2 - (fapipucchpduInfo->pi2BpskFlag)) * (fapipucchpduInfo->numSymbols) * (fapipucchpduInfo->prbSize);
-            if(!(fapipucchpduInfo->uciInfoAddInV3.numPart2s))
+            if(!(fapipucchpduInfo->uciInfoAddInV3.part2sNum))
             {
                 rmInfo->llrNum = totBit;
             }
@@ -249,7 +249,7 @@ void PucchRMDecodeHacCfg(FapiNrMsgPucchPduInfo *fapipucchpduInfo, uint16_t uciLe
 
     rmInfo->llrSegNum = 1;
     llrSegInfo = &rmInfo->llrSegInfo[0];
-    llrSegInfo->segStartAddr  = (PUCCH_UCI_PART1 == msgType) ? 0:0;//待修改,Part1和Part2紧排？并且与DSP解调接口赋值要一致
+    //llrSegInfo->segStartAddr  = (PUCCH_UCI_PART1 == msgType) ? 0:0;//待修改,Part1和Part2紧排？并且与DSP解调接口赋值要一致
     llrSegInfo->segCycNum     = 1;
     llrSegInfo->segLlrNum     = rmInfo->llrNum;
     llrSegInfo->segPeriod     = rmInfo->llrNum;
@@ -303,7 +303,7 @@ void PucchPolarDecodeHacCfg(FapiNrMsgPucchPduInfo *fapipucchpduInfo, uint16_t uc
         else if(PUCCH_FORMAT_3 == (fapipucchpduInfo->formatType))
         {
             totBit = 12 * (2 - (fapipucchpduInfo->pi2BpskFlag)) * (fapipucchpduInfo->numSymbols) * (fapipucchpduInfo->prbSize);
-            if(!(fapipucchpduInfo->uciInfoAddInV3.numPart2s))
+            if(!(fapipucchpduInfo->uciInfoAddInV3.part2sNum))
             {
                 polarInfo->llrNum = totBit;
             }
@@ -339,8 +339,8 @@ void PucchPolarDecodeHacCfg(FapiNrMsgPucchPduInfo *fapipucchpduInfo, uint16_t uc
 
     polarInfo->sizeT = ceil((sqrt(8 * (polarInfo->llrNum) + 1) - 1)/2);
 
-    llrSegInfo = &polarInfo->llrSegInfo[0];
-    llrSegInfo->segStartAddr  = (PUCCH_UCI_PART1 == msgType) ? 0:0;//待修改,Part1和Part2紧排？并且与DSP解调接口赋值要一致
+    llrSegInfo = &(polarInfo->llrSegInfo[0]);
+    //llrSegInfo->segStartAddr  = (PUCCH_UCI_PART1 == msgType) ? 0:0;//待修改,Part1和Part2紧排？并且与DSP解调接口赋值要一致
     llrSegInfo->segCycNum     = 1;
     llrSegInfo->segLlrNum     = polarInfo->llrNum;
     llrSegInfo->segPeriod     = polarInfo->llrNum;
@@ -393,7 +393,7 @@ void PucchFmt2PduParse(PucParam *pucParam, FapiNrMsgPucchPduInfo *fapipucchpduIn
         {
             PucchRMDecodeHacCfg(fapipucchpduInfo, uciPart1BitLength, pduIndex, PUCCH_UCI_PART1, 0, sfnNum, slotNum, cellIndex);
         }
-        else if(POLAR_BIT_LENGTH_Max >= uciPart1BitLength)
+        else if((POLAR_BIT_LENGTH_MIN <= uciPart1BitLength) && (POLAR_BIT_LENGTH_MAX >= uciPart1BitLength))
         {
             PucchPolarDecodeHacCfg(fapipucchpduInfo, uciPart1BitLength, pduIndex, PUCCH_UCI_PART1, 0, sfnNum, slotNum, cellIndex);
         }
@@ -1051,7 +1051,7 @@ void PucchFmt3PduParse(PucParam *pucParam, FapiNrMsgPucchPduInfo *fapipucchpduIn
     uint8_t  maxCodeRate;
     uint8_t  numSymbols;
     uint8_t  uciSymNum;
-    bool     uciPart2Enable;
+    uint8_t  uciPart2Enable;
     uint8_t  valQm;
 	uint8_t  symNum[HOP_NUM];
     uint8_t  part1BlockNum;
@@ -1069,7 +1069,7 @@ void PucchFmt3PduParse(PucParam *pucParam, FapiNrMsgPucchPduInfo *fapipucchpduIn
     uciLen         = (fapipucchpduInfo->srFlag) + (fapipucchpduInfo->bitLenHarq) + (fapipucchpduInfo->csiPart1BitLength);
 	addDmrsFlag    = fapipucchpduInfo->addDmrsFlag;
     maxCodeRate    = (fapipucchpduInfo->pucchParaAddInV3.maxCodeRate)&0x7;
-    uciPart2Enable = (0 == (fapipucchpduInfo->uciInfoAddInV3.numPart2s)) ? 0:1;
+    uciPart2Enable = (0 == (fapipucchpduInfo->uciInfoAddInV3.part2sNum)) ? 0:1;
 
 	fmt3Param = (PucFmt3Param *)((uint8_t *)pucParam  + sizeof(PucParam) - sizeof(PucFmt1Param));
     fmt3Param->pduIdxInner    = pduIndex;
@@ -1097,7 +1097,7 @@ void PucchFmt3PduParse(PucParam *pucParam, FapiNrMsgPucchPduInfo *fapipucchpduIn
     {
         PucchRMDecodeHacCfg(fapipucchpduInfo, uciLen, pduIndex, PUCCH_UCI_PART1, 0, sfnNum, slotNum, cellIndex);
     }
-    else if(POLAR_BIT_LENGTH_Max >= uciLen)
+    else if((POLAR_BIT_LENGTH_MIN <= uciLen) && (POLAR_BIT_LENGTH_MAX >= uciLen))
     {
         PucchPolarDecodeHacCfg(fapipucchpduInfo, uciLen, pduIndex, PUCCH_UCI_PART1, 0, sfnNum, slotNum, cellIndex);
     }
@@ -1412,16 +1412,16 @@ void UlTtiRequestPucchPduparse(ArmPucParam *armPucParam, PucParam *pucParam, uin
 
 }
 
-uint32_t PucchPart1ParaCfgHandler()//计算DSP解调参数时顺便计算，是否需要单独抽出来待确认?
+void PucchPart1ParaCfgHandler()//计算DSP解调参数时顺便计算，是否需要单独抽出来待确认?
 {
     printf("配置Part1译码参数\n");
     
     //UlTtiRequestPucchPduparse(fapipucchpduInfo, pucParam, sfnNum, slotNum, cellIndex); 
 
-    return 0;
+    //return 0;
 }
 
-uint32_t PucchUCIPart1Part2Parse()
+void PucchUCIPart1Part2Parse()
 {
     uint16_t sfn;     
     uint16_t slot;
@@ -1471,7 +1471,7 @@ uint32_t PucchUCIPart1Part2Parse()
         for(pduNumCnt = 0; pduNumCnt < pduNum; pduNumCnt++)
         {
             rmDecodePduInfo = &(pucchRMDecodeHacCfgPara->rmPduInfo[pduNumCnt]);
-            rmUeDecodeOut   = (rmDecodePduInfo->OutputAddr);//UE输出结果地址
+            //rmUeDecodeOut   = (rmDecodePduInfo->OutputAddr);//UE输出结果地址
             
             pduIndex  = rmDecodePduInfo->ueIdx;
             rptIdx    = g_pucchFmt23RptIndex[cellIdx][slot][pduIndex];
@@ -1493,7 +1493,7 @@ uint32_t PucchUCIPart1Part2Parse()
 				csipart1Info->CsiPart1Crc          = 0;//待补充,rmUeDecodeOut->
 				csipart1Info->CsiPart1Payload[0]   = 0;//L2D到DDR的拷贝,待补充,rmUeDecodeOut->
 
-                if(fapipucchpduInfo->uciInfoAddInV3.numPart2s)//如果存在CSI Part2,顺便配置CSI Part2译码参数
+                if(fapipucchpduInfo->uciInfoAddInV3.part2sNum)//如果存在CSI Part2,顺便配置CSI Part2译码参数
                 {
                     //sizesPart1Params = ;//待补充
                     //map              = ;//待补充
@@ -1504,7 +1504,7 @@ uint32_t PucchUCIPart1Part2Parse()
                     {
                         PucchRMDecodeHacCfg(fapipucchpduInfo, csiPart2BitLength, pduIndex, PUCCH_PART2, rmDecodePduInfo->llrNum, sfn, slot, cellIdx);
                     }
-                    else if(POLAR_BIT_LENGTH_Max >= csiPart2BitLength)
+                    else if((POLAR_BIT_LENGTH_MIN <= csiPart2BitLength) && (POLAR_BIT_LENGTH_MAX >= csiPart2BitLength))
                     {
                         PucchPolarDecodeHacCfg(fapipucchpduInfo, csiPart2BitLength, pduIndex, PUCCH_PART2, rmDecodePduInfo->llrNum, sfn, slot, cellIdx);
                     }
@@ -1512,8 +1512,8 @@ uint32_t PucchUCIPart1Part2Parse()
 			}
 			else if(2 == msgType)//CSI Part2
 			{
-				csipart2Info = &(pucchFmt23Rst->fapiNrPucchFmt23Indication[ueIdx].csipart2Info);
-				csipart2Info->CsiPart2BitLen       = g_pucchCsiPart2BitLength[cellIdx][slot][ueIdx];
+				csipart2Info = &(pucchFmt23Rst->fapiNrPucchFmt23Indication[rptIdx].csipart2Info);
+				csipart2Info->CsiPart2BitLen       = g_pucchCsiPart2BitLength[cellIdx][slot][pduIndex];
 				csipart2Info->CsiPart2Crc          = 0;//待补充，rmUeDecodeOut->
 				csipart2Info->CsiPart2Payload[0]   = 0;//L2D到DDR的拷贝,待补充，rmUeDecodeOut->
 			}
@@ -1532,7 +1532,7 @@ uint32_t PucchUCIPart1Part2Parse()
         for(pduNumCnt = 0; pduNumCnt < pduNum; pduNumCnt++)
         {
             polarDecodePduInfo = &(pucchPolarDecodeHacCfgPara->polarPduInfo[pduNumCnt]);
-            polarUeDecodeOut   = (polarDecodePduInfo->OutputAddr);//UE输出结果地址
+            //polarUeDecodeOut   = (polarDecodePduInfo->OutputAddr);//UE输出结果地址
             
             pduIndex  = rmDecodePduInfo->ueIdx;
             rptIdx    = g_pucchFmt23RptIndex[cellIdx][slot][pduIndex];
@@ -1554,7 +1554,7 @@ uint32_t PucchUCIPart1Part2Parse()
 				csipart1Info->CsiPart1Crc         = 0;//待补充,rmUeDecodeOut->
 				csipart1Info->CsiPart1Payload[0]  = 0;//L2D到DDR的拷贝,待补充,rmUeDecodeOut->
 
-                if(fapipucchpduInfo->uciInfoAddInV3.numPart2s)//如果存在CSI Part2,顺便配置CSI Part2译码参数
+                if(fapipucchpduInfo->uciInfoAddInV3.part2sNum)//如果存在CSI Part2,顺便配置CSI Part2译码参数
                 {
                     //sizesPart1Params = ;//待补充
                     //map              = ;//待补充
@@ -1565,7 +1565,7 @@ uint32_t PucchUCIPart1Part2Parse()
                     {
                         PucchRMDecodeHacCfg(fapipucchpduInfo, csiPart2BitLength, pduIndex, PUCCH_PART2, polarDecodePduInfo->llrNum, sfn, slot, cellIdx);
                     }
-                    else if(POLAR_BIT_LENGTH_Max >= csiPart2BitLength)
+                    else if((POLAR_BIT_LENGTH_MIN <= csiPart2BitLength) && (POLAR_BIT_LENGTH_MAX >= csiPart2BitLength))
                     {
                         PucchPolarDecodeHacCfg(fapipucchpduInfo, csiPart2BitLength, pduIndex, PUCCH_PART2, polarDecodePduInfo->llrNum, sfn, slot, cellIdx);
                     }
@@ -1574,7 +1574,7 @@ uint32_t PucchUCIPart1Part2Parse()
 			else if(PUCCH_PART2 == msgType)//CSI Part2
 			{
 				csipart2Info = &(pucchFmt23Rst->fapiNrPucchFmt23Indication[rptIdx].csipart2Info);
-				csipart2Info->CsiPart2BitLen     = g_pucchCsiPart2BitLength[cellIdx][slot][ueIdx];
+				csipart2Info->CsiPart2BitLen     = g_pucchCsiPart2BitLength[cellIdx][slot][pduIndex];
 				csipart2Info->CsiPart2Crc        = 0;//待补充,rmUeDecodeOut->
 				csipart2Info->CsiPart2Payload[0] = 0;//L2D到DDR的拷贝,待补充,rmUeDecodeOut->
 			}
@@ -1589,10 +1589,10 @@ uint32_t PucchUCIPart1Part2Parse()
         ;//异常处理
     }
     
-    return 0;
+    //return 0;
 }
 
-uint32_t PucchPart1ParsePart2ParaCfgHandler()
+void PucchPart1ParsePart2ParaCfgHandler()
 {
     printf("解析Part1译码结果&&配置Part2译码参数并trigger HAC启动译码\n");
     PucchUCIPart1Part2Parse();//解析Part1译码结果,顺便配置Part2译码参数
@@ -1601,17 +1601,17 @@ uint32_t PucchPart1ParsePart2ParaCfgHandler()
 
 }
 
-uint32_t PucchPart2ParseHandler()
+void PucchPart2ParseHandler()
 {
     printf("解析Part2译码结果\n");
     PucchUCIPart1Part2Parse();//解析Part2译码结果
 }
 
-uint32_t PucchUciSendHandler()//待设计，收齐结果后发送(格式23的译码结果，DSP上报结果（HAC做DTX判决）)？
+void PucchUciSendHandler()//待设计，收齐结果后发送(格式23的译码结果，DSP上报结果（HAC做DTX判决）)？
 {
     printf("UCI发送\n");
     
-    return 0;
+    //return 0;
 }
 
 uint32_t PucchUciFsmProc(uint32_t event, uint16_t sfnNum, uint16_t slotNum, uint8_t cellIndex)
@@ -1678,9 +1678,9 @@ void pucchFmt0Pack(FapiNrPucchFmt01Indication *fapiNrPucchFmt01Indication, Pucch
     uint8_t numHarq;
     uint8_t srIndication;
     uint8_t harqValue[2];
-    bool    srExistFlag;
-    bool    harqExistFlag;
-    bool    isDtx;
+    uint8_t srExistFlag;
+    uint8_t harqExistFlag;
+    uint8_t isDtx;
     SRInfoFmt01   *srInfoFmt01   = NULL;
 	HARQInfoFmt01 *harqInfoFmt01 = NULL;
 
@@ -1821,9 +1821,9 @@ void pucchFmt1Pack(FapiNrPucchFmt01Indication *fapiNrPucchFmt01Indication, Pucch
     uint8_t numHarq;
     uint8_t srIndication;
     uint8_t harqValue[2];
-    bool    srExistFlag;
-    bool    harqExistFlag;
-    bool    isDtx;
+    uint8_t srExistFlag;
+    uint8_t harqExistFlag;
+    uint8_t isDtx;
     SRInfoFmt01   *srInfoFmt01   = NULL;
 	HARQInfoFmt01 *harqInfoFmt01 = NULL;
 
@@ -1881,6 +1881,8 @@ void pucchFmt01Rpt(uint16_t sfnNum, uint16_t slotNum, uint8_t cellIndex)
         rptIndex          = g_pucchFmt01RptIndex[cellIndex][slotNum][pduIndex];
         fapiNrPucchFmt01Indication = &(pucchFmt01Rst->fapiNrPucchFmt01Indication[rptIndex]);
         pucchFmt0Pack(fapiNrPucchFmt01Indication, pucchFmt0Rpt, fapiPucchPduInfo);
+        //转换
+        SendTlvMsg(&(g_pucchTlvMsg[cellIndex][slotNum][PUCCH_PART1]), g_pucchRptBuffer[cellIndex][slotNum][PUCCH_PART1], (uint8_t *)fapiNrPucchFmt01Indication);
 	}
 
     for(uciNumCnt = 0; uciNumCnt < pucchFmt1Num; uciNumCnt++)
@@ -1892,11 +1894,22 @@ void pucchFmt01Rpt(uint16_t sfnNum, uint16_t slotNum, uint8_t cellIndex)
         rptIndex          = g_pucchFmt01RptIndex[cellIndex][slotNum][pduIndex];
         fapiNrPucchFmt01Indication = &(pucchFmt01Rst->fapiNrPucchFmt01Indication[rptIndex]);
         pucchFmt1Pack(fapiNrPucchFmt01Indication, pucchFmt1Rpt, fapiPucchPduInfo);
+        //转换
+        SendTlvMsg(&(g_pucchTlvMsg[cellIndex][slotNum][PUCCH_PART1]), g_pucchRptBuffer[cellIndex][slotNum][PUCCH_PART1], (uint8_t *)fapiNrPucchFmt01Indication);
 	}
-
-    //转换
-    SendTlvMsg(&(g_pucchTlvMsg[cellIndex][slotNum][PUCCH_PART1]), g_pucchRptBuffer[cellIndex][slotNum][PUCCH_PART1], fapiNrPucchFmt01Indication);
 
     //发送
 
 }
+
+FsmTable g_pucchTable[] =
+{
+    //{当前状态S，                                  trigger事件E，                              handler函数H，                           转移后的状态S}
+	{Pucch_Uci_Idle_State,                         Pucch_Slot_Tast_Start_Event,                PucchPart1ParaCfgHandler,               Pucch_Wait_Part1_Result_State},//S0{E0,H0}->S1
+	
+	{Pucch_Wait_Part1_Result_State,                Pucch_Part1_Result_Trigger_Event,           PucchPart1ParsePart2ParaCfgHandler,     Pucch_Wait_Part2_Result_State},//S1{E1,H1}->S2
+	
+	{Pucch_Wait_Part2_Result_State,                Pucch_Part2_Result_Trigger_Event,           PucchPart2ParseHandler,                 Pucch_Uci_Packing_State},//S2{E2,H2}->S3
+	
+    {Pucch_Uci_Packing_State,                      Pucch_UCI_Packing_Over_Event,               PucchUciSendHandler,                    Pucch_Uci_Idle_State},//S3{E3,H3}->S0
+};
