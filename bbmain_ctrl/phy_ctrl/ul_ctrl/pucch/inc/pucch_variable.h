@@ -56,15 +56,3 @@ TLV_MSG g_pucchTlvMsg[MAX_CELL_NUM][SLOT_NUM_PER_FRAME][PUCCH_PART_NUM];
 uint8_t g_pucchRptBuffer[MAX_CELL_NUM][SLOT_NUM_PER_FRAME][PUCCH_PART_NUM][PUCCH_RPT_BUFFER_SIZE];
 
 FSM g_pucchFSM[MAX_CELL_NUM][PUCCH_UCI_PING_PONG_NUM];
-
-FsmTable g_pucchTable[] =
-{
-    //{当前状态S，                                  trigger事件E，                              handler函数H，                           转移后的状态S}
-	{Pucch_Uci_Idle_State,                         Pucch_Slot_Tast_Start_Event,                PucchPart1ParaCfgHandler,               Pucch_Wait_Part1_Result_State},//S0{E0,H0}->S1
-	
-	{Pucch_Wait_Part1_Result_State,                Pucch_Part1_Result_Trigger_Event,           PucchPart1ParsePart2ParaCfgHandler,     Pucch_Wait_Part2_Result_State},//S1{E1,H1}->S2
-	
-	{Pucch_Wait_Part2_Result_State,                Pucch_Part2_Result_Trigger_Event,           PucchPart2ParseHandler,                 Pucch_Uci_Packing_State},//S2{E2,H2}->S3
-	
-    {Pucch_Uci_Packing_State,                      Pucch_UCI_Packing_Over_Event,               PucchUciSendHandler,                    Pucch_Uci_Idle_State},//S3{E3,H3}->S0
-};

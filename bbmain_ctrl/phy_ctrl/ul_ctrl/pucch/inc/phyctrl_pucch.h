@@ -101,14 +101,14 @@ typedef struct
 typedef struct
 {
     uint8_t pduIdxInner;        /* 物理层内部使用的每个UE的索引 */
-    bool    pi2bpsk;            /* pi/2-BPSK是否使能标志，取值0:不使能，使用QPSK，1:使能，使用pi/2-BPSK */
-    bool    addDmrsEnable;      /* 附加导频是否使能标志，取值0:不使能，1:使能 */
+    uint8_t pi2bpsk;            /* pi/2-BPSK是否使能标志，取值0:不使能，使用QPSK，1:使能，使用pi/2-BPSK */
+    uint8_t addDmrsEnable;      /* 附加导频是否使能标志，取值0:不使能，1:使能 */
     uint8_t rsvd1;
     uint8_t dmrsSymIdx[HOP_NUM][PUC_FMT3_MAX_DMRS_NUM];
     uint8_t cyclicShift[HOP_NUM][PUC_FMT3_MAX_DMRS_NUM];    /* 38.211协议 6.3.2.2.2计算得到的各符号α值 */
 
     uint8_t rsvd2;
-    bool    uciPart2Enable;
+    uint8_t uciPart2Enable;
     uint8_t part1BlockNum;
     uint8_t part2BlockNum;
     Fmt3UciLlrPos part1LlrPos[MAX_PUCCH_3_BLOCK_NUM];
@@ -205,7 +205,7 @@ typedef struct
     uint8_t pduIdxInner;
     uint8_t mcsValue;       /* DSP检出的MCS的值 */
     uint8_t rsvd;
-    bool    isDtx;          /* DTX状态：1：DTX; 0:非DTX */
+    uint8_t isDtx;          /* DTX状态：1：DTX; 0:非DTX */
     int32_t snr;            /* SNR，线性值，由ARM转成FAPI需要的单位 */
 }PucchFmt0Rpt;
 
@@ -215,7 +215,7 @@ typedef struct
     uint8_t rsvd[3];
     uint8_t uciBitNum;          /* UCI比特个数，取值1或2 */
     uint8_t uciDecodeValue[2];  /* UCI解调结果, 每个bit保存到uint8_t中 */
-    bool    isDtx;              /* DTX状态：1：DTX; 0:非DTX */
+    uint8_t isDtx;              /* DTX状态：1：DTX; 0:非DTX */
     int32_t snr;                /* SNR，线性值，由ARM转成FAPI需要的单位 */
 }PucchFmt1Rpt;
 
@@ -223,7 +223,7 @@ typedef struct
 {
     uint8_t pduIdxInner;
     uint8_t rsvd[2];
-    bool    isDtxM;     /* DSP计算的DTXm状态：1：DTX; 0:非DTX */
+    uint8_t isDtxM;     /* DSP计算的DTXm状态：1：DTX; 0:非DTX */
     int32_t snr;        /* SNR，线性值，由ARM转成FAPI需要的单位  */
 }PucchFmt23Rpt;
 
