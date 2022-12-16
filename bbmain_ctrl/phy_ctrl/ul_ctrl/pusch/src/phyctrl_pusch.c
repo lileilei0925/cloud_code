@@ -1712,8 +1712,11 @@ void PuschUciAndDataHacParaCfg(L1PuschParaPduInfo *l1PuschParaPduInfo, uint8_t c
         }
     }
 }
-uint32_t PuschACK1or2BitDecodeHandler()//待李雷雷提供ACK 1/2比特译码函数
+
+uint32_t PuschACK1or2BitDecodeHandler()
 {
+
+    //L1PuschHarqAckDecoder2Bit(cellIndex, slotIndex, ueIndex, l1PuschUeInfo, puschResourceInfo);
 
     return 0;
 }
@@ -1770,6 +1773,7 @@ uint32_t PuschUCIParser()//ACK大于2比特，CSI Part1和CSI Part2解析
             
             ueIdx  = rmDecodePduInfo->ueIdx;
             rptIdx = g_puschUciRptIndex[cellIdx][slot][ueIdx];
+            l1PuschPduInfo = &(g_puschParaInfoOut[cellIdx][slot].l1PuschPduInfo[ueIdx]);
 			if(0 == msgType)//ACK大于2比特
 			{
 				harqInfoFmt23 = &(puschUciRst->fapiNrPushUciIndication[rptIdx].harqInfoFmt23);
@@ -1797,7 +1801,12 @@ uint32_t PuschUCIParser()//ACK大于2比特，CSI Part1和CSI Part2解析
                     else if((POLAR_BIT_LENGTH_MIN <= csiPart2BitLen) && (POLAR_BIT_LENGTH_MAX >= csiPart2BitLen))
                     {
                         PuschPolarDecodeHacCfg(l1PuschPduInfo, csiPart2BitLen, pduIndex, Pusch_Uci_CsiPart2, sfn, slot, cellIdx);
-                    } 
+                    }
+
+                    if((l1PuschPduInfo->pduBitMap)&0x1)//配置含Part2的UE的LDPC编码
+                    {
+                        //L1PuschPara2LdpcDecoderHac(cellIdx, l1PuschPduInfo, ldpcDecoderHacPara);
+                    }
                 }
 			}
 			else if(2 == msgType)//CSI Part2
@@ -1826,6 +1835,7 @@ uint32_t PuschUCIParser()//ACK大于2比特，CSI Part1和CSI Part2解析
             
             ueIdx  = polarDecodePduInfo->ueIdx;
             rptIdx = g_puschUciRptIndex[cellIdx][slot][ueIdx];
+            l1PuschPduInfo = &(g_puschParaInfoOut[cellIdx][slot].l1PuschPduInfo[ueIdx]);
 			if(0 == msgType)//ACK大于2比特
 			{
 				harqInfoFmt23 = &(puschUciRst->fapiNrPushUciIndication[rptIdx].harqInfoFmt23);
@@ -1841,10 +1851,9 @@ uint32_t PuschUCIParser()//ACK大于2比特，CSI Part1和CSI Part2解析
 				csipart1Info->CsiPart1Payload[0] = 0;//polarUeDecodeOut,L2D到DDR的拷贝,待补充
                 if(l1PuschPduInfo->puschUciPara.flagCsiPart2)//如果存在CSI Part2
                 {
-                    //l1PuschPduInfo = ;//待补充
-                    //sizesPart1Params = ;//待补充
-                    //map              = ;//待补充
-                    //numPart1Params   = ;//待补充
+                    //sizesPart1Params = ;//待接口确定后补充
+                    //map              = ;//待接口确定后补充
+                    //numPart1Params   = ;//待接口确定后补充
                     csiPart2BitLen = CalcCsiPart2BitLength(&(l1PuschPduInfo->part2InfoAddInV3), csipart1Info->CsiPart1Payload, sizesPart1Params, map, csipart1Info->CsiPart1BitLen, numPart1Params);
                     if((RM_BIT_LENGTH_MIN <= csiPart2BitLen) && (RM_BIT_LENGTH_MAX >= csiPart2BitLen))
                     {
@@ -1890,8 +1899,8 @@ void PuschPart1AndLDPCParaCfgHandler()//是否与DSP参数计算放在一起待�
     printf("配置Part1译码参数&&配置无Part2 UE的LDPC译码参数\n");
     
     //配置CSI Part1译码参数
-
     //配置不含CSI Part2的UE的LDPC译码参数
+    //PuschUciAndDataHacParaCfg(L1PuschParaPduInfo *l1PuschParaPduInfo, uint8_t cellIndex)//ACK大于2比特&&CSI part1&&不含CSI Part2的Data(LDPC)
 
     //return 0;
 }
