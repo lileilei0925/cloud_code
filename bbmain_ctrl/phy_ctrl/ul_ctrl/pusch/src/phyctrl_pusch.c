@@ -1408,7 +1408,99 @@ uint32_t L1PuschCsiPart2AndDataExtract(uint8_t dataFlag, L1PuschPduInfo *l1Pusch
     return segmNum;
 }
 
+uint32_t L1PuschHarqAckDecoder2Bit(uint8_t cellIndex, uint8_t slotIndex, uint8_t ueIndex, L1PuschPduInfo *l1PuschUeInfo, PuschResourceInfo *puschResourceInfo)
+{   
+    uint8_t  qamModer, layerNum,enCodeBitN, deMultiLlrE;
+    uint8_t  symbIndex, harqAckBitLen;
+    uint16_t nGHarqAck, loopIndex, index;
+    int8_t   *ackSoftBitAddr = NULL;
+    int16_t  ackSoftBit[24] = { 0 }; 
+    int16_t  disMet[4] = { 0 };
+    int16_t  maxDisMet;
+    uint8_t  tempAckOut;
+    int8_t   *encodeTableSelect = NULL;
+    uint16_t thresholdAck = 0;
 
+    qamModer  = l1PuschUeInfo->qamModOrder;
+    layerNum  = l1PuschUeInfo->nrOfLayers;
+    nGHarqAck = puschResourceInfo->enCodeAckRe * qamModer * layerNum;
+    
+    deMultiLlrE = 0;
+    for (symbIndex = 0; symbIndex < SYM_NUM_PER_SLOT; symbIndex++){
+        deMultiLlrE += g_puschAckAndCsiInfo[cellIndex][slotIndex][ueIndex][symbIndex].ackReNum;
+    }
+    
+    /* E>N: 重复模式合并，E=N 直接输出，E<N 填0 */
+    harqAckBitLen = l1PuschUeInfo->puschUciPara.harqAckBitLength;
+    enCodeBitN    = (harqAckBitLen == 1) ? qamModer : 3 * qamModer;
+    nGHarqAck     = deMultiLlrE * qamModer * layerNum;
+    for (loopIndex = 0; loopIndex < nGHarqAck;  loopIndex++){ 
+        index      = loopIndex % enCodeBitN;
+        ackSoftBit[index] += ackSoftBitAddr[loopIndex];
+    }
+    
+    if (harqAckBitLen == 1){
+        for (index = 0; index < 2; index++){
+            for (loopIndex = 0; loopIndex < enCodeBitN; loopIndex++){
+                disMet[index] += g_lut1BitEncodeTable[loopIndex][0] * ackSoftBit[loopIndex] + g_lut1BitEncodeTable[loopIndex][1] * ackSoftBit[loopIndex];
+            }
+        }
+    
+        tempAckOut = 0;
+        maxDisMet  = disMet[0];
+        if (disMet[1] > disMet[0]){
+            tempAckOut = 1;
+            maxDisMet  = disMet[1];
+            disMet[2]  = disMet[0];
+            disMet[0]  = disMet[1];
+            disMet[1]  = disMet[2];
+        }
+        /* disMet[0],  disMet[1],取绝对值即算法文档的Metric[0],Metric[1], 分别表示最大和次大打分值 */
+    }
+    else{ 
+        if (qamModer == 1){
+            encodeTableSelect = &g_lut2BitEncodeTableQm1[0][0];
+        }
+        else if (qamModer == 2){
+            encodeTableSelect = &g_lut2BitEncodeTableQm2[0][0]; 
+        } 
+        else if (qamModer == 4){
+            encodeTableSelect = &g_lut2BitEncodeTableQm4[0][0]; 
+        } 
+        else if (qamModer == 6){
+            encodeTableSelect = &g_lut2BitEncodeTableQm6[0][0]; 
+        }
+        else if (qamModer == 8){
+            encodeTableSelect = &g_lut2BitEncodeTableQm8[0][0]; 
+        }  
+
+        for (index = 0; index < 4; index++){
+            for (loopIndex = 0; loopIndex < enCodeBitN; loopIndex++){
+                encodeTableSelect = encodeTableSelect + loopIndex * 4;
+                disMet[index] += encodeTableSelect[0] * ackSoftBit[loopIndex] + encodeTableSelect[1] * ackSoftBit[loopIndex]
+                                 + encodeTableSelect[2] * ackSoftBit[loopIndex] + encodeTableSelect[3] * ackSoftBit[loopIndex];
+            }
+        }
+
+        tempAckOut = 0;
+        maxDisMet  = disMet[0];
+        for (index = 1; index < 4; index++){
+            if (disMet[index] > disMet[0]){
+                maxDisMet  = disMet[index];
+                tempAckOut = index;
+                disMet[1] = disMet[0];
+                disMet[0] = disMet[index];
+
+            }
+            else if (disMet[index] > disMet[1]){
+                 disMet[1] = disMet[index];
+            }
+        }
+        /* disMet[0],  disMet[1],取绝对值即算法文档的Metric[0],Metric[1], 分别表示最大和次大打分值 */
+    }
+    
+    return 0;
+}
 void PuschRMDecodeHacCfg(L1PuschPduInfo *l1PuschPduInfo, uint16_t uciLen ,uint8_t pduIdxInner, uint8_t msgType, uint16_t sfnNum, uint8_t slotNum, uint8_t cellIndex)
 {
     uint8_t  pduNum;
@@ -1534,67 +1626,6 @@ void PuschPolarDecodeHacCfg(L1PuschPduInfo *l1PuschPduInfo, uint16_t uciLen ,uin
 	}
 
     (hacHead->pduNum)++;
-}
-
-uint32_t L1PuschHarqAckDecoder2Bit(uint8_t cellIndex, uint8_t slotIndex, uint8_t ueIndex, L1PuschPduInfo *l1PuschUeInfo, PuschResourceInfo *puschResourceInfo)
-{   
-    uint8_t  qamModer, layerNum,enCodeBitN, deMultiLlrE;
-    uint8_t  symbIndex, harqAckBitLen;
-    uint16_t nGHarqAck, loopIndex, index;
-    int8_t   *ackSoftBitAddr = NULL;
-    int16_t  ackSoftBit[24] = { 0 }; 
-    int16_t  disMet[4] = { 0 };
-    uint8_t  tempAckOut, maxDisMet;
-    uint16_t thresholdAck = 0;
-
-    qamModer  = l1PuschUeInfo->qamModOrder;
-    layerNum  = l1PuschUeInfo->nrOfLayers;
-    nGHarqAck = puschResourceInfo->enCodeAckRe * qamModer * layerNum;
-    
-    deMultiLlrE = 0;
-    for (symbIndex = 0; symbIndex < SYM_NUM_PER_SLOT; symbIndex++){
-        deMultiLlrE += g_puschAckAndCsiInfo[cellIndex][slotIndex][ueIndex][symbIndex].ackReNum;
-    }
-
-    harqAckBitLen = l1PuschUeInfo->puschUciPara.harqAckBitLength;
-    enCodeBitN    = (harqAckBitLen == 1) ? qamModer : 3 * qamModer;
-    nGHarqAck     = deMultiLlrE * qamModer * layerNum;
-    for (loopIndex = 0; loopIndex < nGHarqAck;  loopIndex++){
-        index      = loopIndex % enCodeBitN;
-        ackSoftBit[index] += ackSoftBitAddr[loopIndex];
-    }
-    
-    if (harqAckBitLen == 1){
-        for (index = 0; index < 2; index++){
-            for (loopIndex = 0; loopIndex < enCodeBitN; loopIndex++){
-                disMet[index] += g_lut1BitEncodeTable[loopIndex][0] * ackSoftBit[loopIndex] + g_lut1BitEncodeTable[loopIndex][1] * ackSoftBit[loopIndex];
-            }
-        }
-    
-        tempAckOut = 0;
-        maxDisMet  = disMet[0];
-        if (disMet[1] > disMet[0]){
-            tempAckOut = 1;
-            maxDisMet  = disMet[1];
-            disMet[2]  = disMet[0];
-            disMet[0]  = disMet[1];
-            disMet[1]  = disMet[2];
-        }
-    }
-    else{ 
-        for (index = 0; index < 4; index++){
-            for (loopIndex = 0; loopIndex < enCodeBitN; loopIndex++){
-                disMet[index] += g_lut1BitEncodeTable[loopIndex][0] * ackSoftBit[loopIndex] + g_lut1BitEncodeTable[loopIndex][1] * ackSoftBit[loopIndex]
-                                 + g_lut1BitEncodeTable[loopIndex][2] * ackSoftBit[loopIndex] + g_lut1BitEncodeTable[loopIndex][3] * ackSoftBit[loopIndex];
-            }
-        }
-
-        tempAckOut = 0;
-        maxDisMet  = disMet[0];
-        
-    }
-    
-    return 0;
 }
 
 
