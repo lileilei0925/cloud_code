@@ -450,6 +450,7 @@ typedef struct
 } PuschDeqAndDemapHacPara;
 
 /* LDPC 接口 */
+#if 0
 typedef struct 
 {
     uint32_t *segmStartAddr;
@@ -463,6 +464,7 @@ typedef struct
     uint8_t  segmNum;          /* 分割的组数 */
     PuschLlrSegmPara puschLlrSegmPara[5]; /* CSI-Part2&Data抽取参数 */
 }PuschLlrSegmInfo;
+#endif
 
 typedef struct 
 {
@@ -493,7 +495,9 @@ typedef struct
     uint32_t cbRmLen0;         /* 第一类码块速率匹配后的长度 */
     uint32_t cbRmLen1;         /* 第二类码块速率匹配后的长度 */
     uint32_t tbSize;           /* 添加TB Size */ 
-    PuschLlrSegmInfo PuschLlrSegmInfo; /* CSI-Part2&Data抽取参数 */
+    uint8_t  llrSegNum; 
+    uint8_t  rsvd; 
+    LlrSegInfo llrSegInfo[5];; /* CSI-Part2&Data抽取参数 */
     uint32_t harqInBufOffset;
     uint32_t harqOutBufOffset;
     uint32_t tbDataOutOffset;

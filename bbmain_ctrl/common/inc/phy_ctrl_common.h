@@ -1,6 +1,6 @@
 #pragma once
 #include "common_macro.h"
-
+#include "math.h"
 /* P5 Cell configuration messages local structure*/
 typedef struct 
 {
@@ -75,7 +75,7 @@ typedef struct
 
 typedef struct
 {
-    uint32_t      segStartAddr;
+    uint32_t      *segStartAddr;
     uint16_t      segCycNum;
     uint32_t      segLlrNum;
     uint32_t      segPeriod;
@@ -95,7 +95,7 @@ typedef struct
     uint8_t       rsvd; 
     LlrSegInfo    llrSegInfo[5];
 
-    uint32_t      OutputAddr;     //译码输出数据起始地址 
+    uint32_t      *OutputAddr;     //译码输出数据起始地址 
 }PolarDecodePduInfo;
 
 typedef struct
@@ -111,7 +111,7 @@ typedef struct
     uint8_t       rsvd[3];
     
     LlrSegInfo    llrSegInfo[5];
-	uint32_t      OutputAddr;           //译码输出数据地址
+	uint32_t      *OutputAddr;           //译码输出数据地址
 }RMDecodePduInfo;
 
 typedef struct
