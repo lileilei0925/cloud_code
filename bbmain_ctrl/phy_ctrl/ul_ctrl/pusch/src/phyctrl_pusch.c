@@ -1898,11 +1898,9 @@ void PuschPart1AndLDPCParaCfgHandler()//是否与DSP参数计算放在一起待�
 {
     printf("配置Part1译码参数&&配置无Part2 UE的LDPC译码参数\n");
     
-    //配置CSI Part1译码参数
-    //配置不含CSI Part2的UE的LDPC译码参数
+    //配置CSI Part1译码参数和不含CSI Part2的UE的LDPC译码参数
     //PuschUciAndDataHacParaCfg(L1PuschParaPduInfo *l1PuschParaPduInfo, uint8_t cellIndex)//ACK大于2比特&&CSI part1&&不含CSI Part2的Data(LDPC)
 
-    //return 0;
 }
 
 void PuschPart1ParsePart2AndLDPCParaCfgHandler()
@@ -1953,7 +1951,7 @@ uint32_t PuschUciFsmProc(uint32_t event, uint16_t sfnNum, uint16_t slotNum, uint
     /*待挪至slot任务启动时初始化
     FSM_Regist(g_puschUciFSM[cellIndex][slotNum&0x1],g_puschUciTable);待挪至slot任务启动时初始化
     g_puschUciFSM[cellIndex][slotNum&0x1].curState = Pusch_Uci_Idle_State;
-    g_puschUciFSM[cellIndex][slotNum&0x1].size      = sizeof(g_puschUciTable)/sizeof(FsmTable);
+    g_puschUciFSM[cellIndex][slotNum&0x1].size     = sizeof(g_puschUciTable)/sizeof(FsmTable);
     */
 
     if(g_puschCsiPart2Flag[cellIndex][slotNum])//本slot本小区含CSI Part2的UE，进入状态机流程
@@ -1986,8 +1984,6 @@ uint32_t PuschUciFsmProc(uint32_t event, uint16_t sfnNum, uint16_t slotNum, uint
     {
         while(1)//待修改为上报结果收集完成即退出
         {
-            printf("state:%d\n",g_puschUciFSM[cellIndex][slotNum&0x1].curState);
-            //scanf("%d", &event);
             switch (event)
             {
                 case Pusch_Slot_Tast_Start_Event:

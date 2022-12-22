@@ -157,7 +157,7 @@ void PucchFmt0PduParse(PucParam *pucParam, FapiNrMsgPucchPduInfo *fapipucchpduIn
     pucParam->hopParam[1].dmrsSymNum  = 0;
     pucParam->hopParam[1].uciSymNum   = pucParam->hopParam[1].symNum;
 
-    fmt0Param = (PucFmt0Param *)((uint8_t *)pucParam  + sizeof(PucParam) - sizeof(PucFmt1Param));
+    fmt0Param = (PucFmt0Param *)(&(pucParam->formatxParam));
     fmt0Param->pduIdxInner = pduIndex;
     if(srFlag)//暂时不考虑抽头，即offset取值为0
     {
@@ -383,7 +383,8 @@ void PucchFmt2PduParse(PucParam *pucParam, FapiNrMsgPucchPduInfo *fapipucchpduIn
         PseudoRandomSeqGen(g_fmt2pilotScrambuff[1], Cinit, SequenceLen, StartSaveIdx);
         
         uciPart1BitLength = (fapipucchpduInfo->srFlag) + (fapipucchpduInfo->bitLenHarq) + (fapipucchpduInfo->csiPart1BitLength);
-        fmt2Param = (PucFmt2Param *)((uint8_t *)pucParam  + sizeof(PucParam) - sizeof(PucFmt1Param));
+
+        fmt2Param = (PucFmt2Param *)(&(pucParam->formatxParam));
         fmt2Param->pduIdxInner = pduIndex;
         fmt2Param->bitNum      = uciPart1BitLength;
         //fmt2Param->scrambSeqAddr;   /* 加扰序列在DDR中的存放地址,TODO:根据HAC存放确定是否需要2个hop的首地址 */ 
@@ -1071,7 +1072,7 @@ void PucchFmt3PduParse(PucParam *pucParam, FapiNrMsgPucchPduInfo *fapipucchpduIn
     maxCodeRate    = (fapipucchpduInfo->pucchParaAddInV3.maxCodeRate)&0x7;
     uciPart2Enable = (0 == (fapipucchpduInfo->uciInfoAddInV3.part2sNum)) ? 0:1;
 
-	fmt3Param = (PucFmt3Param *)((uint8_t *)pucParam  + sizeof(PucParam) - sizeof(PucFmt1Param));
+    fmt3Param = (PucFmt3Param *)(&(pucParam->formatxParam));
     fmt3Param->pduIdxInner    = pduIndex;
 	fmt3Param->pi2bpsk        = (1 == fapipucchpduInfo->pi2BpskFlag) ? 1:0;
 	fmt3Param->addDmrsEnable  = (1 == fapipucchpduInfo->addDmrsFlag) ? 1:0;
@@ -1196,7 +1197,7 @@ void UlTtiRequestPucchFmt1Pduparse(ArmPucParam *armPucParam, PucParam *pucParam,
 
     fapipucchpduInfo = &(armPucParam->FapiPucchPduInfo[pucchpduGroupCnt]);//待修改
     /* fmt1 UE common */
-    fmt1Param  =  (PucFmt1Param *)((uint8_t *)pucParam  + sizeof(PucParam) - sizeof(PucFmt1Param));
+    fmt1Param = (PucFmt1Param *)(&(pucParam->formatxParam));
     PucchNcsandUVCalc(slotNum,fapipucchpduInfo->nIdPucchHopping,fapipucchpduInfo->groupOrSequenceHopping);
     for (SymbIdx = 0; SymbIdx < SYM_NUM_PER_SLOT; SymbIdx++)
     {
@@ -1235,7 +1236,7 @@ void UlTtiRequestPucchFmt1Pduparse(ArmPucParam *armPucParam, PucParam *pucParam,
             fmt1UEParam = &fmt1ParamOcc->fmt1UEParam[pucchindex];
             fmt1UEParam->pduIdxInner  = pucchpduIndex;
             fmt1UEParam->m0           = (fapipucchpduInfo->initCyclicShift);
-            fmt1UEParam->uciBitNum    = (fapipucchpduInfo->bitLenHarq);//待确认SR与HARQ碰撞场景
+            fmt1UEParam->uciBitNum    = (0 == (fapipucchpduInfo->bitLenHarq)) ? (fapipucchpduInfo->srFlag):(fapipucchpduInfo->bitLenHarq);
         }
 
         if(MinUserOcc > pucchuserNumPerOcc)
@@ -1265,7 +1266,6 @@ void UlTtiRequestPucchFmt1Pduparse(ArmPucParam *armPucParam, PucParam *pucParam,
     pucParam->hopParam[1].prbStart    = fapipucchpduInfo->secondHopPRB;
     pucParam->hopParam[1].prbSize     = fapipucchpduInfo->prbSize;
     
-
     /* time domain */
     numSymbols = fapipucchpduInfo->numSymbols;
     symNum[0]                         = (0 == intraSlotFreqHopping) ? numSymbols : (numSymbols>>1);
@@ -1346,6 +1346,10 @@ void UlTtiRequestPucchPduparse(ArmPucParam *armPucParam, PucParam *pucParam, uin
     uint8_t  pucchpduGroupCnt;
     uint8_t  fmtIdx;
     FapiNrMsgPucchPduInfo *fapipucchpduInfo = NULL;
+    PucFmt0AlgoParam      *fmt0AlgoParam    = NULL;
+    PucFmt1AlgoParam      *fmt1AlgoParam    = NULL;
+    PucFmt23AlgoParam     *fmt2AlgoParam    = NULL;
+    PucFmt23AlgoParam     *fmt3AlgoParam    = NULL;
 
     fapipucchpduInfo = &(armPucParam->FapiPucchPduInfo[0]);
 
@@ -1404,21 +1408,32 @@ void UlTtiRequestPucchPduparse(ArmPucParam *armPucParam, PucParam *pucParam, uin
     g_PucchPara[cellIndex].fmt3Num  = armPucParam->pucchfmtpdunum[PUCCH_FORMAT_3];
 
     /*算法参数待接口OAM确认后赋值
-        PucFmt0AlgoParam  fmt0AlgoParam; 
-        PucFmt1AlgoParam  fmt1AlgoParam; 
-        PucFmt23AlgoParam fmt2AlgoParam;
-        PucFmt23AlgoParam fmt3AlgoParam;
+    fmt0AlgoParam  = g_PucchPara[cellIndex].fmt0AlgoParam;
+    fmt1AlgoParam  = g_PucchPara[cellIndex].fmt1AlgoParam;
+    fmt23AlgoParam = g_PucchPara[cellIndex].fmt23AlgoParam;
+
+    fmt0AlgoParam->deltaOffset  = ;
+    fmt0AlgoParam->noiseTapNum  = ;
+    fmt0AlgoParam->threshold    = ;
+
+    fmt1AlgoParam->noiseTapNum  = ;
+    fmt1AlgoParam->threshold    = ;
+
+    fmt23AlgoParam->MrcIrcFlag  = ;
+    fmt23AlgoParam->Epsilon     = ;
+    fmt23AlgoParam->beta        = ;
+    fmt23AlgoParam->segNum      = ;
+    fmt23AlgoParam->threshold   = ;
     */
 
 }
 
-void PucchPart1ParaCfgHandler()//计算DSP解调参数时顺便计算，是否需要单独抽出来待确认?
+void PucchPart1ParaCfgHandler()//计算DSP解调参数时顺便计算
 {
     printf("配置Part1译码参数\n");
     
     //UlTtiRequestPucchPduparse(fapipucchpduInfo, pucParam, sfnNum, slotNum, cellIndex); 
 
-    //return 0;
 }
 
 void PucchUCIPart1Part2Parse()
