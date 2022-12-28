@@ -13,7 +13,7 @@ uint32_t L1PuschCsiPart2ResCalculate(L1PuschPduInfo *l1PuschUeInfo, PuschResourc
 uint32_t L1PuschDataTypeCalculate(L1PuschPduInfo *l1PuschUeInfo, uint8_t *dataFlag);
 uint32_t L1PuschCsiPart2AndDataExtract(uint8_t dataFlag, L1PuschPduInfo *l1PuschUeInfo, PuschResourceInfo *puschResourceInfo, CsiPart2ParaInfo *csiPart2ParaInfo, LlrSegInfo *llrSegInfo);
 
-#if 1
+#if 0
 int main(void)
 {
     uint32_t a = 40;
@@ -1793,7 +1793,7 @@ uint32_t PuschUCIParser()//ACK大于2比特，CSI Part1和CSI Part2解析
                     //sizesPart1Params = ;//待补充
                     //map              = ;//待补充
                     //numPart1Params   = ;//待补充
-                    csiPart2BitLen = CalcCsiPart2BitLength(&(l1PuschPduInfo->part2InfoAddInV3), csipart1Info->CsiPart1Payload, sizesPart1Params, map, csipart1Info->CsiPart1BitLen, numPart1Params);
+                    csiPart2BitLen = CalcCsiPart2BitLength((UciInfoAddInV3 *)&(l1PuschPduInfo->part2InfoAddInV3), csipart1Info->CsiPart1Payload, sizesPart1Params, map, csipart1Info->CsiPart1BitLen, numPart1Params);
                     if((RM_BIT_LENGTH_MIN <= csiPart2BitLen) && (RM_BIT_LENGTH_MAX >= csiPart2BitLen))
                     {
                         PuschRMDecodeHacCfg(l1PuschPduInfo, csiPart2BitLen, pduIndex, Pusch_Uci_CsiPart2, sfn, slot, cellIdx);
@@ -1854,7 +1854,7 @@ uint32_t PuschUCIParser()//ACK大于2比特，CSI Part1和CSI Part2解析
                     //sizesPart1Params = ;//待接口确定后补充
                     //map              = ;//待接口确定后补充
                     //numPart1Params   = ;//待接口确定后补充
-                    csiPart2BitLen = CalcCsiPart2BitLength(&(l1PuschPduInfo->part2InfoAddInV3), csipart1Info->CsiPart1Payload, sizesPart1Params, map, csipart1Info->CsiPart1BitLen, numPart1Params);
+                    csiPart2BitLen = CalcCsiPart2BitLength((UciInfoAddInV3 *)(&(l1PuschPduInfo->part2InfoAddInV3)), csipart1Info->CsiPart1Payload, sizesPart1Params, map, csipart1Info->CsiPart1BitLen, numPart1Params);
                     if((RM_BIT_LENGTH_MIN <= csiPart2BitLen) && (RM_BIT_LENGTH_MAX >= csiPart2BitLen))
                     {
                         PuschRMDecodeHacCfg(l1PuschPduInfo, csiPart2BitLen, pduIndex, Pusch_Uci_CsiPart2, sfn, slot, cellIdx);

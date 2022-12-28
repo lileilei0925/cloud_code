@@ -22,9 +22,9 @@ uint32_t g_fmt2pilotScrambuff[2][5];                      //fmt2导频符号扰�
 
 float maxCodeRateTab[8] = {0.08, 0.15, 0.25, 0.35, 0.45, 0.60, 0.80, 0.80};
 
-PucchPara    g_PucchPara[MAX_CELL_NUM];                      /* Pucch armtodsp参数本地buffer *///放到DDR?
+PucchPara    g_PucchPara[MAX_CELL_NUM][SLOT_NUM_PER_FRAME];            /* Pucch armtodsp参数本地buffer *///放到DDR
 
-ArmPucParam  g_armPucParam[MAX_CELL_NUM][SLOT_NUM_PER_FRAME] = {0};                         /* Pucch 参数本地buffer */ //放到DDR
+ArmPucParam  g_armPucParam[MAX_CELL_NUM][SLOT_NUM_PER_FRAME] = {0};    /* Pucch 参数本地buffer *///放到DDR
 
 /* PUCCH UCI译码参数 */
 PucchPolarDecodeHacCfgPara  g_pucchPolarDecodeHacCfgParaDDR[MAX_CELL_NUM][SLOT_NUM_PER_FRAME][PUCCH_PART_NUM];//放到DDR
@@ -51,8 +51,8 @@ PucchFmt01Rst     g_pucchFmt01Rst[MAX_CELL_NUM][SLOT_NUM_PER_FRAME];//放到DDR
 PucchFmt23Rst     g_pucchFmt23Rst[MAX_CELL_NUM][SLOT_NUM_PER_FRAME];//放到DDR
 
 
-TLV_MSG g_pucchTlvMsg[MAX_CELL_NUM][SLOT_NUM_PER_FRAME][PUCCH_PART_NUM];
+TLV_MSG g_pucchTlvMsg[MAX_CELL_NUM][SLOT_NUM_PER_FRAME][PUCCH_PART_NUM];//放到DDR
 
-uint8_t g_pucchRptBuffer[MAX_CELL_NUM][SLOT_NUM_PER_FRAME][PUCCH_PART_NUM][PUCCH_RPT_BUFFER_SIZE];
+uint8_t g_pucchRptBuffer[MAX_CELL_NUM][SLOT_NUM_PER_FRAME][PUCCH_PART_NUM][PUCCH_RPT_BUFFER_SIZE];//放到DDR
 
-FSM g_pucchFSM[MAX_CELL_NUM][PUCCH_UCI_PING_PONG_NUM];
+FSM g_pucchFSM[MAX_CELL_NUM][PUCCH_UCI_PING_PONG_NUM];//放到DDR
