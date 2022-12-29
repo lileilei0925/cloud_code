@@ -9,10 +9,8 @@
 
 void PucchNcsandUVCalc(uint8_t SlotIdx, uint16_t PucchHoppingId,uint8_t GroupHopping);
 
-void UlTtiRequestPucchFmt023PduParse(ArmPucParam *armPucParam, PucParam *pucParam, uint16_t sfnNum, uint16_t slotNum, uint16_t pduIndex, uint8_t cellIndex);
-void UlTtiRequestPucchFmt1PduParse(ArmPucParam *armPucParam, PucParam *pucParam, uint8_t pucchpduGroupCnt, uint16_t sfnNum, uint16_t slotNum, uint8_t cellIndex);
 void PucchFmt1Grouping(ArmPucParam *armPucParam);
-void UlTtiRequestPucchPduparse(ArmPucParam *armPucParam, PucParam *pucParam, uint16_t sfnNum, uint16_t slotNum, uint8_t cellIndex);
+void UlTtiRequestPucchPduparse(ArmPucParam *armPucParam, uint16_t sfnNum, uint16_t slotNum, uint8_t cellIndex);
 
 void PucchNcsandUVCalc(uint8_t SlotIdx, uint16_t PucchHoppingId,uint8_t GroupHopping)
 {
@@ -1105,7 +1103,7 @@ void PucchFmt3PduParse(PucParam *pucParam, FapiNrMsgPucchPduInfo *fapipucchpduIn
 
 }
 
-void UlTtiRequestPucchFmt023Pduparse(ArmPucParam *armPucParam, PucParam *pucParam, uint16_t sfnNum, uint16_t slotNum, uint16_t pduIndex, uint8_t cellIndex)
+void UlTtiRequestPucchFmt023PduParse(ArmPucParam *armPucParam, PucParam *pucParam, uint16_t sfnNum, uint16_t slotNum, uint16_t pduIndex, uint8_t cellIndex)
 {
     uint8_t  formatType;
     uint8_t  EndSymbolIndex;
@@ -1174,7 +1172,7 @@ void UlTtiRequestPucchFmt023Pduparse(ArmPucParam *armPucParam, PucParam *pucPara
 	}
 }
 
-void UlTtiRequestPucchFmt1Pduparse(ArmPucParam *armPucParam, PucParam *pucParam, uint8_t pucchpduGroupCnt, uint16_t sfnNum, uint16_t slotNum, uint8_t cellIndex)
+void UlTtiRequestPucchFmt1PduParse(ArmPucParam *armPucParam, PucParam *pucParam, uint8_t pucchpduGroupCnt, uint16_t sfnNum, uint16_t slotNum, uint8_t cellIndex)
 {
     uint8_t  EndSymbolIndex;
     uint8_t  pucchNumpersym;
@@ -1339,25 +1337,29 @@ void PucchFmt1Grouping(ArmPucParam *armPucParam)
     }
 }
 
-void UlTtiRequestPucchPduparse(ArmPucParam *armPucParam, PucParam *pucParam, uint16_t sfnNum, uint16_t slotNum, uint8_t cellIndex)
+void UlTtiRequestPucchPduparse(ArmPucParam *armPucParam, uint16_t sfnNum, uint16_t slotNum, uint8_t cellIndex)
 {
     uint16_t pduIndex;
     uint8_t  pduNumCnt;
     uint8_t  pucchpduGroupCnt;
     uint8_t  fmtIdx;
     FapiNrMsgPucchPduInfo *fapipucchpduInfo = NULL;
+    PucchPara             *pucchPara        = NULL;
+    PucParam              *pucParam         = NULL;
     PucFmt0AlgoParam      *fmt0AlgoParam    = NULL;
     PucFmt1AlgoParam      *fmt1AlgoParam    = NULL;
     PucFmt23AlgoParam     *fmt2AlgoParam    = NULL;
     PucFmt23AlgoParam     *fmt3AlgoParam    = NULL;
 
     fapipucchpduInfo = &(armPucParam->FapiPucchPduInfo[0]);
+    pucchPara = &(g_PucchPara[cellIndex][slotNum]);
+    pucParam  = &(g_PucchPara[cellIndex][slotNum].pucParam);
 
     if(0 < armPucParam->pucchfmtpdunum[PUCCH_FORMAT_2])
     {
         for(pduNumCnt = 0; pduNumCnt < armPucParam->pucchfmtpdunum[PUCCH_FORMAT_2]; pduNumCnt++)
         {
-            pucParam = (g_PucchPara[cellIndex].pucParam + armPucParam->pucchNum);
+            pucParam = (pucParam + (armPucParam->pucchNum));
             pduIndex = armPucParam->pucchfmtpduIdxInner[PUCCH_FORMAT_2][pduNumCnt];
             g_pucchFmt23RptIndex[cellIndex][slotNum][pduIndex] = pduNumCnt;
             UlTtiRequestPucchFmt023PduParse(armPucParam, pucParam, sfnNum, slotNum, pduIndex, cellIndex); 
@@ -1369,7 +1371,7 @@ void UlTtiRequestPucchPduparse(ArmPucParam *armPucParam, PucParam *pucParam, uin
     {
         for(pduNumCnt = 0; pduNumCnt <armPucParam->pucchfmtpdunum[PUCCH_FORMAT_3]; pduNumCnt++)
         {
-            pucParam = (g_PucchPara[cellIndex].pucParam + armPucParam->pucchNum);
+            pucParam = (pucParam + (armPucParam->pucchNum));
             pduIndex = armPucParam->pucchfmtpduIdxInner[PUCCH_FORMAT_3][pduNumCnt];
             g_pucchFmt23RptIndex[cellIndex][slotNum][pduIndex] = (armPucParam->pucchfmtpdunum[PUCCH_FORMAT_2]) + pduNumCnt;
             UlTtiRequestPucchFmt023PduParse(armPucParam, pucParam, sfnNum, slotNum, pduIndex, cellIndex); 
@@ -1381,7 +1383,7 @@ void UlTtiRequestPucchPduparse(ArmPucParam *armPucParam, PucParam *pucParam, uin
     {
         for(pduNumCnt = 0; pduNumCnt < armPucParam->pucchfmtpdunum[PUCCH_FORMAT_0]; pduNumCnt++)
         {
-            pucParam = (g_PucchPara[cellIndex].pucParam + armPucParam->pucchNum);
+            pucParam = (pucParam + (armPucParam->pucchNum));
             pduIndex = armPucParam->pucchfmtpduIdxInner[PUCCH_FORMAT_0][pduNumCnt];
             g_pucchFmt23RptIndex[cellIndex][slotNum][pduIndex] = pduNumCnt;
             UlTtiRequestPucchFmt023PduParse(armPucParam, pucParam, sfnNum, slotNum, pduIndex, cellIndex); 
@@ -1395,22 +1397,22 @@ void UlTtiRequestPucchPduparse(ArmPucParam *armPucParam, PucParam *pucParam, uin
         PucchFmt1Grouping(armPucParam);
         for(pucchpduGroupCnt = 0; pucchpduGroupCnt < armPucParam->pucchpduGroupNum; pucchpduGroupCnt++)
         {
-            pucParam = (g_PucchPara[cellIndex].pucParam + armPucParam->pucchNum);
+            pucParam = (pucParam + (armPucParam->pucchNum));
             UlTtiRequestPucchFmt1PduParse(armPucParam, pucParam, pucchpduGroupCnt, sfnNum, slotNum, cellIndex);
             armPucParam->pucchNum++;
         }
     }  
 
-    g_PucchPara[cellIndex].pucchNum = armPucParam->pucchNum;
-    g_PucchPara[cellIndex].fmt0Num  = armPucParam->pucchfmtpdunum[PUCCH_FORMAT_0];
-    g_PucchPara[cellIndex].fmt1Num  = armPucParam->pucchfmtpdunum[PUCCH_FORMAT_1];
-    g_PucchPara[cellIndex].fmt2Num  = armPucParam->pucchfmtpdunum[PUCCH_FORMAT_2];
-    g_PucchPara[cellIndex].fmt3Num  = armPucParam->pucchfmtpdunum[PUCCH_FORMAT_3];
+    pucchPara->pucchNum = armPucParam->pucchNum;
+    pucchPara->fmt0Num  = armPucParam->pucchfmtpdunum[PUCCH_FORMAT_0];
+    pucchPara->fmt1Num  = armPucParam->pucchfmtpdunum[PUCCH_FORMAT_1];
+    pucchPara->fmt2Num  = armPucParam->pucchfmtpdunum[PUCCH_FORMAT_2];
+    pucchPara->fmt3Num  = armPucParam->pucchfmtpdunum[PUCCH_FORMAT_3];
 
     /*算法参数待接口OAM确认后赋值
-    fmt0AlgoParam  = g_PucchPara[cellIndex].fmt0AlgoParam;
-    fmt1AlgoParam  = g_PucchPara[cellIndex].fmt1AlgoParam;
-    fmt23AlgoParam = g_PucchPara[cellIndex].fmt23AlgoParam;
+    fmt0AlgoParam  = pucchPara->fmt0AlgoParam;
+    fmt1AlgoParam  = pucchPara->fmt1AlgoParam;
+    fmt23AlgoParam = pucchPara->fmt23AlgoParam;
 
     fmt0AlgoParam->deltaOffset  = ;
     fmt0AlgoParam->noiseTapNum  = ;
@@ -1432,7 +1434,7 @@ void PucchPart1ParaCfgHandler()//计算DSP解调参数时顺便计算
 {
     printf("配置Part1译码参数\n");
     
-    //UlTtiRequestPucchPduparse(fapipucchpduInfo, pucParam, sfnNum, slotNum, cellIndex); 
+    //UlTtiRequestPucchPduparse(fapipucchpduInfo, sfnNum, slotNum, cellIndex); 
 
 }
 

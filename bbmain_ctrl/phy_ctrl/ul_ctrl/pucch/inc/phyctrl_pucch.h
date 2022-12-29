@@ -241,59 +241,6 @@ typedef struct
 
 typedef struct
 {
-	uint8_t  pduBitmap;       					/* bit0:SR,bit1:HARQ,其他比特位清0。0:存在,1:不存在 */
-    uint8_t  PucchFormat;						/* PUCCH格式,0: PUCCH Format0,1: PUCCH Format1 */
-	uint8_t  UL_CQI;							/* SNR,取值范围[0,255],代表-64dB到63dB,步长0.5dB，无效值255 */
-    uint8_t  rsv1;
-
-	uint32_t Handle;  							/* ？ARM侧无法区分，待定 */
-    
-	uint16_t RNTI;    							/* UE的RNTI */
-    uint16_t rsv2;    							
-	
-	uint16_t TA;								/* UE的TA值,取值范围[0,63],213协议4.2节,无效值65535 */
-	uint16_t RSSI;								/* 取值范围[0,1280],步长0.1dB */
-	
-	SRInfoFmt01   srInfoFmt01;
-	HARQInfoFmt01 harqInfoFmt01;
-}PucFmt01Rpt;
-
-typedef struct
-{
-	uint8_t  pduBitmap;       					/* bit0:SR,bit1:HARQ,bit2:CSI Part 1,bit3:CSI Part 2,其他比特位清0。0:存在,1:不存在 */
-    uint8_t  PucchFormat;						/* PUCCH格式,0: PUCCH Format2,1: PUCCH Format3,2: PUCCH Format4 */
-	uint8_t  UL_CQI;							/* SNR,取值范围[0,255],代表-64dB到63dB,步长0.5dB，无效值255 */
-    uint8_t  rsv1;
-
-	uint32_t Handle; 
-    
-	uint16_t RNTI;    							/* UE的RNTI */
-	uint16_t TA;								/* UE的TA值,取值范围[0,63],213协议4.2节,无效值65535 */
-	
-    uint16_t RSSI;								/* 取值范围[0,1280],步长0.1dB */
-	uint16_t rsv2;
-
-	SRInfoFmt23    srInfoFmt234;
-	
-	HARQInfoFmt23  harqInfoFmt234;
-	
-	CSIpart1Info   csipart1Info;
-	
-	CSIpart2Info   csipart2Info;
-}PucFmt23Rpt;
-
-typedef struct
-{
-	uint8_t PucFmt01Num;
-	uint8_t PucFmt23Num;
-    uint8_t rsv[2];
-
-	PucFmt01Rpt  pucFmt01Rpt[MAX_PUCCH_NUM];
-	PucFmt23Rpt  pucFmt23Rpt[MAX_PUCCH_NUM];
-}PucFmtRpt;
-
-typedef struct
-{
     uint8_t pucchfmtpdunum[PUCCH_FORMAT_BUTT];                                               /* 本小区pucch fmt0/1/2/3的PDU个数 */
     uint8_t pucchfmtpduIdxInner[PUCCH_FORMAT_BUTT][MAX_PUCCH_NUM];                           /* 本小区pucch fmt0/1/2/3的PDU内部索引 */
 
